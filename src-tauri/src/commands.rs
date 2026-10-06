@@ -35,14 +35,28 @@ pub fn save_rect(app: AppHandle, label: String, x: i32, y: i32, w: u32, h: u32) 
     layout::save_rect(&app, &label, Rect { x, y, w, h })
 }
 
-/// Resolved app theme → native window theme (title bar of the settings window) + its material
-/// ("mica" | "acrylic" | "none"; defaults to Mica).
+/// Resolved app palette: light or dark system backdrop (and title bar) for the calling window; for the
+/// settings window also its material ("mica" | "acrylic" | "none"; defaults to Mica). The window's tao theme
+/// is left alone, so `theme()` and theme-changed events keep reporting the real Windows theme.
 #[tauri::command]
 pub fn set_window_theme(window: WebviewWindow, dark: bool, material: Option<String>) {
-    let theme = if dark { Theme::Dark } else { Theme::Light };
-    let _ = window.set_theme(Some(theme));
+    crate::glass::set_dark_mode(&window, dark);
     if window.label() == crate::settings_window::LABEL {
         crate::glass::set_window_material(&window, material.as_deref().unwrap_or("mica"), dark);
+    }
+}
+
+/// The calling window has rendered its first frame with the stored settings. Tiles move from their
+/// off-screen parking spot into place; the settings window (created hidden) is shown and focused.
+#[tauri::command]
+pub fn window_ready(app: AppHandle, window: WebviewWindow) {
+    if crate::TILES.contains(&window.label()) {
+        layout::reveal(&app, window.label());
+    } else if window.label() == crate::settings_window::LABEL {
+        if !matches!(window.is_visible(), Ok(true)) {
+            let _ = window.show();
+        }
+        let _ = window.set_focus();
     }
 }
 

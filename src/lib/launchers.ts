@@ -1,7 +1,14 @@
 // Launcher model shared by the "Ярлыки" tile and the settings window.
 import { invoke } from "@tauri-apps/api/core";
 import { ru } from "../i18n/ru";
-import { settings, type BuiltInLauncher, type CustomLauncher, type LauncherIcon, type Settings } from "./settings";
+import {
+  settings,
+  type BuiltInLauncher,
+  type CustomLauncher,
+  type LauncherIcon,
+  type LaunchersSettings,
+  type Settings,
+} from "./settings";
 
 export interface LauncherItem {
   /** Built-in key ("du" | "moodle" | "learn") or the custom launcher id. */
@@ -87,12 +94,32 @@ export function cellsThatFit(px: number): number {
   return Math.max(1, Math.floor((px + CELL_GAP) / (CELL_SIZE + CELL_GAP)));
 }
 
+/** Content-box size (clientWidth/Height minus padding), matching ResizeObserver's contentRect. */
+export function contentBox(el: HTMLElement): { w: number; h: number } {
+  const cs = getComputedStyle(el);
+  const px = (v: string) => parseFloat(v) || 0;
+  return {
+    w: el.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight),
+    h: el.clientHeight - px(cs.paddingTop) - px(cs.paddingBottom),
+  };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------------------------
 
-/** A launcher URL must start with http:// or https://. */
-export const isValidUrl = (url: string): boolean => /^https?:\/\/\S+\.\S+/i.test(url.trim());
+/**
+ * A launcher URL must start with http:// or https:// and name a host — `http://localhost:8080` or
+ * `http://intranet/` are fine (the opener and the favicon fetch accept them), `https://` alone is not.
+ */
+export function isValidUrl(url: string): boolean {
+  try {
+    const u = new URL(url.trim());
+    return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 export function hostOf(url: string): string {
   try {
@@ -117,34 +144,46 @@ export function openLaunchersSettings(edit?: string): Promise<void> {
   );
 }
 
+// Every write below uses the functional form of settings.update, so the patch is computed against the
+// state at apply time (the store awaits its promise first) and two writes in one tick cannot overwrite
+// each other's `custom` array or `builtIn` map.
+
+/** Nested patch of the launchers section computed from the current state. */
+const patchLaunchers = (fn: (ln: LaunchersSettings) => Partial<LaunchersSettings>): Promise<void> =>
+  settings.update((s) => ({ launchers: { ...s.launchers, ...fn(s.launchers) } }));
+
 export function removeCustom(id: string): Promise<void> {
-  return settings.updateLaunchers({ custom: settings.get().launchers.custom.filter((c) => c.id !== id) });
+  return patchLaunchers((ln) => ({ custom: ln.custom.filter((c) => c.id !== id) }));
 }
 
 export function setBuiltIn(key: BuiltInLauncher, enabled: boolean): Promise<void> {
-  return settings.updateLaunchers({ builtIn: { ...settings.get().launchers.builtIn, [key]: enabled } });
+  return patchLaunchers((ln) => ({ builtIn: { ...ln.builtIn, [key]: enabled } }));
 }
 
 export function setBuiltInColor(key: BuiltInLauncher, color: string): Promise<void> {
-  return settings.updateLaunchers({ builtInColors: { ...settings.get().launchers.builtInColors, [key]: color } });
+  return patchLaunchers((ln) => ({ builtInColors: { ...ln.builtInColors, [key]: color } }));
 }
 
 /** Insert (no id match) or replace a custom launcher, keeping list order. */
 export function upsertCustom(item: CustomLauncher): Promise<void> {
-  const custom = settings.get().launchers.custom.slice();
-  const i = custom.findIndex((c) => c.id === item.id);
-  if (i < 0) custom.push(item);
-  else custom[i] = item;
-  return settings.updateLaunchers({ custom });
+  return patchLaunchers((ln) => {
+    const custom = ln.custom.slice();
+    const i = custom.findIndex((c) => c.id === item.id);
+    if (i < 0) custom.push(item);
+    else custom[i] = item;
+    return { custom };
+  });
 }
 
-/** Move a custom launcher within the list. */
+/** Move a custom launcher within the list (no-op when the move would leave the list). */
 export function moveCustom(id: string, delta: number): Promise<void> {
-  const custom = settings.get().launchers.custom.slice();
-  const i = custom.findIndex((c) => c.id === id);
-  const j = i + delta;
-  if (i < 0 || j < 0 || j >= custom.length) return Promise.resolve();
-  const [item] = custom.splice(i, 1);
-  custom.splice(j, 0, item);
-  return settings.updateLaunchers({ custom });
+  return patchLaunchers((ln) => {
+    const custom = ln.custom.slice();
+    const i = custom.findIndex((c) => c.id === id);
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= custom.length) return {};
+    const [item] = custom.splice(i, 1);
+    custom.splice(j, 0, item);
+    return { custom };
+  });
 }

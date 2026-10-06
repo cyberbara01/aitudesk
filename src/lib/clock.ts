@@ -119,9 +119,9 @@ export function formatPx(v: number): string {
 export function formatPercent(v: number): string {
   return `${v} ${extra.clock.percent}`;
 }
-/** Hundredths of an em → "−0.02 em" (typographic minus). */
+/** Hundredths of an em: "-0.02 em". */
 export function formatTracking(v: number): string {
-  const sign = v < 0 ? "−" : v > 0 ? "+" : "";
+  const sign = v < 0 ? "-" : v > 0 ? "+" : "";
   return `${sign}${Math.abs(v / 100).toFixed(2)} ${extra.clock.em}`;
 }
 

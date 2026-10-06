@@ -9,7 +9,7 @@ import { Segmented, type SegmentedOption } from "../../components/Segmented";
 import { TextField } from "../../components/TextField";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.schedule";
-import { FAVORITE_COLORS } from "../../lib/design";
+import { SWATCHES } from "../../lib/design";
 import {
   ALL_DAYS,
   DEFAULT_START,
@@ -71,14 +71,16 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
   const [teacher, setTeacher] = useState(lesson?.teacher ?? "");
   const [room, setRoom] = useState(lesson?.room ?? "");
   const [colorMode, setColorMode] = useState<ColorMode>(lesson?.color ? "custom" : "accent");
-  const [color, setColor] = useState(lesson?.color ?? FAVORITE_COLORS[0]);
+  const [color, setColor] = useState(lesson?.color ?? SWATCHES[0]);
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // The dialog focuses its first control (the close button); a form wants its main field instead.
+  // The kit's Dialog focuses the first control in DOM order — here the «Пн» button of the day Segmented,
+  // which the brief places above the fields. The form wants its required field (the title), so focus is
+  // moved there one frame later; `autoFocus` alone would be overridden by the dialog's own focus call.
   useEffect(() => {
-    const id = requestAnimationFrame(() => rootRef.current?.querySelector<HTMLInputElement>("input.sched-focus")?.focus());
+    const id = requestAnimationFrame(() => rootRef.current?.querySelector<HTMLInputElement>("input.sched-focus")?.focus({ preventScroll: true }));
     return () => cancelAnimationFrame(id);
   }, []);
 
@@ -184,7 +186,7 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
               onChange={changeStart}
               onBlur={() => blurTime("start")}
               onKeyDown={onEnter}
-              mono
+              inputClassName="num"
               placeholder={START_PLACEHOLDER}
               maxLength={5}
               error={shown("start")}
@@ -195,7 +197,7 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
               onChange={changeEnd}
               onBlur={() => blurTime("end")}
               onKeyDown={onEnter}
-              mono
+              inputClassName="num"
               placeholder={END_PLACEHOLDER}
               maxLength={5}
               error={shown("end")}
@@ -234,13 +236,13 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
             </div>
             <Segmented<ColorMode> size="sm" options={COLOR_OPTIONS} value={colorMode} onChange={setColorMode} ariaLabel={ru.common.color} />
           </div>
-          {colorMode === "custom" && <ColorPicker value={color} onChange={setColor} swatches={FAVORITE_COLORS} />}
+          {colorMode === "custom" && <ColorPicker value={color} onChange={setColor} />}
         </div>
 
         <div className="sched-field">
           <span className="sched-field-label caption">{ru.common.preview}</span>
           <div className="sched-preview" role="img" aria-label={extra.previewHint}>
-            <LessonRow lesson={preview} state="now" now={new Date()} />
+            <LessonRow lesson={preview} state="now" now={new Date()} preview />
           </div>
         </div>
       </div>

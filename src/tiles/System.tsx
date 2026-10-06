@@ -27,7 +27,7 @@ interface RowSpec {
   hint?: string;
 }
 
-const NBSP = " ";
+const NBSP = " ";
 
 /** Label of the first row on a machine without a battery, per settings.system.labelMode. */
 function pcLabel(s: SystemSettings, userName: string | null): string {
@@ -39,7 +39,7 @@ function pcLabel(s: SystemSettings, userName: string | null): string {
 function batteryRow(p: PowerInfo | null, noBatteryLabel: string): RowSpec {
   const id = "power";
   if (!p) return { id, icon: null, tone: "text", label: ru.system.battery, value: "" };
-  if (!p.hasBattery) return { id, icon: "desktop", tone: "text", label: noBatteryLabel, value: ru.system.none };
+  if (!p.hasBattery) return { id, icon: "desktop", tone: "text", label: noBatteryLabel, value: ru.system.mains };
   const pct = p.percent;
   if (pct === null) return { id, icon: "battery_0", tone: "text", label: ru.system.battery, value: ru.system.none };
   const tone: Tone = pct <= 20 ? "critical" : pct <= 40 ? "caution" : "text";
@@ -115,7 +115,7 @@ interface SystemRowsProps {
 
 /**
  * The tile's rows for a given snapshot and settings (also drives the live preview on the settings page).
- * Battery always; Wi‑Fi / Bluetooth per showWifi / showBluetooth; names per hideNames; first row label per labelMode.
+ * Battery always; Wi-Fi / Bluetooth per showWifi / showBluetooth; names per hideNames; first row label per labelMode.
  * The group is centred vertically with even gaps when there is spare height, otherwise it starts at the top (CSS).
  */
 export function SystemRows({ info, settings }: SystemRowsProps) {
@@ -132,7 +132,7 @@ export function SystemRows({ info, settings }: SystemRowsProps) {
   );
 }
 
-/** «Система»: battery / Wi‑Fi / Bluetooth, non-interactive rows on glass (or straight on the wallpaper). */
+/** «Система»: battery / Wi-Fi / Bluetooth, non-interactive rows on glass (or straight on the wallpaper). */
 export function SystemTile() {
   const s = useSettings();
   const info = useSystemInfo();

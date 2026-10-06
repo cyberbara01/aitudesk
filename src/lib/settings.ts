@@ -29,8 +29,8 @@ export interface AccentSetting {
 // Tiles
 // ---------------------------------------------------------------------------------------------
 
-export type TileId = "clock" | "system" | "launchers" | "map" | "schedule";
-export const TILE_IDS: readonly TileId[] = ["clock", "system", "launchers", "map", "schedule"];
+export type TileId = "clock" | "system" | "launchers" | "map" | "schedule" | "notes";
+export const TILE_IDS: readonly TileId[] = ["clock", "system", "launchers", "map", "schedule", "notes"];
 
 export type ClockFont =
   | "segoe-display"
@@ -83,7 +83,8 @@ export interface SystemSettings {
 export type BuiltInLauncher = "du" | "moodle" | "learn";
 
 export type LauncherIcon =
-  | { kind: "fluent"; name: string }
+  /** `svg`: the icon markup cached when chosen, so the tile never loads the full icon set. */
+  | { kind: "fluent"; name: string; svg?: string }
   /** Site icon fetched once and cached as a data: URL; falls back to the first letter while missing. */
   | { kind: "site"; data?: string }
   | { kind: "letter" };
@@ -117,12 +118,17 @@ export interface MapFavorite {
 
 export interface MapSettings {
   scheme: MapScheme;
+  /** Glass tile behind the map. */
   background: boolean;
+  /** With the glass off: a soft fill under the building outline. Off = only the plan itself, no backdrop at all. */
+  silhouette: boolean;
   defaultFloor: 1 | 2 | 3;
   /** Reopen on the floor that was shown last time instead of defaultFloor. */
   rememberFloor: boolean;
   lastFloor: 1 | 2 | 3;
   switchSide: "left" | "right";
+  /** Floor switch always visible, or only while the pointer is over the map. */
+  switchMode: "always" | "hover";
   showSearch: boolean;
   showZoom: boolean;
   showLabels: boolean;
@@ -149,9 +155,33 @@ export interface Lesson {
 export interface ScheduleSettings {
   lessons: Lesson[];
   showWeekend: boolean;
+  /** Days without lessons in the tile's day row. Off: only days that have lessons. */
+  showEmptyDays: boolean;
   background: boolean;
   /** Always open on today; otherwise keep the day the user picked. */
   followToday: boolean;
+  /** Mask lesson texts on the desktop with password dots (hover + eye reveals). */
+  privacy: boolean;
+}
+
+export interface Note {
+  id: string;
+  text: string;
+  /** Local wall time "YYYY-MM-DDTHH:MM"; absent = no deadline. */
+  deadline?: string;
+  done: boolean;
+  /** Epoch ms of creation (stable order for notes without a deadline). */
+  created: number;
+  /** Optional #RRGGBB marker. */
+  color?: string;
+}
+
+export interface NotesSettings {
+  notes: Note[];
+  showDone: boolean;
+  /** Mask note texts on the desktop with password dots (hover + eye reveals). */
+  privacy: boolean;
+  background: boolean;
 }
 
 export interface Settings {
@@ -167,6 +197,7 @@ export interface Settings {
   launchers: LaunchersSettings;
   map: MapSettings;
   schedule: ScheduleSettings;
+  notes: NotesSettings;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -214,10 +245,12 @@ export const DEFAULT_LAUNCHERS: LaunchersSettings = {
 export const DEFAULT_MAP: MapSettings = {
   scheme: "pastel",
   background: true,
+  silhouette: true,
   defaultFloor: 1,
   rememberFloor: true,
   lastFloor: 1,
   switchSide: "right",
+  switchMode: "always",
   showSearch: true,
   showZoom: true,
   showLabels: true,
@@ -228,8 +261,17 @@ export const DEFAULT_MAP: MapSettings = {
 export const DEFAULT_SCHEDULE: ScheduleSettings = {
   lessons: [],
   showWeekend: false,
+  showEmptyDays: true,
   background: true,
   followToday: true,
+  privacy: false,
+};
+
+export const DEFAULT_NOTES: NotesSettings = {
+  notes: [],
+  showDone: false,
+  privacy: false,
+  background: true,
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -237,13 +279,14 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   style: "fluent",
   accent: { mode: "windows", preset: "fluent-blue", custom: "#60CDFF" },
-  tiles: { clock: true, system: true, launchers: true, map: true, schedule: true },
+  tiles: { clock: true, system: true, launchers: true, map: true, schedule: true, notes: true },
   lockLayout: false,
   clock: DEFAULT_CLOCK,
   system: DEFAULT_SYSTEM,
   launchers: DEFAULT_LAUNCHERS,
   map: DEFAULT_MAP,
   schedule: DEFAULT_SCHEDULE,
+  notes: DEFAULT_NOTES,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -272,7 +315,11 @@ function migrateLauncher(raw: unknown): CustomLauncher | null {
   let icon: LauncherIcon = { kind: "site" };
   if (isObj(raw.icon)) {
     const k = raw.icon.kind;
-    if (k === "fluent" && typeof raw.icon.name === "string") icon = { kind: "fluent", name: raw.icon.name };
+    if (k === "fluent" && typeof raw.icon.name === "string") {
+      const cached = raw.icon.svg;
+      const svg = typeof cached === "string" && cached.startsWith("<svg") && cached.length < 20000 ? cached : undefined;
+      icon = svg ? { kind: "fluent", name: raw.icon.name, svg } : { kind: "fluent", name: raw.icon.name };
+    }
     else if (k === "site") icon = { kind: "site", data: typeof raw.icon.data === "string" ? raw.icon.data : undefined };
     else if (k === "letter") icon = { kind: "letter" };
   } else if (typeof raw.icon === "string" && raw.icon) {
@@ -297,6 +344,22 @@ function migrateLesson(raw: unknown): Lesson | null {
     room: str(raw.room, ""),
     color: hex(raw.color, "") || undefined,
   };
+}
+
+const DEADLINE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+function migrateNote(raw: unknown): Note | null {
+  if (!isObj(raw) || typeof raw.id !== "string") return null;
+  const note: Note = {
+    id: raw.id,
+    text: str(raw.text, "").slice(0, 2000),
+    done: bool(raw.done, false),
+    created: num(raw.created, 0, 0, Number.MAX_SAFE_INTEGER),
+  };
+  if (typeof raw.deadline === "string" && DEADLINE.test(raw.deadline)) note.deadline = raw.deadline;
+  const color = hex(raw.color, "");
+  if (color) note.color = color;
+  return note;
 }
 
 /** Accepts v1 or v2 JSON (or garbage) and returns a complete, validated v2 object. */
@@ -381,10 +444,12 @@ export function normalize(saved: unknown): Settings {
   const map: MapSettings = {
     scheme: oneOf(m.scheme, ["glass", "pastel", "vivid", "outline"] as const, d.map.scheme),
     background: bool(m.background, d.map.background),
+    silhouette: bool(m.silhouette, d.map.silhouette),
     defaultFloor: num(m.defaultFloor, d.map.defaultFloor, 1, 3) as 1 | 2 | 3,
     rememberFloor: bool(m.rememberFloor, d.map.rememberFloor),
     lastFloor: num(m.lastFloor, d.map.lastFloor, 1, 3) as 1 | 2 | 3,
     switchSide: oneOf(m.switchSide, ["left", "right"] as const, d.map.switchSide),
+    switchMode: oneOf(m.switchMode, ["always", "hover"] as const, d.map.switchMode),
     showSearch: bool(m.showSearch, d.map.showSearch),
     showZoom: bool(m.showZoom, d.map.showZoom),
     showLabels: bool(m.showLabels, d.map.showLabels),
@@ -404,8 +469,20 @@ export function normalize(saved: unknown): Settings {
   const schedule: ScheduleSettings = {
     lessons: lessonsRaw.map(migrateLesson).filter((x): x is Lesson => x !== null),
     showWeekend: bool(sc.showWeekend, d.schedule.showWeekend),
+    showEmptyDays: bool(sc.showEmptyDays, d.schedule.showEmptyDays),
     background: bool(sc.background, d.schedule.background),
     followToday: bool(sc.followToday, d.schedule.followToday),
+    privacy: bool(sc.privacy, d.schedule.privacy),
+  };
+
+  // notes
+  const n = isObj(s.notes) ? s.notes : {};
+  const notesRaw = Array.isArray(n.notes) ? n.notes : [];
+  const notes: NotesSettings = {
+    notes: notesRaw.map(migrateNote).filter((x): x is Note => x !== null),
+    showDone: bool(n.showDone, d.notes.showDone),
+    privacy: bool(n.privacy, d.notes.privacy),
+    background: bool(n.background, d.notes.background),
   };
 
   return {
@@ -420,10 +497,39 @@ export function normalize(saved: unknown): Settings {
     launchers,
     map,
     schedule,
+    notes,
   };
 }
 
 export type SettingsPatch = Partial<Omit<Settings, "version">>;
+
+/** Pages that can be reset on their own. */
+export type ResetSection = "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "notes";
+export const RESET_SECTIONS: readonly ResetSection[] = ["appearance", "clock", "system", "launchers", "map", "schedule", "notes"];
+
+/**
+ * Defaults for the customization of one section. User data stays: lessons, notes, custom launchers and
+ * which built-ins are on, marked rooms, the custom label text of the system tile.
+ */
+function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
+  const d = DEFAULT_SETTINGS;
+  switch (section) {
+    case "appearance":
+      return { theme: d.theme, style: d.style, accent: d.accent };
+    case "clock":
+      return { clock: d.clock };
+    case "system":
+      return { system: { ...d.system, customLabel: s.system.customLabel } };
+    case "launchers":
+      return { launchers: { ...d.launchers, builtIn: s.launchers.builtIn, custom: s.launchers.custom } };
+    case "map":
+      return { map: { ...d.map, favorites: s.map.favorites, lastFloor: s.map.lastFloor } };
+    case "schedule":
+      return { schedule: { ...d.schedule, lessons: s.schedule.lessons } };
+    case "notes":
+      return { notes: { ...d.notes, notes: s.notes.notes } };
+  }
+}
 
 class SettingsStore {
   private store: Promise<Store>;
@@ -498,6 +604,23 @@ class SettingsStore {
   }
   updateSchedule(p: Partial<ScheduleSettings>) {
     return this.update((s) => ({ schedule: { ...s.schedule, ...p } }));
+  }
+  updateNotes(p: Partial<NotesSettings>) {
+    return this.update((s) => ({ notes: { ...s.notes, ...p } }));
+  }
+
+  /** «Сбросить настройки раздела»: the look of one page back to defaults, user data kept. */
+  resetSection(section: ResetSection) {
+    return this.update((s) => resetPatch(s, section));
+  }
+
+  /** «Сбросить оформление»: style, palette, accent and the look of every tile; user data kept. */
+  resetCustomization() {
+    return this.update((s) => {
+      let patch: SettingsPatch = {};
+      for (const section of RESET_SECTIONS) patch = { ...patch, ...resetPatch({ ...s, ...patch } as Settings, section) };
+      return patch;
+    });
   }
 
   private emit() {

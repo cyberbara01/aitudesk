@@ -20,10 +20,11 @@ interface TileProps {
 
 const DEFAULT_MIN: Record<TileId, { w: number; h: number }> = {
   clock: { w: 160, h: 80 },
-  system: { w: 200, h: 96 },
-  launchers: { w: 120, h: 120 },
+  system: { w: 220, h: 144 },
+  launchers: { w: 120, h: 136 },
   map: { w: 400, h: 220 },
   schedule: { w: 200, h: 120 },
+  notes: { w: 200, h: 120 },
 };
 
 /** Glass tile root: material, 1 px border, top edge highlight, radius, padding; context menu; edit mode. */

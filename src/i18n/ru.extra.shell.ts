@@ -2,9 +2,6 @@
 export const extra = {
   shell: {
     navLabel: "Разделы настроек",
-    keysCtrl: "Ctrl",
-    keysDigits: "1…8",
-    keysHint: "переключать разделы",
   },
   general: {
     desc: "Какие плитки лежат на рабочем столе и как они себя ведут",
@@ -13,16 +10,16 @@ export const extra = {
     showAllHint: "Выключите, чтобы на время убрать все плитки с рабочего стола",
     layoutLabel: "Раскладка плиток",
     resetLayoutFailed: "Не удалось сбросить раскладку",
-    autostartFailed: "Не удалось изменить автозапуск — попробуйте ещё раз",
+    autostartFailed: "Не удалось изменить автозапуск. Попробуйте ещё раз",
   },
   appearance: {
-    desc: "Стиль, палитра и акцент — для всех плиток и этого окна",
+    desc: "Стиль, палитра и акцент для всех плиток и этого окна",
     previewHint: "Живой предпросмотр: часы и система в выбранных стиле, теме и акценте",
     themeHint: "Палитра плиток и окна настроек",
-    themeSystemHint: "Светлая или тёмная — как настроено в Windows",
+    themeSystemHint: "Светлая или тёмная, как настроено в Windows",
     accentHint: "Цвет выделения, переключателей и индикаторов",
     accentWindowsHint: "Берётся из параметров персонализации Windows",
-    accentCustomHint: "Любой цвет — палитра, RGB или HEX",
+    accentCustomHint: "Любой цвет: палитра, RGB или HEX",
     presets: "Готовые цвета",
     sampleWifi: "AITU",
     sampleDevice: "Наушники",

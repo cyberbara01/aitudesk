@@ -1,4 +1,4 @@
-//! "Настройки": an ordinary decorated window 560×640 with Mica and the system title bar (§1.5).
+//! "Настройки": an ordinary decorated, resizable window with Mica (or the style's material) and the system title bar.
 
 use tauri::{AppHandle, Emitter, Manager, Theme, WebviewUrl, WebviewWindowBuilder};
 
@@ -34,7 +34,7 @@ pub fn open(app: &AppHandle, tab: &str, edit: Option<&str>) {
     let app = app.clone();
     std::thread::spawn(move || {
         let built = WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App(url.into()))
-            .title("Настройки — AITU Desk")
+            .title("Настройки AITU Desk")
             .inner_size(860.0, 640.0)
             .min_inner_size(720.0, 560.0)
             .resizable(true)
@@ -48,8 +48,12 @@ pub fn open(app: &AppHandle, tab: &str, edit: Option<&str>) {
             Ok(win) => {
                 let dark = !matches!(win.theme(), Ok(Theme::Light));
                 crate::glass::apply_mica(&win, dark);
-                let _ = win.show();
-                let _ = win.set_focus();
+                // The page calls `window_ready` after its first render; show anyway if that never comes.
+                std::thread::sleep(std::time::Duration::from_millis(2500));
+                if !matches!(win.is_visible(), Ok(true)) {
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
             }
             Err(e) => eprintln!("[settings] cannot create window: {e}"),
         }

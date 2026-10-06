@@ -20,7 +20,8 @@ import {
 import { settings, type BuiltInLauncher, type CustomLauncher } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { LauncherEditor } from "./launchers/LauncherEditor";
-import { LauncherCell, LauncherIcon, ServiceCell, type LauncherLook } from "./launchers/LauncherIcon";
+import { LauncherIcon, type LauncherLook } from "./launchers/LauncherIcon";
+import { LaunchersGrid } from "./launchers/LaunchersGrid";
 
 interface Props {
   /** From ?edit= / settings-navigate: a custom id opens its editor, a built-in key opens its colour. */
@@ -32,6 +33,8 @@ const COLOR_COMMIT_MS = 120;
 
 type DraftColors = Partial<Record<BuiltInLauncher, string>>;
 
+const itemDomId = (key: BuiltInLauncher) => `ln-item-${key}`;
+
 /** «Ярлыки»: live preview, built-in launchers (switch + colour), custom launchers (editor dialog), display options. */
 export function LaunchersPage({ editId }: Props) {
   const s = useSettings();
@@ -42,6 +45,8 @@ export function LaunchersPage({ editId }: Props) {
   const [draftColors, setDraftColors] = useState<DraftColors>({});
   const pending = useRef<{ key: BuiltInLauncher; hex: string; timer: number } | null>(null);
   const handledEdit = useRef<string | null>(null);
+  /** Set by the deep link: once the colour popover is open, move focus into it (a mouse toggle keeps focus on the dot). */
+  const focusPopover = useRef(false);
 
   // Deep link from the tile's context menu.
   useEffect(() => {
@@ -49,8 +54,23 @@ export function LaunchersPage({ editId }: Props) {
     handledEdit.current = editId;
     const custom = settings.get().launchers.custom.find((c) => c.id === editId);
     if (custom) setEditor({ item: custom });
-    else if (isBuiltInKey(editId)) setColorOpen(editId);
+    else if (isBuiltInKey(editId)) {
+      focusPopover.current = true;
+      setColorOpen(editId);
+    }
   }, [loaded, editId]);
+
+  // The opened colour popover sits below the preview and the section heads: bring it into view, and after a
+  // deep link put focus on its current swatch so «Изменить» on the tile lands on something visibly changed.
+  useEffect(() => {
+    if (!colorOpen) return;
+    const item = document.getElementById(itemDomId(colorOpen));
+    item?.scrollIntoView({ block: "nearest" });
+    if (!focusPopover.current) return;
+    focusPopover.current = false;
+    const pop = item?.querySelector<HTMLElement>(".ln-color-pop");
+    (pop?.querySelector<HTMLElement>('.cp-swatch[aria-checked="true"]') ?? pop?.querySelector<HTMLElement>(".cp-swatch"))?.focus();
+  }, [colorOpen]);
 
   // ---- Built-in colours: instant draft, debounced persistence ----
   const commitColor = useCallback((key: BuiltInLauncher, hex: string) => {
@@ -95,17 +115,20 @@ export function LaunchersPage({ editId }: Props) {
   );
 
   const openNew = () => setEditor({ item: null });
+  // Stable: the Dialog re-registers in the Esc stack and re-focuses its first field whenever onClose changes.
+  const closeEditor = useCallback(() => setEditor(null), []);
 
   return (
     <Page title={ru.settings.nav.launchers} description={extra.description}>
-      <div className="ln-preview-wrap" aria-label={ru.common.preview}>
-        <div className={ln.background ? "ln-preview" : "ln-preview no-bg"}>
-          {items.map((it) => (
-            <LauncherCell key={it.id} look={it} showLabel={ln.showLabels} />
-          ))}
-          <ServiceCell variant="add" caption={ru.launchers.add} ariaLabel={ru.settings.launchers.addLauncher} showLabel={ln.showLabels} />
+      {/* Live preview: the real tile material at the default tile size (280×184 → 3×2 cells), so the
+          «Добавить» / «+N» rule is exercised exactly as on the desktop. */}
+      <div className="ln-preview-wrap">
+        <div className="ln-stage">
+          <div className={ln.background ? "tile tile-launchers ln-preview" : "tile tile-launchers no-bg ln-preview"} role="img" aria-label={ru.common.preview}>
+            <LaunchersGrid items={items} showLabels={ln.showLabels} />
+          </div>
         </div>
-        <span className="hint">{extra.preview}</span>
+        <p className="hint ln-preview-hint">{extra.preview}</p>
       </div>
 
       <Section title={ru.settings.launchers.builtIn} description={extra.builtInHint}>
@@ -115,7 +138,7 @@ export function LaunchersPage({ editId }: Props) {
           const open = colorOpen === b.id;
           const look: LauncherLook = { name: b.name, url: b.url, icon: { kind: "fluent", name: b.icon }, color };
           return (
-            <div key={b.id} className={on ? "ln-item" : "ln-item off"}>
+            <div key={b.id} id={itemDomId(b.id)} className={on ? "ln-item" : "ln-item off"}>
               <div className="row ln-row">
                 <LauncherIcon look={look} />
                 <div className="row-text">
@@ -131,7 +154,7 @@ export function LaunchersPage({ editId }: Props) {
                     aria-expanded={open}
                     onClick={() => toggleColor(b.id)}
                   />
-                  <Switch checked={on} onChange={(v) => void setBuiltIn(b.id, v)} />
+                  <Switch checked={on} ariaLabel={b.name} onChange={(v) => void setBuiltIn(b.id, v)} />
                 </div>
               </div>
               {open && (
@@ -193,14 +216,14 @@ export function LaunchersPage({ editId }: Props) {
 
       <Section title={extra.display}>
         <Row label={ru.settings.launchers.showLabels} hint={extra.showLabelsHint}>
-          <Switch checked={ln.showLabels} onChange={(v) => void settings.updateLaunchers({ showLabels: v })} />
+          <Switch checked={ln.showLabels} ariaLabel={ru.settings.launchers.showLabels} onChange={(v) => void settings.updateLaunchers({ showLabels: v })} />
         </Row>
         <Row label={ru.settings.launchers.background} hint={extra.backgroundHint}>
-          <Switch checked={ln.background} onChange={(v) => void settings.updateLaunchers({ background: v })} />
+          <Switch checked={ln.background} ariaLabel={ru.settings.launchers.background} onChange={(v) => void settings.updateLaunchers({ background: v })} />
         </Row>
       </Section>
 
-      {editor && <LauncherEditor item={editor.item} showLabels={ln.showLabels} onClose={() => setEditor(null)} />}
+      {editor && <LauncherEditor item={editor.item} showLabels={ln.showLabels} onClose={closeEditor} />}
     </Page>
   );
 }

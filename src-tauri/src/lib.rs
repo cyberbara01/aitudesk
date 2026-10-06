@@ -11,13 +11,16 @@ mod tray;
 use tauri::Manager;
 
 /// Labels of the tile windows declared in tauri.conf.json.
-pub const TILES: &[&str] = &["clock", "system", "launchers", "map", "schedule"];
+pub const TILES: &[&str] = &["clock", "system", "launchers", "map", "schedule", "notes"];
 
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            // A second launch just re-surfaces the tiles.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            // A second launch re-surfaces the tiles; `--settings` also opens the settings window.
             layout::show_all(app);
+            if args.iter().any(|a| a == "--settings") {
+                settings_window::open(app, "general", None);
+            }
         }))
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
@@ -33,6 +36,7 @@ pub fn run() {
             commands::get_work_area,
             commands::save_rect,
             commands::set_window_theme,
+            commands::window_ready,
             commands::open_settings,
             commands::set_tile_enabled,
             commands::get_user_name,
@@ -51,22 +55,25 @@ pub fn run() {
             for label in TILES {
                 if let Some(win) = handle.get_webview_window(label) {
                     glass::apply(&win);
-                    let _ = win.show();
+                    glass::make_tool_window(&win);
                 }
             }
+            // Tiles move into place when their page reports its first frame (`window_ready`).
+            // Safety net: reveal whatever has not reported within a few seconds.
+            let fallback = handle.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(6));
+                layout::reveal_all_pending(&fallback);
+            });
             tray::build(&handle)?;
             desktop_watch::install(&handle);
-            // Dev aid: open the settings window at startup (used by the verification scripts).
-            #[cfg(debug_assertions)]
-            if std::env::var_os("AITUDESK_OPEN_SETTINGS").is_some() {
-                settings_window::open(&handle, "tiles", None);
+            // `aitudesk.exe --settings` (or AITUDESK_OPEN_SETTINGS=1) opens the settings window at startup.
+            let want_settings = std::env::args().skip(1).any(|a| a == "--settings")
+                || std::env::var_os("AITUDESK_OPEN_SETTINGS").is_some();
+            if want_settings {
+                settings_window::open(&handle, "general", None);
             }
             Ok(())
-        })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::ThemeChanged(theme) = event {
-                glass::retint(window, *theme);
-            }
         })
         .run(tauri::generate_context!())
         .expect("error while running AITU Desk");

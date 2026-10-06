@@ -618,5 +618,9 @@ a { color: var(--accent-text); text-decoration: none; }
   white-space: nowrap;
 }
 
+/* «Сбросить настройки раздела» at the end of a page */
+.reset-section { display: flex; justify-content: flex-start; padding-top: var(--s2); }
+.reset-text { margin: 0; color: var(--text-2); }
+
 /* Default (non-custom) scrollbars, just tinted */
 * { scrollbar-width: thin; scrollbar-color: var(--scrollbar) transparent; }

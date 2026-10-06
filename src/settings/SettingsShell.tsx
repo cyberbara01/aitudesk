@@ -1,5 +1,5 @@
 // Settings window (label "settings"): sidebar with brand + navigation, scrolling content with one page.
-// Initial tab from ?tab=&edit=, later from the "settings-navigate" event; Ctrl+1…8 and arrow keys switch pages.
+// Initial tab from ?tab=&edit=, later from the "settings-navigate" event; arrow keys move within the sidebar.
 import { Fragment, useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "../components/Icon";
 import { ru } from "../i18n/ru";
@@ -12,10 +12,10 @@ import { GeneralPage } from "./GeneralPage";
 import { LaunchersPage } from "./LaunchersPage";
 import { MapPage } from "./MapPage";
 import { SchedulePage } from "./SchedulePage";
+import { NotesPage } from "./NotesPage";
 import { SystemPage } from "./SystemPage";
-import { TABS, readInitialRoute, type Route, type TabId } from "./shell/nav";
+import { TABS, acceptsEdit, readInitialRoute, type Route, type TabId } from "./shell/nav";
 import { useNavigateEvent } from "./shell/useNavigateEvent";
-import { useTabHotkeys } from "./shell/useTabHotkeys";
 
 function renderPage(route: Route) {
   switch (route.tab) {
@@ -34,6 +34,8 @@ function renderPage(route: Route) {
       return <MapPage />;
     case "schedule":
       return <SchedulePage />;
+    case "notes":
+      return <NotesPage key={`notes-${route.nonce}`} editId={route.edit} />;
     case "about":
       return <AboutPage />;
   }
@@ -50,13 +52,12 @@ export function SettingsWindow() {
   const go = useCallback((tab: TabId, edit: string | null = null) => {
     setAnimate(true);
     setRoute((prev) => {
-      const e = tab === "launchers" ? edit : null;
+      const e = acceptsEdit(tab) ? edit : null;
       return { tab, edit: e, nonce: e ? prev.nonce + 1 : prev.nonce };
     });
   }, []);
 
   useNavigateEvent(go);
-  useTabHotkeys(go);
 
   useLayoutEffect(() => {
     contentRef.current?.scrollTo(0, 0);
@@ -110,12 +111,6 @@ export function SettingsWindow() {
         </nav>
 
         <div className="sidebar-spacer" />
-        <div className="sidebar-foot">
-          <kbd className="kbd">{extra.shell.keysCtrl}</kbd>
-          <span>+</span>
-          <kbd className="kbd">{extra.shell.keysDigits}</kbd>
-          <span>— {extra.shell.keysHint}</span>
-        </div>
       </aside>
 
       <main ref={contentRef} className={animate ? "content anim" : "content"}>

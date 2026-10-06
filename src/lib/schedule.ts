@@ -15,8 +15,14 @@ const LAST_MINUTE = 23 * 60 + 59;
 
 export type LessonState = "past" | "now" | "next" | "later";
 
-export function visibleDays(showWeekend: boolean): readonly Weekday[] {
-  return showWeekend ? ALL_DAYS : WORK_DAYS;
+/**
+ * Days shown in the tile's weekday row: Mon–Fri always; Sat / Sun when «Показывать выходные» is on,
+ * and otherwise only those weekend days that actually have lessons (so entered data is never unreachable).
+ */
+export function visibleDays(showWeekend: boolean, lessons: readonly Lesson[] = []): readonly Weekday[] {
+  if (showWeekend) return ALL_DAYS;
+  const extra = ([6, 7] as const).filter((d) => lessons.some((l) => l.day === d));
+  return extra.length ? [...WORK_DAYS, ...extra] : WORK_DAYS;
 }
 
 /** `today` when it is among `days`, otherwise the first visible day (Monday on a hidden weekend). */
@@ -78,9 +84,9 @@ export function minutesUntil(lesson: Lesson, now: Date): number {
   return Math.max(1, Math.ceil(s - minutesOfDay(now)));
 }
 
-/** "08:00–09:20" */
+/** "08:00 - 09:20" */
 export function timeRange(l: Pick<Lesson, "start" | "end">): string {
-  return `${l.start}–${l.end}`;
+  return `${l.start} - ${l.end}`;
 }
 
 /** Lesson count per weekday, index 0 = Monday. */
@@ -121,8 +127,10 @@ export function normalizeTime(text: string): string | null {
 }
 
 /**
- * Input mask for "ЧЧ:ММ": keeps digits and one colon, inserts the colon while typing forward
- * ("08" → "08:", "0800" → "08:00", "830" → "8:30") and never fights a deletion.
+ * Input mask for "ЧЧ:ММ": keeps digits and one colon, inserts the colon while typing forward and
+ * never fights a deletion. Two digits that can be an hour get the colon after them ("08" → "08:",
+ * then "08:30"); two digits that cannot are split ("83" → "8:3", then "8:30" — normalised to "08:30"
+ * on blur). Three and four digits (pasted) are split the same way ("830" → "8:30", "0830" → "08:30").
  */
 export function maskTime(prev: string, next: string): string {
   const v = next.replace(/[^\d:]/g, "");
@@ -134,8 +142,8 @@ export function maskTime(prev: string, next: string): string {
   }
   const d = v.slice(0, 4);
   if (d.length === 4) return `${d.slice(0, 2)}:${d.slice(2)}`;
-  if (d.length === 3) return Number(d[0]) >= 3 ? `${d[0]}:${d.slice(1)}` : `${d.slice(0, 2)}:${d[2]}`;
-  if (d.length === 2 && next.length > prev.length) return `${d}:`;
+  if (d.length === 3) return Number(d.slice(0, 2)) > 23 ? `${d[0]}:${d.slice(1)}` : `${d.slice(0, 2)}:${d[2]}`;
+  if (d.length === 2 && next.length > prev.length) return Number(d) > 23 ? `${d[0]}:${d[1]}` : `${d}:`;
   return d;
 }
 

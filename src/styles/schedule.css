@@ -11,18 +11,20 @@
   gap: var(--s3);
 }
 
-/* Weekday row: segments share the width evenly, so drop the kit's side padding. */
+/* Weekday row: segments share the width evenly; side padding is minimal so seven labels fit at 240 px. */
 .sched-days { flex: 0 0 auto; }
-.sched-days .segmented.sm .seg-item { padding: 0 var(--s1); min-width: 0; }
+.sched-days .segmented.sm .seg-item { padding: 0 2px; min-width: 0; }
 
-/* Today, when it is not the viewed day: a 4 px accent dot under its label. */
-.sched-days[data-today="1"] .seg-item[data-value="1"]:not(.selected)::after,
-.sched-days[data-today="2"] .seg-item[data-value="2"]:not(.selected)::after,
-.sched-days[data-today="3"] .seg-item[data-value="3"]:not(.selected)::after,
-.sched-days[data-today="4"] .seg-item[data-value="4"]:not(.selected)::after,
-.sched-days[data-today="5"] .seg-item[data-value="5"]:not(.selected)::after,
-.sched-days[data-today="6"] .seg-item[data-value="6"]:not(.selected)::after,
-.sched-days[data-today="7"] .seg-item[data-value="7"]:not(.selected)::after {
+/* Today: a 4 px accent dot under its label. Fluent (accent line) and Rice (accent outline) already mark
+   the selected pill with accent, so there the dot shows only while another day is viewed; Aqua's thumb
+   carries no accent, so the dot stays on today even while it is selected. */
+.sched-days[data-today="1"] .seg-item[data-value="1"]::after,
+.sched-days[data-today="2"] .seg-item[data-value="2"]::after,
+.sched-days[data-today="3"] .seg-item[data-value="3"]::after,
+.sched-days[data-today="4"] .seg-item[data-value="4"]::after,
+.sched-days[data-today="5"] .seg-item[data-value="5"]::after,
+.sched-days[data-today="6"] .seg-item[data-value="6"]::after,
+.sched-days[data-today="7"] .seg-item[data-value="7"]::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -33,13 +35,21 @@
   border-radius: 50%;
   background: var(--accent);
 }
+:root:not([data-style="aqua"]) .sched-days .seg-item.selected::after { content: none; }
 
-/* The list: fills the rest, scrolls by wheel, no scrollbar; fades hint at hidden rows. */
+/* Lesson ink: the lesson colour, or the accent. Lesson colours are dark-glass tones, so on light
+   palettes a coloured lesson's ink is pulled towards the text colour; the accent already has its deep tone. */
+.sched-row, .sched-item, .sched-week-block { --lesson-ink: var(--lesson-color, var(--accent)); }
+:root[data-scheme="light"] .sched-row.colored,
+:root[data-scheme="light"] .sched-item.colored,
+:root[data-scheme="light"] .sched-week-block.colored { --lesson-ink: color-mix(in srgb, var(--lesson-color) 70%, var(--text) 30%); }
+
+/* The list: fills the rest, scrolls by wheel, no scrollbar; fades hint at hidden rows. Rows are 8 px apart (4 + 4). */
 .sched-list {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -68,7 +78,7 @@
   padding: var(--s1) 0;
   transition: opacity var(--t-base) var(--ease-in);
 }
-.sched-row.past { opacity: .55; }
+.sched-row.past { opacity: .6; }
 
 .sched-time {
   display: flex;
@@ -80,24 +90,26 @@
   white-space: nowrap;
 }
 .sched-start { font-size: var(--body-size); line-height: var(--body-lh); color: var(--text); }
-.sched-end { font-size: var(--caption-size); line-height: var(--caption-lh); color: var(--text-3); }
+.sched-end { font-size: var(--caption-size); line-height: var(--caption-lh); color: var(--text-2); }
 
+/* The bar is painted only where it means something: the running lesson (accent / lesson colour) and
+   coloured lessons; plain rows keep the column empty so the tile stays quiet. */
 .sched-bar {
   justify-self: center;
   align-self: stretch;
   width: 2px;
   margin: 2px 0;
   border-radius: var(--r2);
-  background: var(--text-3);
+  background: transparent;
   transition: background-color var(--t-base) var(--ease-in), width var(--t-fast) var(--ease-in);
 }
-.sched-row.colored .sched-bar { background: color-mix(in srgb, var(--lesson-color) 65%, transparent); }
-.sched-row.now .sched-bar { width: 3px; background: var(--lesson-color, var(--accent)); }
+.sched-row.colored .sched-bar { background: color-mix(in srgb, var(--lesson-ink) 65%, transparent); }
+.sched-row.now .sched-bar { width: 3px; background: var(--lesson-ink); }
 
 .sched-content { display: flex; flex-direction: column; min-width: 0; }
-/* Badge ink: the accent text tone, or the lesson colour pulled towards the text colour so it reads on any palette. */
+/* Badge ink: the accent text tone, or the lesson ink pulled towards the text colour so it reads on any palette. */
 .sched-badge { font-weight: 600; color: var(--accent-text); }
-.sched-row.colored .sched-badge { color: color-mix(in srgb, var(--lesson-color) 55%, var(--text) 45%); }
+.sched-row.colored .sched-badge { color: color-mix(in srgb, var(--lesson-ink) 55%, var(--text) 45%); }
 .sched-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -108,20 +120,25 @@
 }
 .sched-meta { color: var(--text-2); }
 
-/* Empty states: centred, quiet; the icon goes when the window is too short for it. */
+/* Empty states: centred while they fit (auto margins on the first / last child), otherwise anchored to
+   the top and scrollable — nothing is ever clipped. The icon goes when the window is too short for it. */
 .sched-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: var(--s2);
   flex: 1 1 auto;
   min-height: 0;
   padding: 0 var(--s2);
   text-align: center;
   color: var(--text-2);
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
+.sched-empty::-webkit-scrollbar { display: none; }
+.sched-empty > * { flex-shrink: 0; }
+.sched-empty > :first-child { margin-top: auto; }
+.sched-empty > :last-child { margin-bottom: auto; }
 .sched-empty .icon { color: var(--text-3); }
 .sched-empty .body { overflow-wrap: anywhere; }
 .tile-schedule.compact .sched-empty { gap: var(--s1); }
@@ -178,7 +195,7 @@
   right: 22%;
   min-height: 3px;
   border-radius: var(--r2);
-  background: var(--lesson-color, var(--accent));
+  background: var(--lesson-ink);
   opacity: .9;
 }
 :root[data-style="rice"] .sched-week-track { border: var(--ctl-border-w) solid var(--divider); background: transparent; }
@@ -234,13 +251,16 @@
   width: 3px;
   height: 28px;
   border-radius: var(--r2);
-  background: var(--lesson-color, var(--accent));
+  background: var(--lesson-ink);
 }
 .sched-item-time { color: var(--text-2); white-space: nowrap; }
 .sched-item-text { display: flex; flex-direction: column; min-width: 0; }
 .sched-item-title { color: var(--text); }
 .sched-item-meta { color: var(--text-3); }
 .sched-item-actions { display: flex; gap: var(--s1); }
+/* Icon-only «Удалить»: the kit's danger tone (as .btn.danger) on a subtle icon button. */
+.icon-btn.sched-item-danger { color: var(--critical); }
+.icon-btn.sched-item-danger:hover { background: color-mix(in srgb, var(--critical) 14%, transparent); }
 
 .sched-day-empty {
   display: flex;

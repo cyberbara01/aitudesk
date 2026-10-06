@@ -19,6 +19,7 @@ interface Props {
   item: CustomLauncher | null;
   /** Mirrors settings.launchers.showLabels in the live preview. */
   showLabels: boolean;
+  /** Keep it referentially stable: the Dialog re-registers in the Esc stack whenever it changes. */
   onClose: () => void;
 }
 
@@ -34,6 +35,8 @@ const NAME_MAX = 40;
  * "Добавить / Изменить ярлык": live cell preview, name, URL, icon mode (site / Fluent / letter) and colour.
  * Saving a site-icon launcher fetches the icon once (fetch_site_icon); on failure the dialog stays open
  * with an explanation, and a second "Сохранить" keeps the letter fallback.
+ * Focus and Esc are the kit's job: the Dialog focuses its first form field (the name) and routes Esc to the
+ * top-most dialog, so the nested icon picker closes first and the editor stays open.
  */
 export function LauncherEditor({ item, showLabels, onClose }: Props) {
   const [name, setName] = useState(item?.name ?? "");
@@ -45,20 +48,17 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const pickerOpenRef = useRef(false);
-  pickerOpenRef.current = pickerOpen;
+  /** False once unmounted, so a fetch that outlives the dialog does not set state or close twice. */
   const alive = useRef(true);
-  const nameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     alive.current = true;
-    // The Dialog focuses its first button on open; the name field is the right place to start typing.
-    const raf = requestAnimationFrame(() => nameRef.current?.querySelector("input")?.focus());
     return () => {
       alive.current = false;
-      cancelAnimationFrame(raf);
     };
   }, []);
+
+  const closePicker = useCallback(() => setPickerOpen(false), []);
 
   const trimmedName = name.trim();
   const trimmedUrl = url.trim();
@@ -72,11 +72,6 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
   const urlError = touched.url && !isValidUrl(url) ? ru.settings.launchers.urlInvalid : undefined;
   const valid = Boolean(trimmedName) && isValidUrl(url);
   const failed = failedUrl !== null && failedUrl === trimmedUrl;
-
-  // Esc / backdrop of this dialog must not close it while the nested icon picker is open.
-  const close = useCallback(() => {
-    if (!pickerOpenRef.current) onClose();
-  }, [onClose]);
 
   const save = async () => {
     setTouched({ name: true, url: true });
@@ -122,7 +117,7 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
     <Dialog
       open
       title={item ? ru.settings.launchers.editLauncher : ru.settings.launchers.addLauncher}
-      onClose={close}
+      onClose={onClose}
       footer={
         <>
           <Button onClick={onClose}>{ru.common.cancel}</Button>
@@ -133,26 +128,24 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
       }
     >
       <div className="ln-editor">
-        <div className="ln-editor-preview" aria-label={ru.common.preview}>
+        <div className="ln-editor-preview" role="img" aria-label={ru.common.preview}>
           <div className="ln-preview-tile">
             <LauncherCell look={look} showLabel={showLabels} />
           </div>
         </div>
 
         <div className={loading ? "ln-form ln-busy" : "ln-form"} aria-busy={loading}>
-          <div ref={nameRef}>
-            <TextField
-              label={ru.settings.launchers.name}
-              value={name}
-              onChange={setName}
-              placeholder={ru.settings.launchers.namePlaceholder}
-              error={nameError}
-              maxLength={NAME_MAX}
-              disabled={loading}
-              onBlur={() => setTouched((t) => ({ ...t, name: true }))}
-              onKeyDown={onFieldKey}
-            />
-          </div>
+          <TextField
+            label={ru.settings.launchers.name}
+            value={name}
+            onChange={setName}
+            placeholder={ru.settings.launchers.namePlaceholder}
+            error={nameError}
+            maxLength={NAME_MAX}
+            disabled={loading}
+            onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+            onKeyDown={onFieldKey}
+          />
           <TextField
             label={ru.settings.launchers.url}
             value={url}
@@ -212,9 +205,9 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
           value={fluentName}
           onSelect={(n) => {
             setFluentName(n);
-            setPickerOpen(false);
+            closePicker();
           }}
-          onClose={() => setPickerOpen(false)}
+          onClose={closePicker}
         />
       )}
     </Dialog>

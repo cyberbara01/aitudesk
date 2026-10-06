@@ -35,10 +35,12 @@ pub struct WorkArea {
 /// Which tiles are parked off-screen and why.
 #[derive(Default)]
 pub struct Visibility {
-    /// "Скрыть виджеты" from the tray.
+    /// "Показывать виджеты" switched off in settings.
     pub hidden: Mutex<bool>,
     /// Tiles switched off in settings.
     pub disabled: Mutex<HashSet<String>>,
+    /// Tiles created off-screen at startup that have not rendered their first frame yet (label: target rect).
+    pub pending: Mutex<HashMap<String, Rect>>,
 }
 
 fn is_parked(pos: PhysicalPosition<i32>) -> bool {
@@ -77,8 +79,9 @@ fn default_rect(label: &str, wa: &WorkArea) -> Rect {
     let (lx, ly, lw, lh) = match label {
         "clock" => (right_x, margin, col_w, 120.0),
         "system" => (right_x, margin + 120.0 + gap, col_w, 144.0),
-        "launchers" => (right_x, margin + 120.0 + gap + 144.0 + gap, col_w, 170.0),
-        "schedule" => (right_x, margin + 120.0 + gap + 144.0 + gap + 170.0 + gap, col_w, 240.0),
+        "launchers" => (right_x, margin + 120.0 + gap + 144.0 + gap, col_w, 184.0),
+        "schedule" => (right_x, margin + 120.0 + gap + 144.0 + gap + 184.0 + gap, col_w, 240.0),
+        "notes" => (right_x - gap - col_w, margin, col_w, 200.0),
         "map" => (right_x - gap - 640.0, wa.h as f64 / s - margin - 320.0, 640.0, 320.0),
         _ => (margin, margin, col_w, 120.0),
     };
@@ -132,20 +135,44 @@ fn park(win: &WebviewWindow) {
     let _ = win.set_position(Position::Physical(PhysicalPosition::new(PARK, PARK)));
 }
 
-/// Position every declared tile from the store (or the default layout) before it is shown;
-/// tiles switched off in settings start parked off-screen.
+/// Startup: tiles are created visible but off-screen (tauri.conf.json x/y = -32000). Give each its final size
+/// now, so the page lays out exactly as it will look, and keep it parked until the page reports its first
+/// frame (`reveal`). Moving an already rendered window on screen shows its content at once: no empty glass,
+/// no default look, no flicker. Tiles switched off in settings stay parked.
 pub fn restore_all(app: &AppHandle) {
     let vis = app.state::<Visibility>();
     let mut disabled = vis.disabled.lock().unwrap();
+    let mut pending = vis.pending.lock().unwrap();
     for label in crate::TILES {
         let Some(win) = app.get_webview_window(label) else { continue };
+        let rect = resolve_rect(app, &win, label);
+        let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
+        park(&win);
         if tile_enabled_in_store(app, label) {
-            let rect = resolve_rect(app, &win, label);
-            place(&win, label, rect);
+            pending.insert(label.to_string(), rect);
         } else {
             disabled.insert(label.to_string());
-            park(&win);
         }
+    }
+}
+
+/// The tile rendered its first frame: move it from the parking position to its rect (once).
+pub fn reveal(app: &AppHandle, label: &str) {
+    let vis = app.state::<Visibility>();
+    let Some(rect) = vis.pending.lock().unwrap().remove(label) else { return };
+    if *vis.hidden.lock().unwrap() || vis.disabled.lock().unwrap().contains(label) {
+        return;
+    }
+    if let Some(win) = app.get_webview_window(label) {
+        let _ = win.set_position(Position::Physical(PhysicalPosition::new(rect.x, rect.y)));
+    }
+}
+
+/// Safety net: reveal tiles whose page never reported (a script error must not leave them invisible).
+pub fn reveal_all_pending(app: &AppHandle) {
+    let labels: Vec<String> = app.state::<Visibility>().pending.lock().unwrap().keys().cloned().collect();
+    for label in labels {
+        reveal(app, &label);
     }
 }
 
@@ -165,15 +192,15 @@ pub fn save_rect(app: &AppHandle, label: &str, rect: Rect) -> Result<(), String>
 }
 
 /// Bring one tile back from the parking position to its saved/default rect.
+/// Only moves the window: tao flag setters (show, always-on-bottom) re-apply styles and activate the
+/// window, which flickers; a tile that is not visible yet is shown once by `window_ready`.
 fn unpark(app: &AppHandle, win: &WebviewWindow, label: &str) {
+    app.state::<Visibility>().pending.lock().unwrap().remove(label);
     let rect = resolve_rect(app, win, label);
     place(win, label, rect);
-    let _ = win.unminimize();
-    let _ = win.show();
-    let _ = win.set_always_on_bottom(true);
 }
 
-/// Hide = park off-screen (hide() would drop the acrylic); show = bring back + unminimize + always-on-bottom.
+/// Hide = park off-screen (hide() would drop the acrylic); show = move back to the saved rect.
 pub fn set_hidden(app: &AppHandle, hidden: bool) {
     let vis = app.state::<Visibility>();
     let disabled = vis.disabled.lock().unwrap();

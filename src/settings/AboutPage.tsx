@@ -1,13 +1,13 @@
-// «О программе»: brand, authors, credits, privacy, licences.
+// «О программе»: brand, author, credits, privacy, licences. Plain rows with one alignment rule:
+// label and hint on the left, actions on the right, no decorative icons.
 import { useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
-import { Page, Section } from "../components/Section";
+import { Page, Row, Section } from "../components/Section";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
 import licence from "../map/LICENSE.md?raw";
-import { IconRow } from "./shell/IconRow";
 
 const ab = ru.settings.about;
 const x = extra.about;
@@ -25,16 +25,16 @@ export function AboutPage() {
         </span>
         <div className="about-text">
           <div className="about-name">{ru.app.name}</div>
+          <div className="about-tagline">{ru.app.tagline}</div>
           <div className="about-meta">
-            <span className="badge">
+            <span>
               {ab.versionLabel} {ru.app.version}
             </span>
-            <span className="badge neutral">
-              <Icon name="code" size={16} />
-              {x.openSource}
-            </span>
+            <span className="about-dot" aria-hidden="true" />
+            <span>{ab.openSource}</span>
+            <span className="about-dot" aria-hidden="true" />
+            <span>MIT</span>
           </div>
-          <div className="about-tagline">{ru.app.tagline}</div>
         </div>
       </header>
 
@@ -48,36 +48,30 @@ export function AboutPage() {
             <span className="row-hint ellipsis">{ab.author1Role}</span>
           </div>
           <div className="author-links">
-            <Button icon="code" onClick={() => open(ab.author1Github)}>
-              {ab.github}
-            </Button>
-            <Button icon="chat" onClick={() => open(ab.telegramUrl)}>
-              {ab.telegram}
-            </Button>
+            <Button onClick={() => open(ab.author1Github)}>{ab.github}</Button>
+            <Button onClick={() => open(ab.telegramUrl)}>{ab.telegram}</Button>
           </div>
         </div>
-        <div className="callout">
-          <Icon name="lightbulb" variant="filled" />
-          <span className="callout-text">{ab.feedback}</span>
-          <button type="button" className="link-btn" onClick={() => open(ab.telegramUrl)}>
+        <Row label={ab.feedback} hint={ab.feedbackHint}>
+          <Button variant="accent" onClick={() => open(ab.telegramUrl)}>
             @{ab.author1Telegram}
-          </button>
-        </div>
+          </Button>
+        </Row>
       </Section>
 
       <Section title={ab.credits}>
-        <IconRow icon="map" label={ab.mapCredit} tone="neutral">
-          <Button size="sm" variant="subtle" icon="open" onClick={() => open(ab.mapRepo)}>
+        <Row label={ab.mapTitle} hint={ab.mapCredit}>
+          <Button size="sm" onClick={() => open(ab.mapRepo)}>
             {x.mapRepoLabel}
           </Button>
-        </IconRow>
-        <IconRow icon="color" label={ab.iconsCredit} tone="neutral" />
-        <IconRow icon="text_font" label={ab.fontsCredit} tone="neutral" />
-        <IconRow icon="code" label={ab.stackCredit} tone="neutral" />
+        </Row>
+        <Row label={ab.iconsTitle} hint={ab.iconsCredit} />
+        <Row label={ab.fontsTitle} hint={ab.fontsCredit} />
+        <Row label={ab.stackTitle} hint={ab.stackCredit} />
       </Section>
 
-      <Section title={ab.privacy}>
-        <IconRow icon="lock_closed" label={ab.privacyText} />
+      <Section title={ab.privacy} padded>
+        <p className="about-p">{ab.privacyText}</p>
       </Section>
 
       <Section title={ab.license} padded>

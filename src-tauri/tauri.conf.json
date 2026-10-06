@@ -17,7 +17,7 @@
     "windows": [
       {
         "label": "clock",
-        "title": "AITU Desk — Часы",
+        "title": "AITU Desk: часы",
         "url": "index.html",
         "width": 280,
         "height": 120,
@@ -30,12 +30,14 @@
         "minimizable": false,
         "maximizable": false,
         "closable": false,
-        "visible": false,
-        "focus": false
+        "visible": true,
+        "focus": false,
+        "x": -32000,
+        "y": -32000
       },
       {
         "label": "system",
-        "title": "AITU Desk — Система",
+        "title": "AITU Desk: система",
         "url": "index.html",
         "width": 280,
         "height": 144,
@@ -48,15 +50,17 @@
         "minimizable": false,
         "maximizable": false,
         "closable": false,
-        "visible": false,
-        "focus": false
+        "visible": true,
+        "focus": false,
+        "x": -32000,
+        "y": -32000
       },
       {
         "label": "launchers",
-        "title": "AITU Desk — Ярлыки",
+        "title": "AITU Desk: ярлыки",
         "url": "index.html",
         "width": 280,
-        "height": 170,
+        "height": 184,
         "decorations": false,
         "transparent": true,
         "alwaysOnBottom": true,
@@ -66,12 +70,14 @@
         "minimizable": false,
         "maximizable": false,
         "closable": false,
-        "visible": false,
-        "focus": false
+        "visible": true,
+        "focus": false,
+        "x": -32000,
+        "y": -32000
       },
       {
         "label": "map",
-        "title": "AITU Desk — Карта AITU",
+        "title": "AITU Desk: карта",
         "url": "index.html",
         "width": 640,
         "height": 320,
@@ -84,12 +90,14 @@
         "minimizable": false,
         "maximizable": false,
         "closable": false,
-        "visible": false,
-        "focus": false
+        "visible": true,
+        "focus": false,
+        "x": -32000,
+        "y": -32000
       },
       {
         "label": "schedule",
-        "title": "AITU Desk — Расписание",
+        "title": "AITU Desk: расписание",
         "url": "index.html",
         "width": 280,
         "height": 240,
@@ -102,8 +110,30 @@
         "minimizable": false,
         "maximizable": false,
         "closable": false,
-        "visible": false,
-        "focus": false
+        "visible": true,
+        "focus": false,
+        "x": -32000,
+        "y": -32000
+      },
+      {
+        "label": "notes",
+        "title": "AITU Desk: заметки",
+        "url": "index.html",
+        "width": 280,
+        "height": 200,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnBottom": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "minimizable": false,
+        "maximizable": false,
+        "closable": false,
+        "visible": true,
+        "focus": false,
+        "x": -32000,
+        "y": -32000
       }
     ]
   },
@@ -130,6 +160,6 @@
     },
     "publisher": "AITU Desk",
     "shortDescription": "Виджеты рабочего стола для студентов AITU",
-    "copyright": "MIT. Карта корпуса C1 — aitumap (Yuujiso, MIT); иконки — Fluent UI System Icons (Microsoft, MIT)"
+    "copyright": "MIT. Карта корпуса C1: aitumap (Yuujiso, MIT). Иконки: Fluent UI System Icons (Microsoft, MIT)"
   }
 }

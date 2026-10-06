@@ -12,6 +12,9 @@
 /* =====================================================================================
    Shell
    ===================================================================================== */
+/* The content column is the only scroller: pin its height so the wheel works anywhere over a page. */
+.shell { height: 100%; min-height: 0; overflow: hidden; }
+.content { height: 100%; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
 .page-title { margin: 0; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item { width: 100%; }
@@ -24,12 +27,12 @@
 }
 .kbd {
   display: inline-flex; align-items: center;
-  height: 18px; padding: 0 5px;
+  height: 20px; padding: 0 var(--s1);
   border-radius: var(--r-sm);
   border: 1px solid var(--divider);
   background: var(--surface-3);
   color: var(--text-2);
-  font-family: var(--font-num); font-size: 11px; line-height: 16px;
+  font-family: var(--font-num); font-size: var(--caption-size); line-height: var(--caption-lh);
 }
 /* Page fade on tab switch (opacity only, so fixed-position dialogs are never re-parented). */
 .content.anim > * { animation: page-in var(--t-base) var(--ease-in); }
@@ -51,9 +54,12 @@
 :root[data-style="aqua"] .row-icon { border-radius: var(--r-ctl); box-shadow: inset 0 1px 0 var(--tile-edge); }
 :root[data-style="rice"] .row-icon { border: 1.5px solid var(--accent-soft); }
 
-/* Transient button states («Раскладка сброшена») */
-.btn.status-ok:disabled { color: var(--success); }
-.btn.danger:disabled { color: var(--critical); }
+/* Transient feedback next to a control («Раскладка сброшена»); a live region, so it is announced. */
+.status-text { min-width: 0; color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); }
+.status-text.ok { color: var(--success); }
+.status-text.fail { color: var(--critical); }
+/* A row whose hint turns into an error message. */
+.row-status.error .row-hint { color: var(--critical); }
 
 /* =====================================================================================
    Option cards: inner text block, selected badge, horizontal variant
@@ -67,8 +73,6 @@
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
-  animation: pop-in var(--t-base) var(--ease-in);
 }
 .card-check .icon { color: inherit; }
 :root[data-style="rice"] .card-check { border-radius: var(--r-sm); }
@@ -82,7 +86,7 @@
 .sp-tile {
   position: relative;
   display: flex; flex-direction: column; gap: 3px;
-  width: 108px; height: 56px;
+  width: min(108px, calc(100% - 12px)); height: 56px;
   padding: 8px 10px;
   background: var(--tile-fill);
   border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
@@ -106,6 +110,10 @@
 .sp[data-sp="rice"] .sp-time { font-family: var(--font-jetbrains); font-weight: 600; }
 .sp[data-sp="rice"] .sp-switch { border-radius: 3px; background: var(--accent-soft); border: 1.5px solid var(--accent); }
 .sp[data-sp="rice"] .sp-switch::after { top: 1px; right: 1px; width: 6px; height: 6px; border-radius: 1.5px; background: var(--accent); }
+/* The cards depict their own style: when Rice is active (--tile-edge: transparent) the Fluent and Aqua
+   previews keep a top-edge highlight, otherwise the three cards look alike. */
+:root[data-style="rice"] .sp[data-sp="fluent"] { --tile-edge: color-mix(in srgb, var(--text) 16%, transparent); }
+:root[data-style="rice"] .sp[data-sp="aqua"] { --tile-edge: color-mix(in srgb, var(--text) 28%, transparent); }
 
 /* ---- Theme cards: wallpaper + mini tile in the palette's swatch colours (data from THEMES) ---- */
 .tp { height: 80px; background: var(--tp-bg); display: grid; place-items: center; }
@@ -124,7 +132,9 @@
 .split .tp-time { font-size: 12px; line-height: 14px; }
 .split .tp-bar { width: 22px; height: 3px; }
 
-/* ---- Accent: two-tone preset dots (left = tone for dark palettes, right = for light ones) ---- */
+/* ---- Accent: one radio group — «Как в Windows», two-tone preset dots (left = tone for dark palettes,
+        right = for light ones), «Свой цвет» ---- */
+.acc-group { display: flex; flex-direction: column; gap: var(--s3); }
 .acc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: var(--s1); }
 .acc-item {
   display: flex; flex-direction: column; align-items: center; gap: var(--s1);
@@ -134,6 +144,7 @@
   transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
 }
 .acc-item:hover { background: var(--ctl-fill-hover); color: var(--text); }
+.acc-item:active { background: var(--ctl-fill-pressed); }
 .acc-item.selected { color: var(--text); }
 .acc-name { max-width: 100%; font-size: var(--caption-size); line-height: var(--caption-lh); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .acc-dot {
@@ -141,15 +152,18 @@
   width: 28px; height: 28px;
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent);
   transition: outline-color var(--t-fast) var(--ease-in);
 }
 .acc-dot::before, .acc-dot::after { content: ""; position: absolute; top: 0; bottom: 0; width: 50%; }
 .acc-dot::before { left: 0; background: var(--tone-dark); }
 .acc-dot::after { right: 0; background: var(--tone-light); }
 .acc-dot.solid::before, .acc-dot.solid::after { background: var(--tone); }
-.acc-dot.conic { background: conic-gradient(#f87171, #fbbf24, #4ade80, #22d3ee, #818cf8, #f472b6, #f87171); }
-.acc-dot.conic::before, .acc-dot.conic::after { content: none; }
+/* «Свой цвет» reuses the kit's rainbow swatch (.cp-swatch.custom) so the gradient is defined once;
+   the swatch's own border and hover scale are neutralised here. */
+.acc-dot.cp-swatch { border: 0; }
+.acc-dot.cp-swatch:hover { transform: none; }
+.acc-dot.cp-swatch::before, .acc-dot.cp-swatch::after { content: none; }
 .acc-item.selected .acc-dot { outline: 2px solid var(--text); outline-offset: 2px; }
 :root[data-style="rice"] .acc-dot { border-radius: var(--r-sm); }
 /* The picker's R/G/B inputs sit in ~48 px columns: tighter padding so three digits stay visible. */
@@ -183,7 +197,7 @@
 .pv-time { line-height: 1.1; white-space: nowrap; }
 .pv-date { max-width: 100%; font-size: var(--caption-size); line-height: var(--caption-lh); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pv-sys { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.pv-row { display: flex; align-items: center; gap: var(--s2); height: 26px; min-width: 0; }
+.pv-row { display: flex; align-items: center; gap: var(--s2); height: 24px; min-width: 0; }
 .pv-row .icon { color: var(--text); }
 .pv-row-label { flex: none; color: var(--text); font-size: var(--caption-size); line-height: var(--caption-lh); }
 .pv-row-value {
@@ -201,20 +215,26 @@
 .about-mark {
   display: grid; place-items: center; flex: none;
   width: 72px; height: 72px;
-  border-radius: 18px;
+  border-radius: var(--r-tile);
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25);
+  box-shadow: inset 0 1px 0 var(--tile-edge);
 }
 .about-mark .icon { width: 36px; height: 36px; flex-basis: 36px; color: inherit; }
-:root[data-style="rice"] .about-mark { border-radius: var(--r-card); }
-.about-text { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.about-mark { width: 64px; height: 64px; }
+.about-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .about-name { font-family: var(--font-display); font-size: var(--title-size); line-height: var(--title-lh); font-weight: 600; letter-spacing: -0.01em; }
-.about-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); }
 .about-tagline { color: var(--text-2); }
+.about-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2);
+  margin-top: var(--s1);
+  color: var(--text-3);
+  font-size: var(--caption-size); line-height: var(--caption-lh);
+}
+.about-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; flex: none; }
 .badge {
   display: inline-flex; align-items: center; gap: var(--s1);
-  height: 22px; padding: 0 var(--s2);
+  height: var(--s6); padding: 0 var(--s2);
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-text);
@@ -226,31 +246,22 @@
 :root[data-style="rice"] .badge { border-radius: var(--r-sm); }
 
 .author { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); padding: var(--s3) var(--s5); }
+.author + .row { border-top: 1px solid var(--divider); }
 .avatar {
   display: grid; place-items: center; flex: none;
   width: 40px; height: 40px;
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
-  font-family: var(--font-display); font-size: 16px; font-weight: 600;
+  font-family: var(--font-display); font-size: var(--body-size); font-weight: 600;
 }
 :root[data-style="rice"] .avatar { border-radius: var(--r-ctl); }
 .author-text { display: flex; flex-direction: column; flex: 1 1 100px; min-width: 0; }
 .author-links { display: flex; gap: var(--s2); flex: none; }
-.callout {
-  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3);
-  margin: var(--s1) var(--s5) var(--s5);
-  padding: var(--s3) var(--s4);
-  border-radius: var(--r-ctl);
-  background: var(--accent-soft);
-  color: var(--text);
-}
-.callout > .icon { color: var(--accent-text); }
-.callout-text { flex: 1 1 auto; min-width: 0; }
 .link-btn { color: var(--accent-text); font-weight: 600; border-radius: var(--r2); white-space: nowrap; transition: color var(--t-fast) var(--ease-in); }
 .link-btn:hover { text-decoration: underline; }
 .link-btn:active { color: var(--text-2); }
-:root[data-style="rice"] .callout { border: 1.5px solid var(--accent-soft); }
+.link-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 
 .about-p { margin: 0; color: var(--text-2); }
 .inline.between { justify-content: space-between; }

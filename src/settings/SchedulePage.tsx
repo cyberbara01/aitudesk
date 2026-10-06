@@ -1,12 +1,13 @@
 // Settings → «Расписание»: a week overview (lesson blocks per day) over the day selector, the chosen
 // day's lessons with «Изменить» / «Удалить» and «Добавить пару», display switches, and a guarded reset.
 import { useCallback, useMemo, useState, type CSSProperties } from "react";
-import { Button } from "../components/Button";
+import { Button, IconButton } from "../components/Button";
 import { Dialog } from "../components/Dialog";
 import { Icon } from "../components/Icon";
 import { Page, Row, Section } from "../components/Section";
 import { Segmented, type SegmentedOption } from "../components/Segmented";
 import { Switch } from "../components/Switch";
+import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.schedule";
 import { isoWeekday, parseTime } from "../lib/design";
@@ -58,7 +59,8 @@ export function SchedulePage() {
     setConfirmClear(false);
   };
 
-  const weekendHidden = !showWeekend && (day === 6 || day === 7);
+  // The tile shows a weekend day whenever it has lessons; only an empty one is hidden while the switch is off.
+  const weekendNote = !showWeekend && (day === 6 || day === 7) && dayLessons.length === 0;
 
   return (
     <Page title={ru.settings.nav.schedule} description={extra.pageDesc}>
@@ -71,7 +73,7 @@ export function SchedulePage() {
               const n = counts[d - 1];
               return (
                 <button key={d} type="button" tabIndex={-1} className={cls} onClick={() => setDay(d)}>
-                  <span className="sched-week-count caption">{n ? ru.schedule.lessons(n) : "—"}</span>
+                  <span className="sched-week-count caption">{n ? extra.lessonsCount(n) : extra.noLessonsShort}</span>
                   <span className="sched-week-track">
                     {lessonsForDay(lessons, d).map((l) => {
                       const st = parseTime(l.start);
@@ -82,7 +84,7 @@ export function SchedulePage() {
                         height: `${((en - st) / span) * 100}%`,
                         ...(l.color ? ({ "--lesson-color": l.color } as CSSProperties) : {}),
                       };
-                      return <span key={l.id} className="sched-week-block" style={style} />;
+                      return <span key={l.id} className={l.color ? "sched-week-block colored" : "sched-week-block"} style={style} />;
                     })}
                   </span>
                 </button>
@@ -98,14 +100,14 @@ export function SchedulePage() {
               <span className="body-strong">{ru.schedule.weekdaysLong[day - 1]}</span>
               {day === today && <span className="sched-today-pill caption">{ru.schedule.today}</span>}
             </span>
-            <span className="hint">{dayLessons.length ? ru.schedule.lessons(dayLessons.length) : extra.dayEmpty}</span>
+            <span className="hint">{dayLessons.length ? extra.lessonsCount(dayLessons.length) : extra.dayEmpty}</span>
           </div>
           <Button variant="accent" icon="add" onClick={openAdd}>
             {ru.schedule.addLesson}
           </Button>
         </div>
 
-        {weekendHidden && (
+        {weekendNote && (
           <div className="sched-note caption" role="note">
             <Icon name="info" size={16} />
             <span>{extra.weekendHidden}</span>
@@ -118,7 +120,12 @@ export function SchedulePage() {
               const teacher = l.teacher.trim();
               const room = l.room.trim();
               return (
-                <div key={l.id} className="sched-item" role="listitem" style={l.color ? ({ "--lesson-color": l.color } as CSSProperties) : undefined}>
+                <div
+                  key={l.id}
+                  className={l.color ? "sched-item colored" : "sched-item"}
+                  role="listitem"
+                  style={l.color ? ({ "--lesson-color": l.color } as CSSProperties) : undefined}
+                >
                   <span className="sched-item-bar" aria-hidden="true" />
                   <span className="sched-item-time num">{timeRange(l)}</span>
                   <div className="sched-item-text">
@@ -131,13 +138,14 @@ export function SchedulePage() {
                       </span>
                     )}
                   </div>
+                  {/* Icon-only actions keep the title column usable at the 720 px window minimum. */}
                   <div className="sched-item-actions">
-                    <Button size="sm" variant="subtle" icon="edit" onClick={() => openEdit(l)}>
-                      {ru.common.edit}
-                    </Button>
-                    <Button size="sm" variant="danger" className="subtle" icon="delete" onClick={() => void removeLesson(l.id)}>
-                      {ru.common.remove}
-                    </Button>
+                    <Tooltip text={ru.common.edit}>
+                      <IconButton icon="edit" label={ru.common.edit} variant="subtle" onClick={() => openEdit(l)} />
+                    </Tooltip>
+                    <Tooltip text={ru.common.remove}>
+                      <IconButton icon="delete" label={ru.common.remove} variant="subtle" className="sched-item-danger" onClick={() => void removeLesson(l.id)} />
+                    </Tooltip>
                   </div>
                 </div>
               );
@@ -154,13 +162,13 @@ export function SchedulePage() {
 
       <Section title={T.options}>
         <Row label={ru.schedule.showWeekend} hint={extra.showWeekendHint}>
-          <Switch checked={showWeekend} onChange={(v) => update({ showWeekend: v })} />
+          <Switch checked={showWeekend} onChange={(v) => update({ showWeekend: v })} ariaLabel={ru.schedule.showWeekend} />
         </Row>
         <Row label={ru.schedule.followToday} hint={extra.followTodayHint}>
-          <Switch checked={followToday} onChange={(v) => update({ followToday: v })} />
+          <Switch checked={followToday} onChange={(v) => update({ followToday: v })} ariaLabel={ru.schedule.followToday} />
         </Row>
         <Row label={T.background} hint={extra.backgroundHint}>
-          <Switch checked={background} onChange={(v) => update({ background: v })} />
+          <Switch checked={background} onChange={(v) => update({ background: v })} ariaLabel={T.background} />
         </Row>
       </Section>
 

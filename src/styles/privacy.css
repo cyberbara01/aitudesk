@@ -1,0 +1,30 @@
+/* Privacy masking (src/components/Masked.tsx): password dots and the hover eye. */
+.masked-dots {
+  color: var(--text-2);
+  letter-spacing: 0.12em;
+  font-family: var(--font-text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Rows that host a RevealButton get `.reveal-row` (position the button at the right end of the text). */
+.reveal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease-in), background-color var(--t-fast) var(--ease-in);
+}
+.reveal-row:hover .reveal-btn,
+.reveal-btn:focus-visible,
+.reveal-btn.open {
+  opacity: 1;
+}
+.reveal-btn:hover { background: var(--ctl-fill-hover); color: var(--text); }
+.reveal-btn:active { background: var(--ctl-fill-pressed); }
+.tile.editing .reveal-btn { display: none; }

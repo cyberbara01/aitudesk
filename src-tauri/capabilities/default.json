@@ -8,7 +8,8 @@
     "launchers",
     "map",
     "settings",
-    "schedule"
+    "schedule",
+    "notes"
   ],
   "permissions": [
     "core:default",

@@ -1,7 +1,7 @@
 // Navigation model of the settings window: tab ids, icons, URL parsing.
 import type { TileId } from "../../lib/settings";
 
-export type TabId = "general" | "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "about";
+export type TabId = "general" | "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "notes" | "about";
 
 export interface TabSpec {
   id: TabId;
@@ -9,7 +9,7 @@ export interface TabSpec {
   icon: string;
 }
 
-/** Order = sidebar order = Ctrl+1…8. */
+/** Order = sidebar order. */
 export const TABS: readonly TabSpec[] = [
   { id: "general", icon: "home" },
   { id: "appearance", icon: "paint_brush" },
@@ -18,6 +18,7 @@ export const TABS: readonly TabSpec[] = [
   { id: "launchers", icon: "apps" },
   { id: "map", icon: "map" },
   { id: "schedule", icon: "calendar_ltr" },
+  { id: "notes", icon: "note" },
   { id: "about", icon: "info" },
 ];
 
@@ -28,7 +29,13 @@ export const TILE_ICONS: Record<TileId, string> = {
   launchers: "apps",
   map: "map",
   schedule: "calendar_ltr",
+  notes: "note",
 };
+
+/** Tabs whose page opens an editor for `edit`. */
+export function acceptsEdit(tab: TabId): boolean {
+  return tab === "launchers" || tab === "notes";
+}
 
 export function isTab(v: unknown): v is TabId {
   return typeof v === "string" && TABS.some((t) => t.id === v);
@@ -41,9 +48,9 @@ export function parseTab(v: unknown): TabId {
 
 export interface Route {
   tab: TabId;
-  /** Launcher id to open in the editor (launchers tab only). */
+  /** Item to open in the editor: a launcher id or built-in key (launchers tab) or a note id (notes tab). */
   edit: string | null;
-  /** Bumped on every navigate-with-edit so the launchers page can react to the same id twice. */
+  /** Bumped on every navigate-with-edit so the page can react to the same id twice. */
   nonce: number;
 }
 
@@ -51,6 +58,6 @@ export interface Route {
 export function readInitialRoute(): Route {
   const q = new URLSearchParams(window.location.search);
   const tab = parseTab(q.get("tab"));
-  const edit = tab === "launchers" ? q.get("edit") : null;
+  const edit = acceptsEdit(tab) ? q.get("edit") : null;
   return { tab, edit: edit ? edit : null, nonce: 0 };
 }

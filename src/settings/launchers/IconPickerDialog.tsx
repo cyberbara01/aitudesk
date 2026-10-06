@@ -15,7 +15,7 @@ import { ALL_ICON_NAMES, Icon } from "../../components/Icon";
 import { TextField } from "../../components/TextField";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.launchers";
-import { LAUNCHER_ICONS } from "../../lib/launchers";
+import { LAUNCHER_ICONS, contentBox } from "../../lib/launchers";
 
 /** Icon button 40×40 with an 8 px gap → 48 px pitch. */
 const CELL = 40;
@@ -26,7 +26,7 @@ const OVERSCAN = 2;
 const SEARCH_DEBOUNCE_MS = 100;
 
 interface Props {
-  /** Currently chosen icon name (highlighted). */
+  /** Currently chosen icon name (highlighted). Constant for the dialog's life: selecting closes it. */
   value: string;
   onSelect: (name: string) => void;
   onClose: () => void;
@@ -35,20 +35,13 @@ interface Props {
 /** "arrow up" / "arrow-up" → "arrow_up", like the file names. */
 const normalizeQuery = (q: string) => q.trim().toLowerCase().replace(/[\s-]+/g, "_");
 
-/** Content-box size (clientWidth/Height minus padding), matching ResizeObserver's contentRect. */
-function contentSize(el: HTMLElement): { w: number; h: number } {
-  const cs = getComputedStyle(el);
-  const px = (v: string) => parseFloat(v) || 0;
-  return {
-    w: el.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight),
-    h: el.clientHeight - px(cs.paddingTop) - px(cs.paddingBottom),
-  };
-}
+const colsFor = (w: number) => Math.max(1, Math.floor((w + GAP) / PITCH));
 
 /**
  * Modal icon picker over the full Fluent 20 px set: search with a 100 ms debounce, a two-row strip of
  * popular icons with "Смотреть все", and a row-windowed grid (only the visible rows are mounted) so the
  * whole set scrolls smoothly. Arrow keys move inside the grid, Enter in the search picks the first match.
+ * The kit Dialog focuses the search field (first form field) and handles Esc for the top-most dialog.
  */
 export function IconPickerDialog({ value, onSelect, onClose }: Props) {
   const [query, setQuery] = useState("");
@@ -59,7 +52,6 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
   const [viewport, setViewport] = useState({ top: 0, height: 376 });
   const [focusIdx, setFocusIdx] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
 
   // Debounced query.
   useEffect(() => {
@@ -67,21 +59,15 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
     return () => window.clearTimeout(t);
   }, [query]);
 
-  // The Dialog focuses its first button on open; move focus to the search field right after.
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => searchRef.current?.querySelector("input")?.focus());
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
   // Columns and viewport height follow the scroll area.
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const measure = (w: number, h: number) => {
-      setCols(Math.max(1, Math.floor((w + GAP) / PITCH)));
+      setCols(colsFor(w));
       setViewport((v) => (v.height === h ? v : { ...v, height: h }));
     };
-    const initial = contentSize(el);
+    const initial = contentBox(el);
     measure(initial.w, initial.h);
     const ro = new ResizeObserver((entries) => {
       const r = entries[0]?.contentRect;
@@ -105,13 +91,25 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
   const mode = results ? "search" : expanded ? "all" : "popular";
   const names: readonly string[] = results ?? (expanded ? ALL_ICON_NAMES : LAUNCHER_ICONS.slice(0, cols * 2));
 
-  // A new list starts at the top.
+  // A new list starts at the top — except «Смотреть все», which starts at the selected icon so the
+  // highlighted (and tabbable) cell is on screen instead of somewhere below the fold.
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = 0;
-    setViewport((v) => (v.top === 0 ? v : { ...v, top: 0 }));
+    let top = 0;
+    if (mode === "all" && el) {
+      const i = ALL_ICON_NAMES.indexOf(value);
+      if (i >= 0) {
+        const { w, h } = contentBox(el);
+        top = Math.max(0, Math.floor(i / colsFor(w)) * PITCH - Math.floor((h - CELL) / 2));
+      }
+    }
+    if (el) {
+      el.scrollTop = top;
+      top = el.scrollTop; // what the browser accepted (clamped to the canvas)
+    }
+    setViewport((v) => (v.top === top ? v : { ...v, top }));
     setFocusIdx(null);
-  }, [mode, q]);
+  }, [mode, q, value]);
 
   // Row windowing.
   const totalRows = Math.ceil(names.length / cols);
@@ -125,8 +123,13 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
     setViewport((v) => (v.top === top ? v : { ...v, top }));
   };
 
-  // Roving focus: one tabbable icon; arrows move it and keep its row in view.
+  // Roving focus: one tabbable icon; arrows move it and keep its row in view. The tabbable cell must be a
+  // mounted one, otherwise Tab from the search field would skip the grid: when the active icon is outside
+  // the rendered window, the first rendered cell takes the tab stop.
   const activeIdx = focusIdx ?? Math.max(0, names.indexOf(value));
+  const firstShown = firstRow * cols;
+  const lastShown = lastRow * cols;
+  const tabIdx = activeIdx >= firstShown && activeIdx < lastShown ? activeIdx : firstShown;
   const moveFocus = (next: number) => {
     if (!names.length) return;
     const idx = Math.max(0, Math.min(names.length - 1, next));
@@ -171,10 +174,12 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
     }
   };
 
+  // Head: one message per state. «Смотреть все» lives in the CTA under the popular rows (single entry point);
+  // the head only offers «Свернуть» once the full set is shown.
   let headLabel: string;
   let headAction: ReactNode = null;
   if (mode === "search") {
-    headLabel = names.length ? extra.iconsFound(names.length) : ru.common.nothingFound;
+    headLabel = extra.iconsFound(names.length);
   } else if (mode === "all") {
     headLabel = extra.allIconsCount(ALL_ICON_NAMES.length);
     headAction = (
@@ -184,27 +189,18 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
     );
   } else {
     headLabel = extra.popular;
-    headAction = (
-      <Button size="sm" variant="subtle" onClick={() => setExpanded(true)}>
-        {ru.common.showAll}
-      </Button>
-    );
   }
-
-  const status = hovered ?? extra.selectedIcon(value);
 
   return (
     <Dialog open title={ru.settings.launchers.pickIcon} onClose={onClose} width="640px">
       <div className="ln-picker">
-        <div ref={searchRef}>
-          <TextField
-            value={query}
-            onChange={setQuery}
-            placeholder={ru.settings.launchers.searchIcons}
-            suffix={<Icon name="search" size={16} />}
-            onKeyDown={onSearchKey}
-          />
-        </div>
+        <TextField
+          value={query}
+          onChange={setQuery}
+          placeholder={ru.settings.launchers.searchIcons}
+          suffix={<Icon name="search" size={16} />}
+          onKeyDown={onSearchKey}
+        />
         <div className="ln-picker-head">
           <span className="caption">{headLabel}</span>
           {headAction}
@@ -218,7 +214,7 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
               style={{ "--ln-pick-cols": cols } as CSSProperties}
             >
               {slice.map((n, k) => {
-                const i = firstRow * cols + k;
+                const i = firstShown + k;
                 const selected = n === value;
                 return (
                   <button
@@ -228,7 +224,7 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
                     aria-selected={selected}
                     aria-label={n}
                     data-index={i}
-                    tabIndex={i === activeIdx ? 0 : -1}
+                    tabIndex={i === tabIdx ? 0 : -1}
                     className={selected ? "icon-btn selected" : "icon-btn subtle"}
                     onMouseEnter={() => setHovered(n)}
                     onMouseLeave={() => setHovered(null)}
@@ -256,8 +252,15 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
             </div>
           )}
         </div>
+        {/* Status: the label in the text face, only the icon name in mono. */}
         <div className="ln-picker-status" aria-live="polite">
-          {status}
+          {hovered ? (
+            <span className="mono">{hovered}</span>
+          ) : (
+            <>
+              <span>{extra.selectedIcon}</span> <span className="mono">{value}</span>
+            </>
+          )}
         </div>
       </div>
     </Dialog>
