@@ -1,0 +1,109 @@
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { Icon } from "../../components/Icon";
+import { letterOf } from "../../lib/launchers";
+import type { LauncherIcon as LauncherIconSpec } from "../../lib/settings";
+
+/** Everything a cell needs to draw a launcher (a LauncherItem or CustomLauncher fits). */
+export interface LauncherLook {
+  name: string;
+  url: string;
+  icon: LauncherIconSpec;
+  /** #RRGGBB tint. */
+  color: string;
+}
+
+const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
+
+/** Cached site image 28×28; falls back to the letter if the data URL cannot be decoded. */
+function SiteImage({ data, fallback }: { data: string; fallback: ReactNode }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    setBroken(false);
+  }, [data]);
+  if (broken) return <>{fallback}</>;
+  return <img className="ln-img" src={data} alt="" draggable={false} decoding="async" onError={() => setBroken(true)} />;
+}
+
+/** 36×36 tinted square: Fluent icon (20 px) · site image (28 px) · first letter. Purely visual. */
+export function LauncherIcon({ look, className }: { look: LauncherLook; className?: string }) {
+  const { icon, color, name, url } = look;
+  const letter = <span className="ln-letter">{letterOf(name, url)}</span>;
+  let inner: ReactNode;
+  if (icon.kind === "fluent") inner = <Icon name={icon.name} />;
+  else if (icon.kind === "site" && icon.data) inner = <SiteImage data={icon.data} fallback={letter} />;
+  else inner = letter;
+  return (
+    <span className={cx("ln-square", className)} style={{ "--ln-color": color } as CSSProperties} aria-hidden="true">
+      {inner}
+    </span>
+  );
+}
+
+interface CellProps {
+  look: LauncherLook;
+  showLabel: boolean;
+  /** Given on the tile: the cell becomes a button and is tagged for the context menu. */
+  onClick?: () => void;
+  launcherId?: string;
+  className?: string;
+}
+
+/** 64×64 launcher cell: tinted square plus an optional one-line caption. A <button> with onClick, otherwise static. */
+export function LauncherCell({ look, showLabel, onClick, launcherId, className }: CellProps) {
+  const cls = cx("ln-cell", className);
+  const body = (
+    <>
+      <LauncherIcon look={look} />
+      {showLabel && <span className="ln-caption caption">{look.name}</span>}
+    </>
+  );
+  if (!onClick) {
+    return (
+      <div className={cls} role="presentation">
+        {body}
+      </div>
+    );
+  }
+  return (
+    <button type="button" className={cls} data-launcher={launcherId} aria-label={look.name} onClick={onClick}>
+      {body}
+    </button>
+  );
+}
+
+interface ServiceCellProps {
+  /** "add" = plus icon without tint; "more" = "+N" on a neutral fill. */
+  variant: "add" | "more";
+  /** Caption under the square (when showLabel). */
+  caption: string;
+  showLabel: boolean;
+  ariaLabel: string;
+  /** "+N" text for the "more" variant. */
+  text?: string;
+  onClick?: () => void;
+}
+
+/** Service cell at the end of the grid: "Добавить" or "+N". */
+export function ServiceCell({ variant, caption, showLabel, ariaLabel, text, onClick }: ServiceCellProps) {
+  const cls = cx("ln-cell", variant === "add" ? "ln-add" : "ln-more");
+  const body = (
+    <>
+      <span className="ln-square" aria-hidden="true">
+        {variant === "add" ? <Icon name="add" /> : <span className="ln-more-text num">{text}</span>}
+      </span>
+      {showLabel && <span className="ln-caption caption">{caption}</span>}
+    </>
+  );
+  if (!onClick) {
+    return (
+      <div className={cls} role="presentation">
+        {body}
+      </div>
+    );
+  }
+  return (
+    <button type="button" className={cls} aria-label={ariaLabel} onClick={onClick}>
+      {body}
+    </button>
+  );
+}

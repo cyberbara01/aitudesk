@@ -1,0 +1,135 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AITU Desk",
+  "version": "0.2.0",
+  "identifier": "kz.edu.astanait.aitudesk",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost"
+    },
+    "windows": [
+      {
+        "label": "clock",
+        "title": "AITU Desk — Часы",
+        "url": "index.html",
+        "width": 280,
+        "height": 120,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnBottom": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "minimizable": false,
+        "maximizable": false,
+        "closable": false,
+        "visible": false,
+        "focus": false
+      },
+      {
+        "label": "system",
+        "title": "AITU Desk — Система",
+        "url": "index.html",
+        "width": 280,
+        "height": 144,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnBottom": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "minimizable": false,
+        "maximizable": false,
+        "closable": false,
+        "visible": false,
+        "focus": false
+      },
+      {
+        "label": "launchers",
+        "title": "AITU Desk — Ярлыки",
+        "url": "index.html",
+        "width": 280,
+        "height": 170,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnBottom": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "minimizable": false,
+        "maximizable": false,
+        "closable": false,
+        "visible": false,
+        "focus": false
+      },
+      {
+        "label": "map",
+        "title": "AITU Desk — Карта AITU",
+        "url": "index.html",
+        "width": 640,
+        "height": 320,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnBottom": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "minimizable": false,
+        "maximizable": false,
+        "closable": false,
+        "visible": false,
+        "focus": false
+      },
+      {
+        "label": "schedule",
+        "title": "AITU Desk — Расписание",
+        "url": "index.html",
+        "width": 280,
+        "height": 240,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnBottom": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "minimizable": false,
+        "maximizable": false,
+        "closable": false,
+        "visible": false,
+        "focus": false
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "Russian"
+        ],
+        "displayLanguageSelector": false
+      }
+    },
+    "publisher": "AITU Desk",
+    "shortDescription": "Виджеты рабочего стола для студентов AITU",
+    "copyright": "MIT. Карта корпуса C1 — aitumap (Yuujiso, MIT); иконки — Fluent UI System Icons (Microsoft, MIT)"
+  }
+}

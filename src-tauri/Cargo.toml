@@ -1,0 +1,53 @@
+[package]
+name = "aitudesk"
+version = "0.2.0"
+description = "AITU Desk — виджеты рабочего стола для Windows 11"
+authors = ["cyberbara01"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.82"
+
+[lib]
+name = "aitudesk_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+tauri = { version = "2.12", features = ["tray-icon", "image-png"] }
+tauri-plugin-store = "2.5"
+tauri-plugin-opener = "2.7"
+tauri-plugin-autostart = "2.7"
+tauri-plugin-single-instance = "2.5"
+window-vibrancy = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+[dependencies.windows]
+version = "0.62"
+features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_UI_Accessibility",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_Power",
+  "Devices_Bluetooth",
+  "Devices_Enumeration",
+  "Devices_Radios",
+  "Networking_Connectivity",
+  "UI_ViewManagement",
+  "Foundation",
+  "Foundation_Collections",
+]
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

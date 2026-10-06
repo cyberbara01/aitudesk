@@ -1,0 +1,278 @@
+/* =====================================================================================
+   Schedule — «Расписание» (V2-BRIEF §3.5)
+   Tile: weekday row on top, the day's lessons below (scrolls without a visible scrollbar).
+   Everything is drawn with tokens, so the three styles and five palettes apply by themselves.
+   ===================================================================================== */
+
+/* ---- Tile ---- */
+.tile-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+/* Weekday row: segments share the width evenly, so drop the kit's side padding. */
+.sched-days { flex: 0 0 auto; }
+.sched-days .segmented.sm .seg-item { padding: 0 var(--s1); min-width: 0; }
+
+/* Today, when it is not the viewed day: a 4 px accent dot under its label. */
+.sched-days[data-today="1"] .seg-item[data-value="1"]:not(.selected)::after,
+.sched-days[data-today="2"] .seg-item[data-value="2"]:not(.selected)::after,
+.sched-days[data-today="3"] .seg-item[data-value="3"]:not(.selected)::after,
+.sched-days[data-today="4"] .seg-item[data-value="4"]:not(.selected)::after,
+.sched-days[data-today="5"] .seg-item[data-value="5"]:not(.selected)::after,
+.sched-days[data-today="6"] .seg-item[data-value="6"]:not(.selected)::after,
+.sched-days[data-today="7"] .seg-item[data-value="7"]:not(.selected)::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* The list: fills the rest, scrolls by wheel, no scrollbar; fades hint at hidden rows. */
+.sched-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.sched-list::-webkit-scrollbar { display: none; }
+.sched-list.fade-top {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px);
+  mask-image: linear-gradient(to bottom, transparent, #000 20px);
+}
+.sched-list.fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+}
+.sched-list.fade-top.fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+}
+
+/* Row: time column · bar · content. The bar column is always 3 px wide so a state change never shifts text. */
+.sched-row {
+  display: grid;
+  grid-template-columns: max-content 3px minmax(0, 1fr);
+  column-gap: var(--s2);
+  align-items: start;
+  padding: var(--s1) 0;
+  transition: opacity var(--t-base) var(--ease-in);
+}
+.sched-row.past { opacity: .55; }
+
+.sched-time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: var(--num-features);
+  white-space: nowrap;
+}
+.sched-start { font-size: var(--body-size); line-height: var(--body-lh); color: var(--text); }
+.sched-end { font-size: var(--caption-size); line-height: var(--caption-lh); color: var(--text-3); }
+
+.sched-bar {
+  justify-self: center;
+  align-self: stretch;
+  width: 2px;
+  margin: 2px 0;
+  border-radius: var(--r2);
+  background: var(--text-3);
+  transition: background-color var(--t-base) var(--ease-in), width var(--t-fast) var(--ease-in);
+}
+.sched-row.colored .sched-bar { background: color-mix(in srgb, var(--lesson-color) 65%, transparent); }
+.sched-row.now .sched-bar { width: 3px; background: var(--lesson-color, var(--accent)); }
+
+.sched-content { display: flex; flex-direction: column; min-width: 0; }
+/* Badge ink: the accent text tone, or the lesson colour pulled towards the text colour so it reads on any palette. */
+.sched-badge { font-weight: 600; color: var(--accent-text); }
+.sched-row.colored .sched-badge { color: color-mix(in srgb, var(--lesson-color) 55%, var(--text) 45%); }
+.sched-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+.sched-meta { color: var(--text-2); }
+
+/* Empty states: centred, quiet; the icon goes when the window is too short for it. */
+.sched-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 var(--s2);
+  text-align: center;
+  color: var(--text-2);
+  overflow: hidden;
+}
+.sched-empty .icon { color: var(--text-3); }
+.sched-empty .body { overflow-wrap: anywhere; }
+.tile-schedule.compact .sched-empty { gap: var(--s1); }
+
+/* =====================================================================================
+   Settings → «Расписание»
+   ===================================================================================== */
+
+/* Week overview + day selector: the 7 columns are aligned with the 7 segments right under them. */
+.sched-planner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s2) var(--s5) var(--s4);
+}
+.sched-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  padding: 0 calc(2px + var(--ctl-border-w));
+}
+.sched-week-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  min-width: 0;
+  padding: var(--s1) var(--s1) 0;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-base) var(--ease-in);
+}
+.sched-week-col:hover { background: var(--surface-3); }
+.sched-week-col.today { color: var(--accent-text); }
+.sched-week-count {
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.sched-week-track {
+  position: relative;
+  display: block;
+  height: 56px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  overflow: hidden;
+  transition: background-color var(--t-base) var(--ease-in);
+}
+.sched-week-col.selected .sched-week-track { background: var(--accent-soft); }
+.sched-week-block {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  min-height: 3px;
+  border-radius: var(--r2);
+  background: var(--lesson-color, var(--accent));
+  opacity: .9;
+}
+:root[data-style="rice"] .sched-week-track { border: var(--ctl-border-w) solid var(--divider); background: transparent; }
+:root[data-style="rice"] .sched-week-col.selected .sched-week-track { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Day head: weekday name (+ «Сегодня» pill), count, «Добавить пару». */
+.sched-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3) var(--s5);
+  border-top: 1px solid var(--divider);
+}
+.sched-day-title { display: flex; flex-direction: column; min-width: 0; }
+.sched-day-name { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+.sched-day-name .body-strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sched-today-pill {
+  flex: 0 0 auto;
+  padding: 0 var(--s2);
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.sched-day-head .btn { flex: 0 0 auto; }
+
+/* Hidden-weekend note inside the card. */
+.sched-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  margin: 0 var(--s5) var(--s3);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  color: var(--text-2);
+}
+.sched-note .icon { flex-shrink: 0; color: var(--text-3); margin-top: 1px; }
+
+/* Lesson rows of the chosen day. */
+.sched-items { display: flex; flex-direction: column; }
+.sched-item {
+  display: grid;
+  grid-template-columns: 3px max-content minmax(0, 1fr) auto;
+  gap: var(--s3);
+  align-items: center;
+  min-height: 56px;
+  padding: var(--s2) var(--s5);
+  border-top: 1px solid var(--divider);
+}
+.sched-item-bar {
+  width: 3px;
+  height: 28px;
+  border-radius: var(--r2);
+  background: var(--lesson-color, var(--accent));
+}
+.sched-item-time { color: var(--text-2); white-space: nowrap; }
+.sched-item-text { display: flex; flex-direction: column; min-width: 0; }
+.sched-item-title { color: var(--text); }
+.sched-item-meta { color: var(--text-3); }
+.sched-item-actions { display: flex; gap: var(--s1); }
+
+.sched-day-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s6) var(--s5);
+  border-top: 1px solid var(--divider);
+  text-align: center;
+  color: var(--text-2);
+}
+.sched-day-empty .icon { color: var(--text-3); margin-bottom: var(--s1); }
+
+/* ---- Lesson editor (Dialog) ---- */
+.sched-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  padding-top: var(--s1);
+}
+.sched-field { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+.sched-field-label { color: var(--text-2); }
+.sched-field-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.sched-field-text { display: flex; flex-direction: column; min-width: 0; }
+.sched-warn { display: flex; align-items: flex-start; gap: var(--s2); color: var(--caution); }
+.sched-warn .icon { flex-shrink: 0; margin-top: 1px; }
+.sched-preview {
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-card);
+  background: var(--surface-2);
+  border: 1px solid var(--divider);
+}
+
+/* Clear confirmation. */
+.sched-confirm { display: flex; flex-direction: column; gap: var(--s1); padding-bottom: var(--s1); }

@@ -1,0 +1,16 @@
+/* Bundled open fonts (SIL OFL 1.1): Inter 4.1 (rsms.me/inter), JetBrains Mono 2.304 (jetbrains.com/mono).
+   Everything else is a Windows system font. */
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../fonts/JetBrainsMono-Variable.ttf") format("truetype");
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: block;
+}

@@ -1,0 +1,267 @@
+/* AITU Desk — settings window: shell, «Общие», «Оформление», «О программе».
+   Layout primitives (.shell .sidebar .nav-item .content .page .section .row .option-card) live in base.css;
+   this file adds only what base.css lacks: brand / footer details, page transition, icon rows,
+   the CSS-drawn card previews, the live tile preview and the About page. Tokens only. */
+
+/* =====================================================================================
+   Startup: controls whose value arrives over IPC render without transitions until settled
+   ===================================================================================== */
+.settling,
+.settling * { transition: none !important; animation: none !important; }
+
+/* =====================================================================================
+   Shell
+   ===================================================================================== */
+.page-title { margin: 0; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-item { width: 100%; }
+.nav-item > .ellipsis { min-width: 0; }
+.sidebar-foot {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s1);
+  padding: var(--s3) var(--s3) var(--s1);
+  color: var(--text-3);
+  font-size: var(--caption-size); line-height: var(--caption-lh);
+}
+.kbd {
+  display: inline-flex; align-items: center;
+  height: 18px; padding: 0 5px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--divider);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-family: var(--font-num); font-size: 11px; line-height: 16px;
+}
+/* Page fade on tab switch (opacity only, so fixed-position dialogs are never re-parented). */
+.content.anim > * { animation: page-in var(--t-base) var(--ease-in); }
+@keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* =====================================================================================
+   Rows with a leading icon (tinted square, like macOS System Settings)
+   ===================================================================================== */
+.row-icon {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; flex: none;
+  border-radius: var(--r-ctl);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.row-icon.neutral { background: var(--surface-3); color: var(--text-2); }
+.row-icon .icon { color: inherit; }
+.row-icon + .row-text { flex: 1 1 auto; }
+:root[data-style="aqua"] .row-icon { border-radius: var(--r-ctl); box-shadow: inset 0 1px 0 var(--tile-edge); }
+:root[data-style="rice"] .row-icon { border: 1.5px solid var(--accent-soft); }
+
+/* Transient button states («Раскладка сброшена») */
+.btn.status-ok:disabled { color: var(--success); }
+.btn.danger:disabled { color: var(--critical); }
+
+/* =====================================================================================
+   Option cards: inner text block, selected badge, horizontal variant
+   ===================================================================================== */
+.card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0 var(--s1) var(--s1); }
+.card-preview { position: relative; }
+.card-check {
+  position: absolute; top: 6px; right: 6px;
+  display: grid; place-items: center;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+  animation: pop-in var(--t-base) var(--ease-in);
+}
+.card-check .icon { color: inherit; }
+:root[data-style="rice"] .card-check { border-radius: var(--r-sm); }
+.option-card.horizontal { flex-direction: row; align-items: center; gap: var(--s3); width: 100%; padding: var(--s3) var(--s4); }
+.option-card.horizontal .card-text { flex: 1 1 auto; padding: 0; }
+.option-card.horizontal .card-tick { flex: none; color: var(--accent-text); }
+.sub-label { padding-top: var(--s1); color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); font-weight: 600; }
+
+/* ---- Style cards: a mini tile drawn in THAT design language (shapes and fonts from an inline map) ---- */
+.sp { height: 80px; background: var(--desk); display: grid; place-items: center; }
+.sp-tile {
+  position: relative;
+  display: flex; flex-direction: column; gap: 3px;
+  width: 108px; height: 56px;
+  padding: 8px 10px;
+  background: var(--tile-fill);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  box-shadow: inset 0 1px 0 var(--tile-edge);
+}
+.sp-time { font-size: 18px; line-height: 20px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--text); }
+.sp-bar { display: block; width: 44px; height: 4px; border-radius: 2px; background: var(--text-3); }
+.sp-bar.short { width: 28px; }
+.sp-switch { position: absolute; right: 8px; bottom: 8px; width: 20px; height: 11px; border-radius: 999px; background: var(--accent); }
+.sp-switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 7px; height: 7px; border-radius: 50%; background: var(--on-accent); }
+/* Fluent: radius 6, Segoe UI Display light, thin top edge */
+.sp[data-sp="fluent"] .sp-tile { border-radius: 6px; }
+.sp[data-sp="fluent"] .sp-time { font-family: var(--font-segoe-display); font-weight: 300; }
+/* Aqua: large radius, Inter, bright edge, soft shadow, iOS switch */
+.sp[data-sp="aqua"] .sp-tile { border-radius: 12px; box-shadow: inset 0 1px 0 var(--tile-edge), 0 2px 6px rgba(0, 0, 0, .12); }
+.sp[data-sp="aqua"] .sp-time { font-family: var(--font-inter); font-weight: 300; }
+.sp[data-sp="aqua"] .sp-switch { width: 22px; height: 13px; }
+.sp[data-sp="aqua"] .sp-switch::after { width: 9px; height: 9px; background: #fff; box-shadow: 0 1px 1px rgba(0, 0, 0, .25); }
+/* Rice: radius 9, 1.5 px accent-tinted border, mono digits, square toggle, no shadow */
+.sp[data-sp="rice"] .sp-tile { border-radius: 9px; border: 1.5px solid var(--accent-soft); box-shadow: none; }
+.sp[data-sp="rice"] .sp-time { font-family: var(--font-jetbrains); font-weight: 600; }
+.sp[data-sp="rice"] .sp-switch { border-radius: 3px; background: var(--accent-soft); border: 1.5px solid var(--accent); }
+.sp[data-sp="rice"] .sp-switch::after { top: 1px; right: 1px; width: 6px; height: 6px; border-radius: 1.5px; background: var(--accent); }
+
+/* ---- Theme cards: wallpaper + mini tile in the palette's swatch colours (data from THEMES) ---- */
+.tp { height: 80px; background: var(--tp-bg); display: grid; place-items: center; }
+.tp.split { grid-template-columns: 1fr 1fr; background: none; }
+.tp-half { width: 100%; height: 100%; display: grid; place-items: center; background: var(--tp-bg); }
+.tp-tile {
+  display: flex; flex-direction: column; gap: 4px;
+  width: 92px; padding: 8px 10px;
+  border-radius: calc(var(--r-tile) * .75);
+  background: var(--tp-fill);
+  border: 1px solid color-mix(in srgb, var(--tp-text) 12%, transparent);
+}
+.tp-time { font-family: var(--font-display); font-size: 16px; line-height: 18px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--tp-text); }
+.tp-bar { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--tp-muted); }
+.split .tp-tile { width: 46px; padding: 6px 7px; gap: 3px; }
+.split .tp-time { font-size: 12px; line-height: 14px; }
+.split .tp-bar { width: 22px; height: 3px; }
+
+/* ---- Accent: two-tone preset dots (left = tone for dark palettes, right = for light ones) ---- */
+.acc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: var(--s1); }
+.acc-item {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s1);
+  padding: var(--s2) var(--s1);
+  border-radius: var(--r-ctl);
+  color: var(--text-2);
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.acc-item:hover { background: var(--ctl-fill-hover); color: var(--text); }
+.acc-item.selected { color: var(--text); }
+.acc-name { max-width: 100%; font-size: var(--caption-size); line-height: var(--caption-lh); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acc-dot {
+  position: relative; flex: none;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+  transition: outline-color var(--t-fast) var(--ease-in);
+}
+.acc-dot::before, .acc-dot::after { content: ""; position: absolute; top: 0; bottom: 0; width: 50%; }
+.acc-dot::before { left: 0; background: var(--tone-dark); }
+.acc-dot::after { right: 0; background: var(--tone-light); }
+.acc-dot.solid::before, .acc-dot.solid::after { background: var(--tone); }
+.acc-dot.conic { background: conic-gradient(#f87171, #fbbf24, #4ade80, #22d3ee, #818cf8, #f472b6, #f87171); }
+.acc-dot.conic::before, .acc-dot.conic::after { content: none; }
+.acc-item.selected .acc-dot { outline: 2px solid var(--text); outline-offset: 2px; }
+:root[data-style="rice"] .acc-dot { border-radius: var(--r-sm); }
+/* The picker's R/G/B inputs sit in ~48 px columns: tighter padding so three digits stay visible. */
+.page .cp-fields .textfield-input { padding: 0 var(--s2); }
+.page .cp-fields .textfield-input::-webkit-inner-spin-button { display: none; }
+
+/* =====================================================================================
+   Live preview («Так будут выглядеть плитки»): wallpaper-coloured desk with two mini tiles
+   ===================================================================================== */
+.pv-desk {
+  display: flex; flex-wrap: wrap; gap: var(--s3);
+  padding: var(--s3);
+  border-radius: var(--r-card);
+  background: var(--desk);
+}
+.pv-tile {
+  position: relative;
+  display: flex; flex-direction: column;
+  flex: 1 1 184px; min-width: 184px; max-width: 320px; min-height: 104px;
+  padding: calc(var(--tile-pad) * .75);
+  border-radius: var(--r-tile);
+  background: var(--tile-fill);
+  border: 1px solid var(--tile-border);
+  box-shadow: inset 0 1px 0 var(--tile-edge);
+  overflow: hidden;
+}
+.pv-tile.no-bg { background: transparent; border-color: transparent; box-shadow: none; }
+.pv-clock { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.pv-clock-body { display: flex; gap: 2px; min-width: 0; max-width: 100%; }
+.pv-clock-body.row { gap: var(--s2); }
+.pv-time { line-height: 1.1; white-space: nowrap; }
+.pv-date { max-width: 100%; font-size: var(--caption-size); line-height: var(--caption-lh); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-sys { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.pv-row { display: flex; align-items: center; gap: var(--s2); height: 26px; min-width: 0; }
+.pv-row .icon { color: var(--text); }
+.pv-row-label { flex: none; color: var(--text); font-size: var(--caption-size); line-height: var(--caption-lh); }
+.pv-row-value {
+  flex: 1; min-width: 0; text-align: right;
+  color: var(--text-2);
+  font-family: var(--font-num); font-variant-numeric: tabular-nums;
+  font-size: var(--caption-size); line-height: var(--caption-lh);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* =====================================================================================
+   About
+   ===================================================================================== */
+.about-hero { display: flex; align-items: center; gap: var(--s5); padding: var(--s1) 0; }
+.about-mark {
+  display: grid; place-items: center; flex: none;
+  width: 72px; height: 72px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25);
+}
+.about-mark .icon { width: 36px; height: 36px; flex-basis: 36px; color: inherit; }
+:root[data-style="rice"] .about-mark { border-radius: var(--r-card); }
+.about-text { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.about-name { font-family: var(--font-display); font-size: var(--title-size); line-height: var(--title-lh); font-weight: 600; letter-spacing: -0.01em; }
+.about-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); }
+.about-tagline { color: var(--text-2); }
+.badge {
+  display: inline-flex; align-items: center; gap: var(--s1);
+  height: 22px; padding: 0 var(--s2);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--caption-size); line-height: var(--caption-lh); font-weight: 600;
+  white-space: nowrap;
+}
+.badge.neutral { background: var(--surface-3); color: var(--text-2); }
+.badge .icon { color: inherit; }
+:root[data-style="rice"] .badge { border-radius: var(--r-sm); }
+
+.author { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); padding: var(--s3) var(--s5); }
+.avatar {
+  display: grid; place-items: center; flex: none;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-display); font-size: 16px; font-weight: 600;
+}
+:root[data-style="rice"] .avatar { border-radius: var(--r-ctl); }
+.author-text { display: flex; flex-direction: column; flex: 1 1 100px; min-width: 0; }
+.author-links { display: flex; gap: var(--s2); flex: none; }
+.callout {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3);
+  margin: var(--s1) var(--s5) var(--s5);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-ctl);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.callout > .icon { color: var(--accent-text); }
+.callout-text { flex: 1 1 auto; min-width: 0; }
+.link-btn { color: var(--accent-text); font-weight: 600; border-radius: var(--r2); white-space: nowrap; transition: color var(--t-fast) var(--ease-in); }
+.link-btn:hover { text-decoration: underline; }
+.link-btn:active { color: var(--text-2); }
+:root[data-style="rice"] .callout { border: 1.5px solid var(--accent-soft); }
+
+.about-p { margin: 0; color: var(--text-2); }
+.inline.between { justify-content: space-between; }
+.licence-box {
+  margin: 0;
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-ctl);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-family: var(--font-text); font-size: var(--caption-size); line-height: var(--caption-lh);
+  white-space: pre-wrap;
+  user-select: text; -webkit-user-select: text;
+  animation: pop-in var(--t-base) var(--ease-in);
+}

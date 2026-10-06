@@ -1,0 +1,42 @@
+// Room-code helpers shared by the tile (context menu) and the settings page (favourites list).
+// A room is a <g data-name> in the floor drawings: "C1.2.223K" (block C1, section 2, room 223, type K),
+// the nested "1.352K", or a named area such as "LIBRARY|BIBLIOTEKA|БИБЛИОТЕКА|…".
+import { extra } from "../i18n/ru.extra.map";
+import { toFloor, type Floor } from "./types";
+
+/**
+ * Floor of a room code: the first digit of the room number ("C1.2.223K" → 2, "1.352K" → 3). The named areas
+ * (library, dining hall, assembly hall, coworking, Mediker) are all on the first floor of this drawing.
+ */
+export function floorOfRoom(code: string): Floor | null {
+  const m = /(?:^|\.)(\d)\d{2}[A-Z]?$/.exec(code);
+  if (m) return toFloor(Number(m[1]));
+  if (code.includes("|")) return 1;
+  return null;
+}
+
+/** True for a plain room code (shown in the mono font); false for a named area. */
+export function isRoomCode(code: string): boolean {
+  return !code.includes("|");
+}
+
+/** Human name of a room: the code itself, or the Russian name of a named area ("LIBRARY|…" → "Библиотека"). */
+export function roomDisplayName(code: string): string {
+  if (isRoomCode(code)) return code;
+  const parts = code.split("|");
+  const known = extra.areas[parts[0]];
+  if (known) return known;
+  const cyrillic = parts.find((p) => /[А-ЯЁ]/i.test(p)) ?? parts[0];
+  const lower = cyrillic.toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+/** Upper-cased data-name of the room group under a pointer target, if it belongs to the floor shown now. */
+export function roomFromTarget(target: Element, floor: Floor): string | null {
+  const g = target.closest<SVGGElement>("g[data-name]");
+  if (!g) return null;
+  const layer = g.closest<SVGGElement>("g.floor");
+  if (!layer || layer.getAttribute("data-floor") !== String(floor)) return null;
+  const code = (g.getAttribute("data-name") ?? "").trim().toUpperCase();
+  return code || null;
+}

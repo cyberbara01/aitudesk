@@ -1,0 +1,127 @@
+/* =====================================================================================
+   System tile — «Система» (SPEC §3 «Плитка „Система“», V2-BRIEF §3.2)
+   Rows of 36 px: icon 20 · label · value. The group is centred with even gaps when the
+   tile is taller than the rows and starts at the top when it is not (auto margins:
+   positive free space is shared by n+1 equal gaps, negative free space collapses them).
+   ===================================================================================== */
+.tile-system {
+  display: flex;
+  flex-direction: column;
+}
+
+.sys-rows {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
+.sys-row {
+  display: grid;
+  grid-template-columns: var(--sys-icon-w, 20px) minmax(0, max-content) minmax(28px, 1fr);
+  column-gap: var(--s2);
+  align-items: center;
+  flex: 0 0 36px;
+  height: 36px;
+  min-width: 0;
+  margin-top: auto;
+}
+.sys-row:last-child { margin-bottom: auto; }
+
+/* Icon slot: 20 px in Fluent and Rice; Aqua wraps it in a soft 28 px chip tinted by the row's tone. */
+.sys-icon-wrap {
+  display: grid;
+  place-items: center;
+  width: var(--sys-icon-w, 20px);
+  height: var(--sys-icon-w, 20px);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  transition: color var(--t-base) var(--ease-in), background-color var(--t-base) var(--ease-in);
+}
+.sys-icon-wrap.tone-text-3 { color: var(--text-3); }
+.sys-icon-wrap.tone-caution { color: var(--caution); }
+.sys-icon-wrap.tone-critical { color: var(--critical); }
+.sys-icon { color: inherit; }
+
+:root[data-style="aqua"] .sys-row { --sys-icon-w: 28px; }
+:root[data-style="aqua"] .sys-icon-wrap { background: color-mix(in srgb, currentColor 12%, transparent); }
+
+.sys-label {
+  min-width: 0;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sys-value {
+  min-width: 0;
+  text-align: right;
+  color: var(--text-2);
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: var(--num-features);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tooltip: wrapping and clamping inside a small window (visuals come from .tooltip in base.css).
+   The tooltip is a child of the hovered value cell, so undo its inherited alignment and number styling.
+   4 px (--s1) on each side matches GAP in Tooltip.tsx. */
+.tooltip.tooltip-pop {
+  max-width: calc(100vw - 2 * var(--s1));
+  white-space: normal;
+  text-align: left;
+  font-family: var(--font-text);
+  font-variant-numeric: normal;
+  font-feature-settings: normal;
+}
+
+/* =====================================================================================
+   Settings → «Система»
+   ===================================================================================== */
+
+/* Live preview: the real tile material on a quiet stage, sized like the default tile (280×144). */
+.sys-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.sys-stage {
+  display: flex;
+  justify-content: center;
+  padding: var(--s6);
+  border-radius: var(--r-card);
+  background: var(--surface-3);
+  border: 1px solid var(--divider);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sys-stage .tile {
+  flex: 0 0 auto;
+  width: min(100%, 300px);
+  height: 144px;
+}
+.sys-stage .tile.no-bg { border-color: transparent; }
+.sys-preview-hint {
+  margin: 0;
+  text-align: center;
+}
+
+/* Custom label field: the live counter sits inside the input, so leave it room. */
+.sys-field { flex: 1 1 auto; }
+.sys-label-input { padding-right: 56px; }
+
+/* Resolved account name. */
+.sys-user {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+  max-width: 280px;
+  color: var(--text-2);
+}
+.sys-user .icon { color: var(--text-3); }

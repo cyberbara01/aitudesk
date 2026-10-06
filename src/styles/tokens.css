@@ -1,0 +1,221 @@
+/* AITU Desk — design tokens.
+   Palettes:  :root (dark) · [data-theme=light|gray|darker|black]
+   Styles:    [data-style=fluent] (default) · [data-style=aqua] · [data-style=rice]
+   Accent:    --accent / --on-accent / --accent-soft are written at runtime by src/lib/theme.ts. */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Type ---- */
+  --font-segoe-text: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-segoe-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-inter: "Inter", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --font-jetbrains: "JetBrains Mono", "Cascadia Mono", "Consolas", monospace;
+  --font-cascadia: "Cascadia Mono", "Consolas", monospace;
+
+  --font-text: var(--font-segoe-text);
+  --font-display: var(--font-segoe-display);
+  --font-mono: var(--font-cascadia);
+  /* Numbers in status rows / schedule times. */
+  --font-num: var(--font-segoe-text);
+  --num-features: "tnum" 1;
+
+  --caption-size: 12px; --caption-lh: 16px;
+  --body-size: 14px;    --body-lh: 20px;
+  --subtitle-size: 20px; --subtitle-lh: 28px;
+  --title-size: 28px;   --title-lh: 36px;
+  --clock-size: 56px;   --clock-lh: 60px;
+
+  /* ---- Grid ---- */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
+  --r2: 2px; --r4: 4px; --r6: 6px; --r8: 8px;
+  /* Style-dependent radii */
+  --r-tile: 8px;
+  --r-ctl: 6px;
+  --r-sm: 4px;
+  --r-card: 8px;
+  --tile-pad: 16px;
+  --ctl-h: 32px;
+  --ctl-border-w: 1px;
+
+  /* ---- Motion ---- */
+  --t-fast: 83ms; --t-base: 167ms; --t-slow: 250ms;
+  --ease-in: cubic-bezier(0, 0, 0, 1);
+  --ease-move: cubic-bezier(.8, 0, .2, 1);
+
+  /* ---- Palette: dark ---- */
+  --surface-base: #202128;              /* solid tile colour behind the glass alpha */
+  --tile-fill: rgba(32, 33, 40, .55);
+  --tile-fallback: #1C1D23;
+  --tile-border: rgba(255, 255, 255, .10);
+  --tile-edge: rgba(255, 255, 255, .16);
+  --surface: #202128;                   /* settings window fallback */
+  --surface-2: rgba(255, 255, 255, .04); /* cards / sidebar */
+  --surface-3: rgba(255, 255, 255, .07);
+
+  --text: #FFFFFF;
+  --text-2: rgba(255, 255, 255, .78);
+  --text-3: rgba(255, 255, 255, .54);
+  --text-disabled: rgba(255, 255, 255, .36);
+
+  --accent: #60CDFF;
+  --on-accent: #000000;
+  --accent-soft: rgba(96, 205, 255, .18);
+  --accent-text: #60CDFF;
+
+  --success: #6CCB5F;
+  --caution: #FCE100;
+  --critical: #FF99A4;
+
+  --ctl-fill: rgba(255, 255, 255, .06);
+  --ctl-fill-hover: rgba(255, 255, 255, .08);
+  --ctl-fill-pressed: rgba(255, 255, 255, .03);
+  --ctl-stroke: rgba(255, 255, 255, .07);
+  --ctl-stroke-strong: rgba(255, 255, 255, .54);
+  --divider: rgba(255, 255, 255, .08);
+  --focus-ring: #FFFFFF;
+  --tooltip-fill: #2C2C2C;
+  --scrollbar: rgba(255, 255, 255, .25);
+
+  --map-room-fill: rgba(255, 255, 255, .08);
+  --map-room-stroke: rgba(255, 255, 255, .22);
+  --map-void: rgba(0, 0, 0, .35);
+  --map-label: rgba(255, 255, 255, .78);
+
+  --tint-alpha: 18%;
+}
+
+:root[data-theme="darker"] {
+  --surface-base: #15161B;
+  --tile-fill: rgba(21, 22, 27, .70);
+  --tile-fallback: #121318;
+  --tile-border: rgba(255, 255, 255, .09);
+  --tile-edge: rgba(255, 255, 255, .12);
+  --surface: #15161B;
+  --tooltip-fill: #202228;
+  --map-void: rgba(0, 0, 0, .45);
+}
+
+:root[data-theme="black"] {
+  --surface-base: #000000;
+  --tile-fill: rgba(0, 0, 0, .78);
+  --tile-fallback: #000000;
+  --tile-border: rgba(255, 255, 255, .14);
+  --tile-edge: rgba(255, 255, 255, .10);
+  --surface: #000000;
+  --surface-2: rgba(255, 255, 255, .05);
+  --surface-3: rgba(255, 255, 255, .09);
+  --ctl-fill: rgba(255, 255, 255, .08);
+  --ctl-fill-hover: rgba(255, 255, 255, .12);
+  --ctl-fill-pressed: rgba(255, 255, 255, .05);
+  --tooltip-fill: #141414;
+  --map-room-fill: rgba(255, 255, 255, .10);
+  --map-room-stroke: rgba(255, 255, 255, .26);
+  --map-void: rgba(255, 255, 255, .04);
+}
+
+:root[data-theme="light"],
+:root[data-theme="gray"] {
+  color-scheme: light;
+  --surface-base: #F9F9FC;
+  --tile-fill: rgba(249, 249, 252, .62);
+  --tile-fallback: #F3F3F6;
+  --tile-border: rgba(0, 0, 0, .08);
+  --tile-edge: rgba(255, 255, 255, .60);
+  --surface: #F3F3F6;
+  --surface-2: rgba(0, 0, 0, .03);
+  --surface-3: rgba(0, 0, 0, .05);
+
+  --text: rgba(0, 0, 0, .90);
+  --text-2: rgba(0, 0, 0, .60);
+  --text-3: rgba(0, 0, 0, .45);
+  --text-disabled: rgba(0, 0, 0, .36);
+
+  --accent: #005FB8;
+  --on-accent: #FFFFFF;
+  --accent-soft: rgba(0, 95, 184, .14);
+  --accent-text: #005FB8;
+
+  --success: #0F7B0F;
+  --caution: #9D5D00;
+  --critical: #C42B1C;
+
+  --ctl-fill: rgba(255, 255, 255, .70);
+  --ctl-fill-hover: rgba(249, 249, 249, .50);
+  --ctl-fill-pressed: rgba(249, 249, 249, .30);
+  --ctl-stroke: rgba(0, 0, 0, .06);
+  --ctl-stroke-strong: rgba(0, 0, 0, .45);
+  --divider: rgba(0, 0, 0, .08);
+  --focus-ring: #000000;
+  --tooltip-fill: #F2F2F2;
+  --scrollbar: rgba(0, 0, 0, .25);
+
+  --map-room-fill: rgba(0, 0, 0, .06);
+  --map-room-stroke: rgba(0, 0, 0, .25);
+  --map-void: rgba(0, 0, 0, .35);
+  --map-label: rgba(0, 0, 0, .60);
+
+  --tint-alpha: 28%;
+}
+
+:root[data-theme="gray"] {
+  --surface-base: #E4E5EA;
+  --tile-fill: rgba(228, 229, 234, .72);
+  --tile-fallback: #E4E5EA;
+  --tile-border: rgba(0, 0, 0, .10);
+  --tile-edge: rgba(255, 255, 255, .55);
+  --surface: #E4E5EA;
+  --ctl-fill: rgba(255, 255, 255, .55);
+  --ctl-fill-hover: rgba(255, 255, 255, .80);
+  --ctl-fill-pressed: rgba(255, 255, 255, .35);
+  --tooltip-fill: #FFFFFF;
+}
+
+/* ---- Style: aqua (macOS-like) ---- */
+:root[data-style="aqua"] {
+  --font-text: var(--font-inter);
+  --font-display: var(--font-inter);
+  --font-num: var(--font-inter);
+  --r-tile: 18px;
+  --r-ctl: 9px;
+  --r-sm: 6px;
+  --r-card: 14px;
+  --tile-pad: 18px;
+  --ctl-h: 30px;
+  --tile-edge: rgba(255, 255, 255, .28);
+  --ctl-fill: rgba(255, 255, 255, .10);
+  --ctl-fill-hover: rgba(255, 255, 255, .15);
+  --ctl-fill-pressed: rgba(255, 255, 255, .06);
+  --ctl-stroke: rgba(255, 255, 255, .10);
+}
+:root[data-style="aqua"][data-theme="light"],
+:root[data-style="aqua"][data-theme="gray"] {
+  --tile-edge: rgba(255, 255, 255, .85);
+  --ctl-fill: rgba(255, 255, 255, .80);
+  --ctl-fill-hover: rgba(255, 255, 255, 1);
+  --ctl-fill-pressed: rgba(255, 255, 255, .55);
+  --ctl-stroke: rgba(0, 0, 0, .08);
+}
+
+/* ---- Style: rice (Linux-rice: mono numbers, accent-tinted borders) ---- */
+:root[data-style="rice"] {
+  --font-text: var(--font-inter);
+  --font-display: var(--font-inter);
+  --font-num: var(--font-jetbrains);
+  --font-mono: var(--font-jetbrains);
+  --r-tile: 12px;
+  --r-ctl: 8px;
+  --r-sm: 6px;
+  --r-card: 12px;
+  --tile-pad: 16px;
+  --ctl-h: 32px;
+  --ctl-border-w: 1.5px;
+  --tile-border: var(--accent-soft);
+  --tile-edge: transparent;
+  --ctl-stroke: var(--accent-soft);
+  --divider: var(--accent-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0ms; --t-base: 0ms; --t-slow: 0ms; }
+}
