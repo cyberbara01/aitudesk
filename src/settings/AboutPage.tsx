@@ -2,7 +2,8 @@
 // kit sections with one alignment rule: label and hint on the left edge of the card, actions on the right. The
 // one exception is «Автор»: the author's GitHub and Telegram follow the caption on its line, like a byline,
 // and the feedback form is the action at the right end of that line.
-// The only marks are the ones that are links: GitHub (the author, the map's author) and Telegram.
+// The only marks are the ones that are links: GitHub (the author, the map's author, the map's repository),
+// Telegram and Google (the feedback form is a Google Form).
 import { useId, useState, type MouseEvent, type ReactNode } from "react";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
@@ -54,6 +55,24 @@ function TelegramMark() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
     </svg>
+  );
+}
+
+/** Google's «G», in one colour like the other marks: the feedback form is a Google Form. */
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+    </svg>
+  );
+}
+
+/** A mark in the icon slot of a kit button (where a Fluent icon would be). */
+function ButtonMark({ children }: { children: ReactNode }) {
+  return (
+    <span className="icon btn-mark" aria-hidden="true">
+      {children}
+    </span>
   );
 }
 
@@ -139,7 +158,10 @@ export function AboutPage() {
             </MarkLink>
           </span>
           <Tooltip text={x.feedbackHint} className="about-feedback">
-            <Button icon="form" onClick={() => open(ab.feedbackUrl)}>
+            <Button onClick={() => open(ab.feedbackUrl)}>
+              <ButtonMark>
+                <GoogleMark />
+              </ButtonMark>
               {x.feedback}
             </Button>
           </Tooltip>
@@ -152,7 +174,12 @@ export function AboutPage() {
             <MarkLink href={ab.mapAuthorGithub} name={`${ab.github}: ${ab.mapAuthor}`}>
               <GitHubMark />
             </MarkLink>
-            <Button onClick={() => open(ab.mapRepo)}>{x.mapRepoLabel}</Button>
+            <Button onClick={() => open(ab.mapRepo)}>
+              <ButtonMark>
+                <GitHubMark />
+              </ButtonMark>
+              {x.mapRepoLabel}
+            </Button>
           </span>
         </Row>
         <Row label={ab.iconsTitle} hint={ab.iconsCredit} />

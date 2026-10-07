@@ -1,10 +1,12 @@
 // Строки раздела «Ярлыки», которых нет в ru.ts: виджет, страница настроек, редактор ярлыка и выбор иконки.
+import { LANG, type Widen } from "./lang";
+import { en } from "./en/launchers";
 import { plural as pluralRu } from "./ru";
 
 const icons = (n: number) => `${n} ${pluralRu(n, "иконка", "иконки", "иконок")}`;
 const launchers = (n: number) => `${n} ${pluralRu(n, "ярлык", "ярлыка", "ярлыков")}`;
 
-export const extra = {
+const RU = {
   // Страница
   description: "Быстрые ссылки на сайты университета и ваши любимые страницы в один клик с рабочего стола",
   preview: "Так виджет выглядит на рабочем столе в исходном размере",
@@ -45,5 +47,8 @@ export const extra = {
   // Окно «Смотреть все»
   allIconsCount: (n: number) => `Все иконки · ${n}`,
   iconsFound: (n: number) => `Найдено: ${icons(n)}`,
-  searchEmptyHint: "Названия на английском: например, book, music или rocket",
+  searchEmptyHint: "Попробуйте другое слово, например «почта», «код» или «музыка»",
 } as const;
+
+export type LaunchersStrings = Widen<typeof RU>;
+export const extra: LaunchersStrings = LANG === "en" ? en : RU;

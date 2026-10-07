@@ -1,5 +1,7 @@
 // Строки раздела «Напоминания» и фразы о напоминаниях, которые показывает и редактор заметки. Без длинных тире:
 // правило автора. Сроки в винительном падеже («за 2 часа», «раз в 5 минут»), числа через plural() из ru.ts.
+import { LANG, type Widen } from "./lang";
+import { deadlinePlanEn, en } from "./en/reminders";
 import { plural } from "./ru";
 
 const DAY = 24 * 60;
@@ -43,14 +45,14 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
  * Что придёт по настройкам для одного дедлайна, без примера: «За 1 день, потом каждые 3 часа и в момент
  * дедлайна» (подсказка в редакторе заметки). `repeat` = 0, если повторов не будет. Пустая строка, если ничего.
  */
-export function deadlinePlan(first: number, repeat: number, atDeadline: boolean): string {
+function deadlinePlanRu(first: number, repeat: number, atDeadline: boolean): string {
   const parts: string[] = [];
   if (first > 0) parts.push(`за ${span(first)}${repeat > 0 ? `, потом ${every(repeat)}${atDeadline ? "" : " до дедлайна"}` : ""}`);
   if (atDeadline) parts.push("в момент дедлайна");
   return cap(parts.join(" и "));
 }
 
-export const extra = {
+const RU = {
   pageDesc: "Уведомления Windows перед парами и дедлайнами заметок. Здесь выбирается, когда и как часто они приходят",
 
   units,
@@ -172,3 +174,9 @@ export const extra = {
   resetText:
     "Напоминания вернутся к исходным: за 10 минут до пары, за 1 день до дедлайна и в момент дедлайна, со звуком и без тихих часов. Заметки, у которых напоминания выключены, останутся без них.",
 } as const;
+
+export type RemindersStrings = Widen<typeof RU>;
+export const extra: RemindersStrings = LANG === "en" ? en : RU;
+
+/** The plan text in the interface language (see deadlinePlanRu). */
+export const deadlinePlan = LANG === "en" ? deadlinePlanEn : deadlinePlanRu;

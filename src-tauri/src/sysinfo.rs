@@ -6,7 +6,7 @@
 //! collapses into an «unavailable» value.
 //!
 //! Mocks for checks without the hardware, read at call time:
-//! `AITUDESK_MOCK_POWER` = `none` | `NN` | `NN,charging`;
+//! `AITUDESK_MOCK_POWER` = `none` | `NN` | `NN,charging` | `NN,saver`;
 //! `AITUDESK_MOCK_WIFI` = `off` | `SSID,bars` | `hidden,bars`;
 //! `AITUDESK_MOCK_BT` = `off` | `none` | `Name1;Name2;Name3`.
 
@@ -40,10 +40,12 @@ pub struct PowerInfo {
     pub percent: Option<u8>,
     pub charging: bool,
     pub on_ac: bool,
+    /// Windows battery saver (energy saver) is on: the tiles skip per-second updates and poll less often.
+    pub saver: bool,
 }
 
 impl PowerInfo {
-    const NO_BATTERY: Self = Self { has_battery: false, percent: None, charging: false, on_ac: true };
+    const NO_BATTERY: Self = Self { has_battery: false, percent: None, charging: false, on_ac: true, saver: false };
 }
 
 #[derive(Serialize, Default)]
@@ -105,18 +107,21 @@ fn read_power() -> PowerInfo {
     if unsafe { GetSystemPowerStatus(&mut status) }.is_err() {
         return PowerInfo::NO_BATTERY;
     }
+    // Energy saver can be on without a battery too (Windows 11 offers it on desktops).
+    let saver = status.SystemStatusFlag == 1;
     let flag = status.BatteryFlag;
     // 255 = «unknown status» (the driver could not read the battery right now); it has bit 128
     // set but is a battery with an unknown level, not a desktop PC.
     let unknown = flag == 255;
     if !unknown && flag & 128 != 0 {
-        return PowerInfo::NO_BATTERY;
+        return PowerInfo { saver, ..PowerInfo::NO_BATTERY };
     }
     PowerInfo {
         has_battery: true,
         percent: (status.BatteryLifePercent <= 100).then_some(status.BatteryLifePercent),
         charging: !unknown && flag & 8 != 0,
         on_ac: status.ACLineStatus == 1,
+        saver,
     }
 }
 
@@ -126,6 +131,7 @@ fn mock_power() -> Option<PowerInfo> {
     if raw.eq_ignore_ascii_case("none") {
         return Some(PowerInfo::NO_BATTERY);
     }
+    // "64", "15,charging" or "40,saver" (battery saver on).
     let (percent, flag) = split_pair(raw);
     let charging = flag.eq_ignore_ascii_case("charging");
     Some(PowerInfo {
@@ -133,6 +139,7 @@ fn mock_power() -> Option<PowerInfo> {
         percent: percent.parse::<u8>().ok().map(|p| p.min(100)),
         charging,
         on_ac: charging,
+        saver: flag.eq_ignore_ascii_case("saver"),
     })
 }
 

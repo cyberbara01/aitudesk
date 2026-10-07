@@ -47,27 +47,36 @@ const NNBSP = "\u202F";
 const ROW_H = 36;
 const MIN_W = 220;
 
-/** Label of the first row on a machine without a battery, per settings.system.labelMode. */
-function pcLabel(s: SystemSettings, userName: string | null): string {
-  if (s.labelMode === "user") return userName?.trim() || ru.system.desktopPc;
-  if (s.labelMode === "custom") return s.customLabel.trim() || ru.system.desktopPc;
-  return ru.system.desktopPc;
+/** The device's own name: what an empty custom text or a missing account name falls back to. */
+export const deviceName = (laptop: boolean) => (laptop ? ru.system.laptop : ru.system.desktopPc);
+
+/**
+ * Text at the start of the first row, per settings.system.labelMode: next to the charge on a laptop («Батарея»
+ * by default), next to «От сети» on a PC («Стационарный ПК» by default).
+ */
+function firstLabel(s: SystemSettings, userName: string | null, laptop: boolean): string {
+  const device = deviceName(laptop);
+  if (s.labelMode === "user") return userName?.trim() || device;
+  if (s.labelMode === "custom") return s.customLabel.trim() || device;
+  if (s.labelMode === "device") return device;
+  return laptop ? ru.system.battery : ru.system.desktopPc;
 }
 
-function batteryRow(p: PowerInfo | null, noBatteryLabel: string): RowSpec {
+function batteryRow(p: PowerInfo | null, s: SystemSettings, userName: string | null): RowSpec {
   const id = "power";
   // Until the first answer it is not known whether this is a laptop: no label rather than a wrong one.
   if (!p) return { id, icon: null, tone: "neutral", label: "" };
-  if (!p.hasBattery) return { id, icon: "desktop", tone: "neutral", label: noBatteryLabel, text: ru.system.mains };
+  const label = firstLabel(s, userName, p.hasBattery);
+  if (!p.hasBattery) return { id, icon: "desktop", tone: "neutral", label, text: ru.system.mains };
   const pct = p.percent;
-  if (pct === null) return { id, icon: "battery_0", tone: "off", label: ru.system.battery, text: ru.system.none };
+  if (pct === null) return { id, icon: "battery_0", tone: "off", label, text: ru.system.none };
   const tone: Tone = pct <= 20 ? "critical" : pct <= 40 ? "caution" : "neutral";
   const level = Math.min(10, Math.max(0, Math.round(pct / 10)));
   const num = String(pct);
   const unit = "%";
   return p.charging
-    ? { id, icon: "battery_charge", tone, label: ru.system.battery, num, unit, text: ru.system.charging }
-    : { id, icon: `battery_${level}`, tone, label: ru.system.battery, num, unit };
+    ? { id, icon: "battery_charge", tone, label, num, unit, text: ru.system.charging }
+    : { id, icon: `battery_${level}`, tone, label, num, unit };
 }
 
 /** 5/4 bars → wifi_1 (full), 3 → wifi_2, 2 → wifi_3, 1/0 → wifi_4; unknown → full. */
@@ -162,7 +171,7 @@ interface SystemRowsProps {
  */
 export function SystemRows({ info, settings }: SystemRowsProps) {
   const userName = useUserName(settings.labelMode === "user");
-  const rows: RowSpec[] = [batteryRow(info.power, pcLabel(settings, userName))];
+  const rows: RowSpec[] = [batteryRow(info.power, settings, userName)];
   if (settings.showWifi) rows.push(wifiRow(info.wifi, settings.hideNames));
   if (settings.showBluetooth) rows.push(bluetoothRow(info.bluetooth, settings.hideNames));
   return (
@@ -201,7 +210,9 @@ function useGrowToFit({ comfortable, tight }: RowsFit, enabled: boolean) {
     let cancelled = false;
     const win = getCurrentWindow();
     (async () => {
-      const [pos, size, scale] = await Promise.all([win.outerPosition(), win.outerSize(), win.scaleFactor()]);
+      const [pos, size] = await Promise.all([win.outerPosition(), win.outerSize()]);
+      // CSS px to physical: the monitor's scale times the tiles' zoom.
+      const scale = window.devicePixelRatio;
       const h = Math.round(comfortable * scale);
       if (cancelled || size.height >= h) return;
       await win.setSize(new PhysicalSize(size.width, h));

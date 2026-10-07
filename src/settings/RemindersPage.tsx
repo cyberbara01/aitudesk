@@ -190,7 +190,7 @@ function MinutesChoice({ label, hint, value, presets, presetLabel, min, max, ran
         <div className="row rem-sub">
           <fieldset className="rem-fieldset" disabled={disabled}>
             <div className="rem-phrase">
-              <span className="rem-word">{lead}</span>
+              {lead && <span className="rem-word">{lead}</span>}
               <TextField
                 className={showError ? "rem-number error" : "rem-number"}
                 inputClassName="num"

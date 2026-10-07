@@ -286,6 +286,26 @@
 .ob-map { left: var(--s3); bottom: var(--s3); width: 100px; height: 52px; flex-direction: row; flex-wrap: wrap; align-content: center; justify-content: flex-start; }
 .ob-room { width: 24px; height: 12px; border-radius: var(--r2); background: var(--map-room-fill); border: 1px solid var(--map-room-stroke); }
 .ob-room.wide { width: 40px; }
+/* The map step: a plan of six rooms with their numbers under a search field, the floor switch beside it. */
+.ob-maptile { inset: var(--s2); flex-direction: row; align-items: stretch; gap: var(--s2); padding: var(--s2); }
+.ob-plan { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 20px 1fr 1fr; gap: 4px; }
+.ob-search {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 6px;
+  border-radius: var(--r-ctl);
+  border: 1px solid var(--ctl-stroke);
+  background: var(--ctl-fill);
+  color: var(--text);
+  font-size: 11px; font-variant-numeric: tabular-nums;
+}
+.ob-search .icon { width: 12px; height: 12px; flex: 0 0 12px; color: var(--text-2); }
+.ob-room.ob-code { display: grid; place-items: center; width: auto; height: auto; color: var(--text-2); font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ob-room.ob-code.found { border-color: var(--accent); color: var(--text); background: color-mix(in srgb, var(--accent) 24%, var(--map-room-fill)); }
+.ob-floors { flex: none; display: flex; flex-direction: column; width: 20px; border-radius: var(--r-ctl); border: 1px solid var(--ctl-stroke); overflow: hidden; }
+.ob-floors > span { position: relative; flex: 1; display: grid; place-items: center; color: var(--text); font-size: 10px; font-weight: 600; }
+.ob-floors > .on { background: var(--ctl-fill-hover); }
+.ob-floors > .on::before { content: ""; position: absolute; left: 0; top: 50%; width: 2px; height: 8px; margin-top: -4px; border-radius: var(--r2); background: var(--accent); }
 .ob-bar { display: block; flex: none; width: 70%; height: var(--s1); border-radius: var(--r2); background: var(--text-3); }
 .ob-bar.accent { background: var(--accent); }
 .ob-bar.short { width: 48%; }
@@ -342,6 +362,9 @@
 .row.about-author { justify-content: flex-start; gap: var(--s3); }
 .about-links { display: flex; align-items: center; gap: var(--s1); }
 .about-feedback { display: inline-flex; margin-left: auto; }
+/* GitHub and Google marks inside a button: the optical size of a Fluent icon in its 20 px slot. */
+.btn-mark { display: grid; place-items: center; }
+.btn-mark svg { width: 16px; height: 16px; }
 /* «Карта AITU» in the credits: the map author's GitHub mark, then the button to the map's repository. */
 .about-credit-links { flex-wrap: nowrap; }
 .about-p { margin: 0; color: var(--text-2); }

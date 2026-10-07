@@ -30,6 +30,7 @@ ureq = { version = "3", default-features = false, features = ["rustls"] }
 version = "0.62"
 features = [
   "Win32_Foundation",
+  "Win32_Globalization",
   "Win32_Graphics_Dwm",
   "Win32_UI_Accessibility",
   "Win32_UI_Shell",

@@ -34,7 +34,7 @@ pub fn open(app: &AppHandle, tab: &str, edit: Option<&str>) {
     let app = app.clone();
     std::thread::spawn(move || {
         let built = WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App(url.into()))
-            .title("Настройки AITU Desk")
+            .title(crate::lang::pick("Настройки AITU Desk", "AITU Desk Settings"))
             .inner_size(860.0, 640.0)
             .min_inner_size(720.0, 560.0)
             .resizable(true)

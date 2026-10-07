@@ -176,7 +176,8 @@ function useWidgetSize(): { w: number; h: number } {
       (layout) => {
         const r = layout?.tiles.clock;
         if (!alive || !layout || !r) return;
-        const scale = layout.screen.scale || 1;
+        // The widget's own CSS px: its window in physical px over the monitor's scale and the tiles' zoom.
+        const scale = (layout.screen.scale || 1) * (layout.zoom || 1);
         setSize({ w: Math.round(r.w / scale), h: Math.round(r.h / scale) });
       },
       () => undefined,

@@ -16,6 +16,8 @@ export interface PowerInfo {
   percent: number | null;
   charging: boolean;
   onAc: boolean;
+  /** Windows battery saver (energy saver) is on: fewer polls, no per-second updates. */
+  saver: boolean;
 }
 
 /** Mirrors `WifiInfo` in src-tauri/src/sysinfo.rs. */
@@ -48,6 +50,9 @@ const COMMAND: Record<Kind, string> = { power: "get_power", wifi: "get_wifi", bl
 
 const POWER_INTERVAL = 30_000;
 const NET_INTERVAL = 10_000;
+/** With battery saver on, Windows asks apps to do less: the same values, polled a few times less often. */
+const POWER_INTERVAL_SAVER = 60_000;
+const NET_INTERVAL_SAVER = 30_000;
 /** A tick this much later than planned means the timers were frozen: the machine slept. */
 const SLEEP_GAP = 5_000;
 /** A value fetched less than this ago is not fetched again on a refresh-all (window shown, wake-up). */
@@ -57,17 +62,22 @@ const FRESH = 2_000;
 interface Chain {
   kinds: readonly Kind[];
   interval: number;
+  /** The interval while battery saver is on. */
+  saverInterval: number;
   timer: number;
   /** Date.now() the pending tick is planned for. */
   due: number;
 }
 
 const chains: readonly Chain[] = [
-  { kinds: ["power"], interval: POWER_INTERVAL, timer: 0, due: 0 },
-  { kinds: ["wifi", "bluetooth"], interval: NET_INTERVAL, timer: 0, due: 0 },
+  { kinds: ["power"], interval: POWER_INTERVAL, saverInterval: POWER_INTERVAL_SAVER, timer: 0, due: 0 },
+  { kinds: ["wifi", "bluetooth"], interval: NET_INTERVAL, saverInterval: NET_INTERVAL_SAVER, timer: 0, due: 0 },
 ];
 
 let snapshot: SystemInfo = { power: null, wifi: null, bluetooth: null };
+
+/** The chain's interval now: longer while battery saver is on (known from the last power value). */
+const intervalOf = (c: Chain) => (snapshot.power?.saver ? c.saverInterval : c.interval);
 const listeners = new Set<() => void>();
 /** How many active consumers need each value. */
 const demand: Record<Kind, number> = { power: 0, wifi: 0, bluetooth: 0 };
@@ -112,7 +122,7 @@ function tick(c: Chain) {
     return;
   }
   c.kinds.filter(wanted).forEach(fetchKind);
-  schedule(c, c.interval);
+  schedule(c, intervalOf(c));
 }
 
 /** (Re)start a chain after its demand changed: fetch what is stale now, then tick when the oldest value is due. */
@@ -123,11 +133,12 @@ function start(c: Chain) {
     return;
   }
   const now = Date.now();
-  let wait = c.interval;
+  const interval = intervalOf(c);
+  let wait = interval;
   for (const k of kinds) {
     const age = now - fetchedAt[k];
-    if (age >= c.interval) fetchKind(k);
-    else wait = Math.min(wait, c.interval - age);
+    if (age >= interval) fetchKind(k);
+    else wait = Math.min(wait, interval - age);
   }
   schedule(c, wait);
 }
@@ -142,7 +153,7 @@ function refreshAll() {
       continue;
     }
     for (const k of kinds) if (now - fetchedAt[k] >= FRESH) fetchKind(k);
-    schedule(c, c.interval);
+    schedule(c, intervalOf(c));
   }
 }
 
@@ -201,6 +212,15 @@ export function useSystemInfo({ wifi, bluetooth, active = true }: SystemInfoNeed
     return acquire({ power: true, wifi, bluetooth });
   }, [wifi, bluetooth, active]);
   return info;
+}
+
+/**
+ * True while Windows battery saver (energy saver) is on. Tiles that tick every second (clock seconds, the last
+ * hour of a deadline) tick once a minute then, as Windows asks of apps; the power value is polled every 30 s
+ * (every minute in saver), which costs nothing next to a redraw per second.
+ */
+export function usePowerSaver(): boolean {
+  return useSystemInfo({ wifi: false, bluetooth: false }).power?.saver === true;
 }
 
 // ---------------------------------------------------------------------------------------------

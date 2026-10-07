@@ -6,6 +6,7 @@ import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.schedule";
 import { formatTime, isoWeekday, luminance, parseTime, shade } from "./design";
 import { settings, type Lesson, type Weekday } from "./settings";
+import { LOCALE } from "../i18n/lang";
 
 export const ALL_DAYS: readonly Weekday[] = [1, 2, 3, 4, 5, 6, 7];
 
@@ -73,7 +74,7 @@ const endMinutes = (l: Lesson): number => parseTime(l.end) ?? LATE;
 export function lessonsForDay(lessons: readonly Lesson[], day: Weekday): Lesson[] {
   return lessons
     .filter((l) => l.day === day)
-    .sort((a, b) => startMinutes(a) - startMinutes(b) || endMinutes(a) - endMinutes(b) || a.title.localeCompare(b.title, "ru"));
+    .sort((a, b) => startMinutes(a) - startMinutes(b) || endMinutes(a) - endMinutes(b) || a.title.localeCompare(b.title, LOCALE));
 }
 
 /** Minutes since local midnight, fractional (seconds included). */

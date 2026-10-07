@@ -15,6 +15,7 @@ use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 use windows::Win32::System::SystemInformation::GetLocalTime;
 
+use crate::lang::pick;
 use crate::layout::STORE_FILE;
 
 /// Reminders due longer ago than this (minutes) are dropped instead of shown late (sleep, a stopped clock).
@@ -95,9 +96,21 @@ fn plural<'a>(n: i64, one: &'a str, few: &'a str, many: &'a str) -> &'a str {
     }
 }
 
-/// "через 10 минут", "через 2 часа", "через 1 ч 30 мин", "через 3 дня".
+/// "через 10 минут", "через 2 часа", "через 1 ч 30 мин", "через 3 дня"; in English "in 10 minutes", "in 2 hours",
+/// "in 1 h 30 min", "in 3 days".
 fn in_time(minutes: i64) -> String {
     let (d, h, m) = (minutes / 1440, (minutes % 1440) / 60, minutes % 60);
+    if crate::lang::current() == crate::lang::Lang::En {
+        let unit = |n: i64, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
+        let s = match (d, h, m) {
+            (0, 0, m) => unit(m, "minute", "minutes"),
+            (0, h, 0) => unit(h, "hour", "hours"),
+            (0, h, m) => format!("{h} h {m} min"),
+            (d, 0, _) => unit(d, "day", "days"),
+            (d, h, _) => format!("{} {h} h", unit(d, "day", "days")),
+        };
+        return format!("in {s}");
+    }
     let s = match (d, h, m) {
         (0, 0, m) => format!("{m} {}", plural(m, "минуту", "минуты", "минут")),
         (0, h, 0) => format!("{h} {}", plural(h, "час", "часа", "часов")),
@@ -165,12 +178,15 @@ fn lessons_due(settings: &Value, rem: &Value, from: i64, now: &LocalNow, out: &m
                 continue;
             }
             let id = text(lesson, "id").unwrap_or("");
-            let when = if left == 0 { "Начинается сейчас".to_string() } else { capitalize(&in_time(left)) };
+            let when = if left == 0 { pick("Начинается сейчас", "Starts now").to_string() } else { capitalize(&in_time(left)) };
+            let lesson_word = pick("Пара", "Class");
             // Privacy on: neither the subject nor the room appears on screen.
             let (title, body) = match (private, text(lesson, "title"), text(lesson, "room")) {
-                (true, _, _) => ("Пара".to_string(), when),
-                (false, title, Some(room)) => (title.unwrap_or("Пара").to_string(), format!("{when}, аудитория {room}")),
-                (false, title, None) => (title.unwrap_or("Пара").to_string(), when),
+                (true, _, _) => (lesson_word.to_string(), when),
+                (false, title, Some(room)) => {
+                    (title.unwrap_or(lesson_word).to_string(), format!("{when}, {} {room}", pick("аудитория", "room")))
+                }
+                (false, title, None) => (title.unwrap_or(lesson_word).to_string(), when),
             };
             out.push(Due { key: format!("l:{id}:{at}"), title, body });
         }
@@ -220,12 +236,16 @@ fn deadlines_due(settings: &Value, rem: &Value, from: i64, now: &LocalNow, out: 
         let id = text(note, "id").unwrap_or("");
         let title = match (private, note.get("text").and_then(Value::as_str).map(headline)) {
             (false, Some(h)) if !h.is_empty() => h,
-            _ => "Заметка".to_string(),
+            _ => pick("Заметка", "Note").to_string(),
         };
         for at in times {
             // From the time really left: a reminder shown late (after sleep) must not promise more time.
             let left = deadline - now.minute;
-            let body = if at >= deadline || left <= 0 { "Дедлайн наступил".to_string() } else { format!("Дедлайн {}", in_time(left)) };
+            let body = if at >= deadline || left <= 0 {
+                pick("Дедлайн наступил", "The deadline is now").to_string()
+            } else {
+                format!("{} {}", pick("Дедлайн", "Deadline"), in_time(left))
+            };
             out.push(Due { key: format!("n:{id}:{at}"), title: title.clone(), body });
         }
     }
@@ -282,5 +302,5 @@ pub fn test(app: &AppHandle) -> Result<(), String> {
         .and_then(|s| s.get("settings"))
         .and_then(|s| s.pointer("/reminders/sound").and_then(Value::as_bool))
         .is_some_and(|sound| !sound);
-    crate::notify::show("AITU Desk", "Так выглядят напоминания о парах и дедлайнах", silent, false)
+    crate::notify::show("AITU Desk", pick("Так выглядят напоминания о парах и дедлайнах", "This is how reminders about classes and deadlines look"), silent, false)
 }

@@ -18,6 +18,7 @@ import { useSettings } from "../lib/useSettings";
 import { recolorRoom, setRoomNote, unmarkRoom } from "../map/favorites";
 import { onRadioGroupKeyDown } from "../lib/radioGroup";
 import { floorOfRoom, isRoomCode, roomDisplayName } from "../map/rooms";
+import { LOCALE } from "../i18n/lang";
 
 const T = ru.settings.map;
 
@@ -75,7 +76,7 @@ const NOTE_MAX = 60;
 const COLOR_COMMIT_MS = 150;
 
 const byFloorThenCode = (a: MapFavorite, b: MapFavorite) =>
-  (floorOfRoom(a.room) ?? 9) - (floorOfRoom(b.room) ?? 9) || a.room.localeCompare(b.room, "ru");
+  (floorOfRoom(a.room) ?? 9) - (floorOfRoom(b.room) ?? 9) || a.room.localeCompare(b.room, LOCALE);
 
 export function MapPage() {
   const all = useSettings();

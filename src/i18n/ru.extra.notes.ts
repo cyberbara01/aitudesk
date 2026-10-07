@@ -1,10 +1,12 @@
 // Строки виджета «Заметки», его страницы настроек, редактора заметки и календаря (DatePicker), которых нет в ru.ts.
 // Без длинных тире: правило автора. Единицы времени короткие («д», «ч», «мин»), так не нужны падежи.
+import { LANG, type Widen } from "./lang";
+import { en } from "./en/notes";
 import { plural as pluralRu } from "./ru";
 
 const notesCount = (n: number) => `${n} ${pluralRu(n, "заметка", "заметки", "заметок")}`;
 
-export const extra = {
+const RU = {
   tile: {
     empty: "Заметок нет",
     emptyHint: "Дела и сроки появятся здесь",
@@ -103,3 +105,6 @@ export const extra = {
     nextMonth: "Следующий месяц",
   },
 } as const;
+
+export type NotesStrings = Widen<typeof RU>;
+export const extra: NotesStrings = LANG === "en" ? en : RU;

@@ -3,6 +3,7 @@
 //
 // Schema v2. Older files (v1: theme/accentFromWindows/tiles/builtIn/custom) are migrated on load.
 import { load, type Store } from "@tauri-apps/plugin-store";
+import { invoke } from "@tauri-apps/api/core";
 
 // ---------------------------------------------------------------------------------------------
 // Design
@@ -82,7 +83,11 @@ export interface SystemSettings {
   /** Replace network / device names with neutral text. */
   hideNames: boolean;
   /** Text of the first row on a PC without a battery. */
-  labelMode: "default" | "custom" | "user";
+  /**
+   * Text at the start of the first row: "default" = «Батарея» on a laptop, «Стационарный ПК» on a PC; "device"
+   * = «Ноутбук» or «Стационарный ПК»; the Windows account name; or custom text.
+   */
+  labelMode: "default" | "device" | "custom" | "user";
   customLabel: string;
   background: boolean;
 }
@@ -241,8 +246,22 @@ export interface ReminderSettings {
   sound: boolean;
 }
 
+/** Interface language: the display language of Windows ("auto"), Russian or English. */
+export type LanguageSetting = "auto" | "ru" | "en";
+
+/** «Размер виджетов»: the zoom of every tile ("auto": smaller on small screens, see src-tauri/src/zoom.rs). */
+export type TileScale = "auto" | 0.8 | 0.9 | 1 | 1.1;
+export const TILE_SCALES: readonly TileScale[] = ["auto", 0.8, 0.9, 1, 1.1];
+
 export interface Settings {
   version: 2;
+  /**
+   * Read by the native side when the app starts (src-tauri/src/lang.rs); a change restarts the app. A personal
+   * choice: never in a config file and never reset.
+   */
+  language: LanguageSetting;
+  /** Applied by the native side (zoom.rs); depends on the screen, so it stays out of config files. */
+  tileScale: TileScale;
   theme: ThemeId;
   style: StyleId;
   accent: AccentSetting;
@@ -352,6 +371,8 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   version: 2,
+  language: "auto",
+  tileScale: "auto",
   theme: "system",
   style: "fluent",
   accent: { mode: "preset", preset: "graphite", custom: "#60CDFF" },
@@ -523,7 +544,7 @@ export function normalize(saved: unknown): Settings {
     showWifi: bool(sy.showWifi, d.system.showWifi),
     showBluetooth: bool(sy.showBluetooth, d.system.showBluetooth),
     hideNames: bool(sy.hideNames, d.system.hideNames),
-    labelMode: oneOf(sy.labelMode, ["default", "custom", "user"] as const, d.system.labelMode),
+    labelMode: oneOf(sy.labelMode, ["default", "device", "custom", "user"] as const, d.system.labelMode),
     customLabel: str(sy.customLabel, d.system.customLabel).slice(0, 40),
     background: bool(sy.background, d.system.background),
   };
@@ -625,6 +646,8 @@ export function normalize(saved: unknown): Settings {
 
   return {
     version: 2,
+    language: oneOf(s.language, ["auto", "ru", "en"] as const, d.language),
+    tileScale: TILE_SCALES.includes(s.tileScale as TileScale) ? (s.tileScale as TileScale) : d.tileScale,
     theme,
     style,
     accent,
@@ -658,7 +681,7 @@ function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
   const d = DEFAULT_SETTINGS;
   switch (section) {
     case "appearance":
-      return { theme: d.theme, style: d.style, accent: d.accent };
+      return { theme: d.theme, style: d.style, accent: d.accent, tileScale: d.tileScale };
     case "clock":
       return { clock: d.clock };
     case "system":
@@ -766,10 +789,13 @@ class SettingsStore {
     const next = share(this.current, normalize({ ...this.current, ...p, version: 2 }));
     // Nothing changed (a reset of defaults, the same value again): no render, no write.
     if (next === this.current) return;
+    const zoomChanged = next.tileScale !== this.current.tileScale;
     this.current = next;
     this.emit();
     await store.set(KEY, next);
     await store.save();
+    // The native side reads the new size from the saved settings and zooms the tiles.
+    if (zoomChanged) await invoke("apply_tile_scale").catch(() => undefined);
   }
 
   updateClock(p: Partial<ClockSettings>) {

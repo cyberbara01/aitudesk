@@ -34,7 +34,7 @@ const VK_Z = 0x5a;
 export interface EditModeOptions {
   label: string;
   resizable?: boolean;
-  /** Logical px. */
+  /** CSS px of the widget page (logical px when «Размер виджетов» is 100 %). */
   minSize?: { w: number; h: number };
 }
 
@@ -133,7 +133,10 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         win.outerSize(),
         invoke<WorkArea>("get_work_area"),
       ]);
-      const s = wa.scale;
+      // Pointer screen coordinates are the monitor's logical px (the page zoom, «Размер виджетов», leaves them
+      // alone); the grid and the margins are the page's CSS px, so they shrink with the widgets.
+      const ms = wa.scale;
+      const s = window.devicePixelRatio || wa.scale;
       const before: Rect = { x: start.x, y: start.y, w: size.width, h: size.height };
       const origin = { x: e.screenX, y: e.screenY };
       let raf = 0;
@@ -143,8 +146,8 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         if (next) win.setPosition(new PhysicalPosition(next.x, next.y));
       };
       const move = (ev: PointerEvent) => {
-        const x = start.x + (ev.screenX - origin.x) * s;
-        const y = start.y + (ev.screenY - origin.y) * s;
+        const x = start.x + (ev.screenX - origin.x) * ms;
+        const y = start.y + (ev.screenY - origin.y) * ms;
         next = {
           x: snapAxis(x, size.width, wa.x, wa.w, s),
           y: snapAxis(y, size.height, wa.y, wa.h, s),
@@ -177,7 +180,8 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
       const win = getCurrentWindow();
       const [size, pos, wa] = await Promise.all([win.outerSize(), win.outerPosition(), invoke<WorkArea>("get_work_area")]);
       const before: Rect = { x: pos.x, y: pos.y, w: size.width, h: size.height };
-      const s = wa.scale;
+      const ms = wa.scale;
+      const s = window.devicePixelRatio || wa.scale;
       const g = GRID * s;
       const origin = { x: e.screenX, y: e.screenY };
       let raf = 0;
@@ -187,8 +191,8 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         if (next) win.setSize(new PhysicalSize(next.w, next.h));
       };
       const move = (ev: PointerEvent) => {
-        const w = Math.max(minSize.w * s, size.width + (ev.screenX - origin.x) * s);
-        const h = Math.max(minSize.h * s, size.height + (ev.screenY - origin.y) * s);
+        const w = Math.max(minSize.w * s, size.width + (ev.screenX - origin.x) * ms);
+        const h = Math.max(minSize.h * s, size.height + (ev.screenY - origin.y) * ms);
         next = { w: Math.round(Math.round(w / g) * g), h: Math.round(Math.round(h / g) * g) };
         if (!raf) raf = requestAnimationFrame(flush);
       };

@@ -158,6 +158,7 @@
       "nsis": {
         "installMode": "currentUser",
         "languages": [
+          "English",
           "Russian"
         ],
         "displayLanguageSelector": false

@@ -1,4 +1,5 @@
-//! Tray icon with a two-item menu: Настройки · Выход. Everything else lives in the settings window.
+//! Tray icon with a two-item menu: Настройки · Выход (Settings · Quit). Everything else lives in the settings
+//! window.
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -8,8 +9,8 @@ const ID_SETTINGS: &str = "settings";
 const ID_QUIT: &str = "quit";
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
-    let settings = MenuItem::with_id(app, ID_SETTINGS, "Настройки", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, ID_QUIT, "Выход", true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, ID_SETTINGS, crate::lang::pick("Настройки", "Settings"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, ID_QUIT, crate::lang::pick("Выход", "Quit"), true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&settings, &PredefinedMenuItem::separator(app)?, &quit])?;
 
     let mut builder = TrayIconBuilder::with_id("main")

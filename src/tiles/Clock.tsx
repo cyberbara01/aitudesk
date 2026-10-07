@@ -13,6 +13,7 @@ import {
 } from "../lib/clock";
 import type { ClockSettings } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
+import { usePowerSaver } from "../lib/useSystemInfo";
 
 const H_ALIGN: Record<ClockSettings["align"], CSSProperties["alignItems"]> = { left: "flex-start", center: "center", right: "flex-end" };
 const V_ALIGN: Record<ClockSettings["valign"], CSSProperties["justifyContent"]> = { top: "flex-start", center: "center", bottom: "flex-end" };
@@ -198,10 +199,15 @@ export const ClockFace = memo(
     sameSettings(a.settings, b.settings),
 );
 
-/** «Часы»: the face inside a glass tile; everything comes from settings.clock. */
+/**
+ * «Часы»: the face inside a glass tile; everything comes from settings.clock. While Windows battery saver is on
+ * the seconds step aside (the face then changes once a minute, like the clock without seconds).
+ */
 export function ClockTile() {
   const loaded = useSettingsLoaded();
-  const { clock } = useSettings();
+  const { clock: stored } = useSettings();
+  const saver = usePowerSaver();
+  const clock = useMemo(() => (saver && stored.seconds ? { ...stored, seconds: false } : stored), [saver, stored]);
   const { now, colonDim } = useClockNow(clock);
   // Wait for the stored settings so the tile never flashes the defaults (or toggles the acrylic twice).
   if (!loaded) return null;

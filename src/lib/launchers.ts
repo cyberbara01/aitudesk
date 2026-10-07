@@ -13,6 +13,7 @@ import {
   type LaunchersSettings,
   type Settings,
 } from "./settings";
+import { LOCALE } from "../i18n/lang";
 
 /** What the launcher editor sets, for custom and built-in launchers alike. */
 export interface LauncherDraft {
@@ -220,7 +221,7 @@ export function launcherInk(color: string): { dark: string; light: string } {
 export function letterOf(name: string, url: string): string {
   const source = name.trim() || hostOf(url).replace(/^www\./i, "");
   const first = Array.from(source)[0] ?? "";
-  return first.toLocaleUpperCase("ru-RU");
+  return first.toLocaleUpperCase(LOCALE);
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -21,7 +21,10 @@ const CANCELLED: HRESULT = HRESULT(0x8007_04C7_u32 as i32);
 /// A settings file is a few hundred KB at most (site icons included); anything far bigger is not one.
 const MAX_FILE: u64 = 16 * 1024 * 1024;
 
-const FILTER_NAME: &str = "Конфиг AITU Desk (*.json)";
+/// Name of the file type in the dialogs' type box.
+fn filter_name() -> &'static str {
+    crate::lang::pick("Конфиг AITU Desk (*.json)", "AITU Desk config (*.json)")
+}
 const FILTER_SPEC: &str = "*.json";
 
 fn err(e: windows::core::Error) -> String {
@@ -45,7 +48,7 @@ fn on_sta_thread<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send
 
 /// Filter, title and owner shared by both dialogs; then shows it. Ok(false) = cancelled.
 unsafe fn show(dialog: &IFileDialog, owner: isize, title: &str) -> Result<bool, String> {
-    let name = HSTRING::from(FILTER_NAME);
+    let name = HSTRING::from(filter_name());
     let spec = HSTRING::from(FILTER_SPEC);
     let filters = [COMDLG_FILTERSPEC { pszName: PCWSTR(name.as_ptr()), pszSpec: PCWSTR(spec.as_ptr()) }];
     dialog.SetFileTypes(&filters).map_err(err)?;

@@ -5,11 +5,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { ColorPicker } from "../components/ColorPicker";
 import { Icon } from "../components/Icon";
 import { ResetSection } from "../components/ResetSection";
-import { Page, Section } from "../components/Section";
+import { Page, Row, Section } from "../components/Section";
+import { Segmented, type SegmentedOption } from "../components/Segmented";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
 import { ACCENT_PRESETS, STYLES, THEMES, accentPreset, isHex, type ThemeMeta } from "../lib/design";
-import { settings, type Settings, type StyleId, type ThemeId } from "../lib/settings";
+import { settings, TILE_SCALES, type Settings, type StyleId, type ThemeId, type TileScale } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { useDebounced, useNow, useRootAttribute } from "./shell/hooks";
 import { PreviewClock, PreviewSystem } from "./shell/Preview";
@@ -28,6 +29,41 @@ const accentName = (id: string): string => (a.accents as Record<string, string>)
 const themeMeta = (id: string | null): ThemeMeta => THEMES.find((t) => t.id === id) ?? THEMES[0];
 const THEME_NAMES: Record<ThemeId, string> = { ...a.themes, glass: x.glassName };
 const THEME_HINTS: Partial<Record<ThemeId, string>> = { system: x.themeSystemHint, glass: x.glassHint };
+
+const percentOf = (zoom: number) => x.percent(Math.round(zoom * 100));
+/** «Авто», 80 %, 90 %, 100 %, 110 % (Segmented keys are strings). */
+const SCALE_OPTIONS: readonly SegmentedOption<string>[] = TILE_SCALES.map((v) => ({
+  value: String(v),
+  label: v === "auto" ? x.tileScaleAuto : percentOf(v),
+}));
+const scaleOf = (key: string): TileScale => TILE_SCALES.find((v) => String(v) === key) ?? "auto";
+
+/** «Размер виджетов»: the zoom of every widget; the hint says what «Авто» picks for this screen. */
+function TileScaleSection({ value }: { value: TileScale }) {
+  const [auto, setAuto] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    invoke<{ auto: number }>("get_tile_zoom").then(
+      (z) => alive && setAuto(z.auto),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return (
+    <Section title={x.tileScale} description={x.tileScaleHint}>
+      <Row label={x.tileScaleLabel} hint={auto === null ? undefined : x.tileScaleAutoNow(percentOf(auto))}>
+        <Segmented
+          options={SCALE_OPTIONS}
+          value={String(value)}
+          onChange={(key) => void settings.update({ tileScale: scaleOf(key) })}
+          ariaLabel={x.tileScale}
+        />
+      </Row>
+    </Section>
+  );
+}
 
 /** Title row of a card; the selected card gets a check after its title (never over the preview it shows). */
 function CardHead({ title, selected }: { title: string; selected: boolean }) {
@@ -266,6 +302,8 @@ export function AppearancePage() {
         </div>
         {mode === "custom" && <ColorPicker value={draft ?? s.accent.custom} onChange={onCustomColor} customOpen />}
       </Section>
+
+      <TileScaleSection value={s.tileScale} />
 
       <ResetSection section="appearance" />
     </Page>

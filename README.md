@@ -11,6 +11,7 @@ Astana IT University.** Лежат прямо на обоях, под окнам
 
 [![Версия](https://img.shields.io/github/v/release/cyberbara01/aitudesk?label=%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F&color=0078D4)](https://github.com/cyberbara01/aitudesk/releases/latest)
 [![Windows 11](https://img.shields.io/badge/Windows-11%2C_64_%D0%B1%D0%B8%D1%82%D0%B0-0078D4)](#установка)
+[![Русский и English](https://img.shields.io/badge/%D1%8F%D0%B7%D1%8B%D0%BA-%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9%2C_English-0078D4)](#in-english)
 [![Лицензия MIT](https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-2EA043)](LICENSE)
 [![Без телеметрии](https://img.shields.io/badge/%D1%82%D0%B5%D0%BB%D0%B5%D0%BC%D0%B5%D1%82%D1%80%D0%B8%D1%8F-%D0%BD%D0%B5%D1%82-2EA043)](#почему-ему-можно-доверять)
 [![Без прав администратора](https://img.shields.io/badge/%D0%BF%D1%80%D0%B0%D0%B2%D0%B0_%D0%B0%D0%B4%D0%BC%D0%B8%D0%BD%D0%B8%D1%81%D1%82%D1%80%D0%B0%D1%82%D0%BE%D1%80%D0%B0-%D0%BD%D0%B5_%D0%BD%D1%83%D0%B6%D0%BD%D1%8B-2EA043)](#установка)
@@ -40,7 +41,7 @@ Astana IT University.** Лежат прямо на обоях, под окнам
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>Карта AITU</b><br>Этажи университета, поиск кабинета, свои цветные метки</td>
-<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Оформление</b><br>Три дизайна, темы от светлой до чёрной, прозрачное стекло, свой акцент</td>
+<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Оформление</b><br>Три дизайна, темы от светлой до чёрной, стекло, свой акцент, размер под экран</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Приватность</b><br>Текст на рабочем столе можно скрыть точками, как пароль</td>
@@ -149,11 +150,12 @@ npm run tauri dev      # запуск в режиме разработки
 npm run tauri build    # установщик в src-tauri/target/release/bundle/nsis/
 ```
 
-Для проверки без ноутбука есть переменные окружения: `AITUDESK_MOCK_POWER` (`none` | `78` | `15,charging`),
+Для проверки без ноутбука есть переменные окружения: `AITUDESK_MOCK_POWER` (`none` | `78` | `15,charging` | `40,saver`),
 `AITUDESK_MOCK_WIFI` (`off` | `SSID,bars` | `hidden,bars`), `AITUDESK_MOCK_BT` (`off` | `none` | `A;B;C`).
 
 Внутри: Tauri 2, Rust, React 18, TypeScript и Vite. Все виджеты работают в одном процессе WebView2, часы
-просыпаются раз в минуту, если секунды не показаны, а скрытые виджеты не держат таймеров.
+просыпаются раз в минуту, если секунды не показаны, а скрытые виджеты не держат таймеров. В режиме экономии заряда
+Windows часы прячут секунды, а заряд и сеть проверяются реже.
 </details>
 
 ## Обратная связь
@@ -163,6 +165,13 @@ npm run tauri build    # установщик в src-tauri/target/release/bundle
 
 Автор: [@cyberbara01](https://github.com/cyberbara01). Карта: проект [aitumap](https://github.com/Yuujiso/aitumap)
 от [Yuujiso](https://github.com/Yuujiso).
+
+## In English
+
+AITU Desk is a set of desktop widgets for Windows 11: a clock, battery and network, shortcuts, notes with deadlines,
+the class schedule and the Astana IT University map. The interface is in Russian and English: it follows the
+Windows display language, and you can switch it in Settings → General → Language. Get the installer from the
+[latest release](https://github.com/cyberbara01/aitudesk/releases/latest).
 
 ## Лицензия
 

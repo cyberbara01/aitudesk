@@ -1,6 +1,8 @@
 // Строки карты, которых нет в src/i18n/ru.ts. Используются только в src/map/**, src/tiles/Map.tsx и
 // src/settings/MapPage.tsx. Без длинных тире: правило автора.
-export const extra = {
+import { LANG, type Widen } from "./lang";
+import { en } from "./en/map";
+const RU = {
   pageDesc: "Корпус C1, три этажа. Цвета плана, элементы управления и отмеченные кабинеты",
 
   /** Названия цветов FAVORITE_COLORS (src/lib/design.ts) по их HEX: подписи кнопок палитры. */
@@ -46,7 +48,7 @@ export const extra = {
     silhouette: "Без стекла: под корпусом мягкая подложка, план читается на любых обоях",
     none: "Только сам план прямо на обоях, без какой-либо подложки",
   },
-  labelsHint: "Появляются при приближении, когда их можно прочитать",
+  labelsHint: "Номера крупных кабинетов видны сразу, остальные появляются при приближении",
   iconsHint: "Скрываются, пока карта слишком мелкая",
   nextLesson: "Показывать ближайшую пару",
   nextLessonHint:
@@ -79,3 +81,6 @@ export const extra = {
   noteFor: (room: string) => `Заметка: ${room}`,
   unmarkRoom: (room: string) => `Снять метку: ${room}`,
 } as const;
+
+export type MapStrings = Widen<typeof RU>;
+export const extra: MapStrings = LANG === "en" ? en : RU;

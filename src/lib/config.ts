@@ -10,27 +10,30 @@
 //     "parts": ["tiles", "layout", …],  the parts inside, in PARTS order (for people: loading reads the keys)
 //     "personal": ["notes"],            the personal parts inside
 //     "settings": { "tiles": …, … },    the settings keys of those parts, exactly as stored
-//     "layout": { "screen": …, "tiles": …, "defaults": […] }   only with the «layout» part: get_layout
-//                                       (src-tauri/src/layout.rs); `defaults` lists the tiles never moved
+//     "layout": { "screen": …, "zoom": 1, "tiles": …, "defaults": […] }   only with the «layout» part:
+//                                       get_layout (src-tauri/src/layout.rs); `zoom` is the widgets' size the
+//                                       rects were made at, `defaults` lists the tiles never moved
 //   }
-// Never in a file: `version`, `onboarded` (the welcome page), autostart (a Windows setting) and whether «Все
-// виджеты» are hidden (`tilesHidden`, kept next to the settings in the store).
+// Never in a file: `version`, `onboarded` (the welcome page), `language` (a personal choice), `tileScale` (it
+// depends on the screen), autostart (a Windows setting) and whether «Все виджеты» are hidden (`tilesHidden`,
+// kept next to the settings in the store).
 //
 // Loading also takes the app's own store, %APPDATA%\kz.edu.astanait.aitudesk\settings.json: `settings` of
-// version 2 and maybe `layout`, tile rects without the screen they were made on. Such a copy is almost always a
-// backup of this very PC, so its layout is applied as made on this screen, each tile kept inside the work area
-// (resolveLayout).
+// version 2 and maybe `layout`, tile rects without the screen they were made on (and `tileZoom`, the widgets'
+// size they were made at). Such a copy is almost always a backup of this very PC, so its layout is applied as
+// made on this screen, each tile kept inside the work area (resolveLayout).
 import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
 import { extra } from "../i18n/ru.extra.transfer";
 import { hostOf } from "./launchers";
 import { STYLE_IDS, THEME_IDS, TILE_IDS, normalize, type BuiltInLauncher, type Settings, type SettingsPatch } from "./settings";
+import { LOCALE } from "../i18n/lang";
 
 /** Version of the file layout. Raise it only when an older app would misread a newer file. */
 export const FORMAT = 1;
 
-/** Settings keys a file can carry: all but `version` and `onboarded`. */
-export type SettingsKey = Exclude<keyof Settings, "version" | "onboarded">;
+/** Settings keys a file can carry: all but `version`, `onboarded`, `language` and `tileScale`. */
+export type SettingsKey = Exclude<keyof Settings, "version" | "onboarded" | "language" | "tileScale">;
 
 export type PartId = "tiles" | "layout" | "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "reminders" | "notes";
 
@@ -57,7 +60,7 @@ const PART_LIST = [
 ] as const satisfies readonly Part[];
 
 /**
- * Compiles only while every settings key (but `version` and `onboarded`) belongs to a part: a new setting that
+ * Compiles only while every settings key (but those four) belongs to a part: a new setting that
  * nobody added to a part would otherwise silently stay out of every file. The error names the missing key.
  */
 type EveryKeyInAPart<Assigned extends SettingsKey> =
@@ -101,6 +104,8 @@ export interface WorkArea {
  */
 export interface LayoutFile {
   screen: WorkArea;
+  /** Zoom of the widgets the rects were made at («Размер виджетов»); 1 in files from before it. */
+  zoom: number;
   tiles: Record<string, TileRect>;
   defaults: string[];
 }
@@ -108,13 +113,14 @@ export interface LayoutFile {
 /** A layout read from a file; `screen` is null when the file does not name it (the app's own store). */
 export interface FileLayout {
   screen: WorkArea | null;
+  zoom: number;
   tiles: Record<string, TileRect>;
   defaults: string[];
 }
 
 /** The layout to send to set_layout: a store layout is taken as made on `current`'s screen and kept inside it. */
 export function resolveLayout(layout: FileLayout, current: LayoutFile | null): LayoutFile | null {
-  if (layout.screen) return { screen: layout.screen, tiles: layout.tiles, defaults: layout.defaults };
+  if (layout.screen) return { screen: layout.screen, zoom: layout.zoom, tiles: layout.tiles, defaults: layout.defaults };
   if (!current) return null;
   const wa = current.screen;
   const tiles: Record<string, TileRect> = {};
@@ -128,7 +134,7 @@ export function resolveLayout(layout: FileLayout, current: LayoutFile | null): L
       h,
     };
   }
-  return { screen: wa, tiles, defaults: layout.defaults };
+  return { screen: wa, zoom: layout.zoom, tiles, defaults: layout.defaults };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -167,7 +173,7 @@ export function buildConfigFile(s: Settings, chosen: readonly PartId[], layout: 
       if (r) tiles[id] = { x: r.x, y: r.y, w: r.w, h: r.h };
     }
     const defaults = TILE_IDS.filter((id) => !tiles[id] && (layout.defaults ?? []).includes(id));
-    file.layout = { screen: { x, y, w, h, scale }, tiles, defaults };
+    file.layout = { screen: { x, y, w, h, scale }, zoom: layout.zoom, tiles, defaults };
   }
   return `${JSON.stringify(file, null, 2)}\n`;
 }
@@ -227,6 +233,11 @@ function readScreen(v: unknown): WorkArea | null {
   return { x, y, w, h, scale };
 }
 
+/** Zoom of the widgets a layout was made at, as zoom.rs accepts it; 1 when absent (files from before it). */
+function readZoom(v: unknown): number {
+  return typeof v === "number" && v >= 0.5 && v <= 2 ? v : 1;
+}
+
 /** Rects of the known tiles that layout.rs accepts (whole px, 40..20000 px in size). */
 function readRects(v: unknown): Record<string, TileRect> {
   const tiles: Record<string, TileRect> = {};
@@ -279,7 +290,7 @@ export function parseConfigFile(text: string): ParseResult {
       const screen = readScreen(root.layout.screen);
       const tiles = readRects(root.layout.tiles);
       const defaults = readDefaults(root.layout.defaults, tiles);
-      if (screen && (Object.keys(tiles).length > 0 || defaults.length > 0)) layout = { screen, tiles, defaults };
+      if (screen && (Object.keys(tiles).length > 0 || defaults.length > 0)) layout = { screen, zoom: readZoom(root.layout.zoom), tiles, defaults };
     }
     if (typeof root.app === "string" && VERSION.test(root.app)) app = root.app;
     if (typeof root.saved === "string" && STAMP.test(root.saved)) saved = root.saved;
@@ -290,7 +301,7 @@ export function parseConfigFile(text: string): ParseResult {
     // The store keeps rects only of tiles moved by hand; the others sit at their default places.
     if (isObj(root.layout)) {
       const tiles = readRects(root.layout);
-      layout = { screen: null, tiles, defaults: TILE_IDS.filter((id) => !tiles[id]) };
+      layout = { screen: null, zoom: readZoom(root.tileZoom), tiles, defaults: TILE_IDS.filter((id) => !tiles[id]) };
     }
   } else {
     return { ok: false, error: "foreign" };
@@ -413,7 +424,7 @@ function duration(minutes: number): string {
   return m === 0 ? x.hours(h) : `${x.hours(h)} ${x.minutes(m)}`;
 }
 
-const capitalize = (s: string) => s.charAt(0).toLocaleUpperCase("ru-RU") + s.slice(1);
+const capitalize = (s: string) => s.charAt(0).toLocaleUpperCase(LOCALE) + s.slice(1);
 
 /**
  * One line about what a part holds in `s`, under its name in the lists: «12 пар в неделю», «5 заметок, 2 с

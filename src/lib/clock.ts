@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { extra } from "../i18n/ru.extra.clock";
 import { CLOCK_PRESETS, clockFont, isHex, type ClockFontMeta } from "./design";
 import type { ClockSettings } from "./settings";
+import { LOCALE } from "../i18n/lang";
 
 export type DateFormat = ClockSettings["dateFormat"];
 
@@ -33,10 +34,10 @@ const pad2 = (n: number) => (n < 10 ? `0${n}` : String(n));
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const formatters: Record<Exclude<DateFormat, "none">, Intl.DateTimeFormat> = {
-  long: new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" }),
-  short: new Intl.DateTimeFormat("ru-RU", { weekday: "short", day: "numeric", month: "short" }),
-  numeric: new Intl.DateTimeFormat("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" }),
-  weekday: new Intl.DateTimeFormat("ru-RU", { weekday: "long" }),
+  long: new Intl.DateTimeFormat(LOCALE, { weekday: "long", day: "numeric", month: "long" }),
+  short: new Intl.DateTimeFormat(LOCALE, { weekday: "short", day: "numeric", month: "short" }),
+  numeric: new Intl.DateTimeFormat(LOCALE, { day: "2-digit", month: "2-digit", year: "numeric" }),
+  weekday: new Intl.DateTimeFormat(LOCALE, { weekday: "long" }),
 };
 
 /** "вторник, 6 октября" · "вт, 6 окт" · "06.10.2026" · "вторник" · null. */

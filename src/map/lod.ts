@@ -3,6 +3,7 @@
 // per floor drawing (geometry.ts, user units, cached for the life of the window); a zoom or resize only compares
 // them with the current scale and toggles .lod-off on the elements whose state changes, so a frame with no
 // threshold crossing touches no DOM at all. Never re-renders the drawings through React.
+import { CAP_HEIGHT } from "./codes";
 import { labelSize, outlineOf, pictogramSize } from "./geometry";
 import { LABEL_MIN_PX, PICTOGRAM_MIN_PX } from "./types";
 
@@ -76,7 +77,10 @@ function measure(root: Element, key: string): Measured {
   els.forEach((el, k) => {
     const kind = kinds[k];
     if (kind === "label") {
-      sizes[k] = labelSize(outlineOf(el.querySelectorAll(":scope > path")));
+      // A code set as text (codes.ts) is sized to its room: its cap height counts, not the hidden glyphs.
+      const text = el.querySelector(":scope > text.map-code");
+      const size = text ? parseFloat(text.getAttribute("font-size") ?? "") : NaN;
+      sizes[k] = Number.isFinite(size) ? size * CAP_HEIGHT : labelSize(outlineOf(el.querySelectorAll(":scope > path")));
       minPx[k] = LABEL_MIN_PX;
     } else if (kind === "free") {
       const glyphs = labelSize(outlineOf(el.tagName.toLowerCase() === "path" ? [el] : el.querySelectorAll("path")));

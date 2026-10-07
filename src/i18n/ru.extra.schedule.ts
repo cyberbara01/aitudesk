@@ -1,4 +1,6 @@
 // Строки виджета «Расписание» и его страницы настроек, которых нет в ru.ts. Без длинных тире.
+import { LANG, type Widen } from "./lang";
+import { en } from "./en/schedule";
 import { plural } from "./ru";
 /** Non-breaking space: keeps «в» with its word and «в 08:00» on one line. */
 const NBSP = String.fromCharCode(0xa0);
@@ -9,7 +11,7 @@ const lessonsWord = (n: number) => plural(n, "пара", "пары", "пар");
 /** «1 пара», «2 пары», «5 пар», «21 пара». */
 const lessonsCount = (n: number) => `${n} ${lessonsWord(n)}`;
 
-export const extra = {
+const RU = {
   // ---- Виджет ----
   emptyTitle: "Расписание пустое",
   /** Says what the tile will do once there are lessons (the button below adds the first one). */
@@ -54,3 +56,6 @@ export const extra = {
   endAfterStart: "Конец должен быть позже начала",
   previewHint: "Так пара будет выглядеть на виджете",
 } as const;
+
+export type ScheduleStrings = Widen<typeof RU>;
+export const extra: ScheduleStrings = LANG === "en" ? en : RU;

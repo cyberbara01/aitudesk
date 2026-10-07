@@ -4,12 +4,14 @@ mod desktop_watch;
 mod favicon;
 mod files;
 mod glass;
+mod lang;
 mod layout;
 mod notify;
 mod reminders;
 mod settings_window;
 mod sysinfo;
 mod tray;
+mod zoom;
 
 use tauri::Manager;
 
@@ -21,6 +23,20 @@ pub const TILES: &[&str] = &["clock", "system", "launchers", "map", "schedule", 
 /// `--process-per-site` lets all our pages (one origin) share a single renderer process instead of one per
 /// window, which saves about a quarter of the app's memory.
 pub const BROWSER_ARGS: &str = env!("AITUDESK_BROWSER_ARGS");
+
+/// Window title of a tile, in the interface language (screen readers announce it when a menu opens on the tile).
+fn tile_title(label: &str) -> String {
+    let name = match label {
+        "clock" => lang::pick("часы", "clock"),
+        "system" => lang::pick("система", "system"),
+        "launchers" => lang::pick("ярлыки", "shortcuts"),
+        "map" => lang::pick("карта", "map"),
+        "schedule" => lang::pick("расписание", "schedule"),
+        "notes" => lang::pick("заметки", "notes"),
+        other => other,
+    };
+    format!("AITU Desk: {name}")
+}
 
 /// Command-line flag of the login start (written into the Run key by the autostart plugin).
 const AUTOSTART_ARG: &str = "--autostart";
@@ -51,6 +67,7 @@ fn protect_store_file(identifier: &str) {
 pub fn run() {
     let context = tauri::generate_context!();
     protect_store_file(&context.config().identifier);
+    let language = lang::init(&context.config().identifier);
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             // Launching the app again (its shortcut, the Start menu) while it runs opens the settings window on
@@ -59,6 +76,8 @@ pub fn run() {
                 settings_window::open(app, "general", None);
             }
         }))
+        // Every page learns the interface language before its own scripts run.
+        .plugin(tauri::plugin::Builder::<tauri::Wry>::new("aitudesk-lang").js_init_script(lang::init_script(language)).build())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
@@ -88,6 +107,9 @@ pub fn run() {
             commands::set_layout,
             commands::save_config_file,
             commands::open_config_file,
+            commands::restart_app,
+            commands::apply_tile_scale,
+            commands::get_tile_zoom,
             sysinfo::get_power,
             sysinfo::get_wifi,
             sysinfo::get_bluetooth,
@@ -97,6 +119,7 @@ pub fn run() {
             layout::restore_all(&handle);
             for label in TILES {
                 if let Some(win) = handle.get_webview_window(label) {
+                    let _ = win.set_title(&tile_title(label));
                     glass::apply(&win);
                     glass::keep_active_look(&win);
                     if let Ok(h) = win.hwnd() {

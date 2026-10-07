@@ -1,4 +1,6 @@
 // Все строки интерфейса только здесь. Без длинных тире: правило автора.
+import { LANG, type Widen } from "./lang";
+import { en } from "./en/main";
 
 /** Russian plural form: one (1, 21, 101), few (2-4, 22-24) or many (0, 5-20, 25-30, 11-14). */
 export function plural(n: number, one: string, few: string, many: string): string {
@@ -9,7 +11,7 @@ export function plural(n: number, one: string, few: string, many: string): strin
   return many;
 }
 
-export const ru = {
+const RU = {
   app: {
     name: "AITU Desk",
     version: "1.0",
@@ -88,6 +90,7 @@ export const ru = {
     wifi: "Wi-Fi",
     bluetooth: "Bluetooth",
     desktopPc: "Стационарный ПК",
+    laptop: "Ноутбук",
     none: "Нет данных",
     mains: "От сети",
     charging: "заряжается",
@@ -262,11 +265,12 @@ export const ru = {
       privacy: "Приватность",
       hideNames: "Скрывать названия сетей и устройств",
       hideNamesHint: "Названия заменяются точками. Наведите на строку и нажмите на глаз, чтобы увидеть",
-      label: "Первая строка на ПК без батареи",
+      label: "Первая строка",
       labelDefault: "Стационарный ПК",
       labelUser: "Имя учётной записи",
       labelCustom: "Своя надпись",
       labelPlaceholder: "Например, Мой ПК",
+      labelPlaceholderLaptop: "Например, Мой ноутбук",
       background: "Фон виджета",
     },
     launchers: {
@@ -356,3 +360,6 @@ export const ru = {
     },
   },
 } as const;
+
+export type MainStrings = Widen<typeof RU>;
+export const ru: MainStrings = LANG === "en" ? en : RU;

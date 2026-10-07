@@ -25,6 +25,7 @@ import {
 } from "../lib/notes";
 import type { Note } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
+import { usePowerSaver } from "../lib/useSystemInfo";
 import { NoteCheck } from "../settings/notes/NoteCheck";
 import { NoteChip } from "../settings/notes/NoteChip";
 
@@ -70,7 +71,9 @@ export function NotesTile() {
   const ordered = useMemo(() => orderNotes(notes, sort), [notes, sort]);
   const visible = useMemo(() => (showDone ? ordered : ordered.filter((it) => !it.note.done)), [ordered, showDone]);
   const deadlines = useMemo(() => activeDeadlines(visible), [visible]);
-  const now = useDeadlineClock(deadlines, true);
+  // The last hour counts down in seconds, unless Windows battery saver is on (then in minutes).
+  const live = !usePowerSaver();
+  const now = useDeadlineClock(deadlines, live);
   const nowDate = useMemo(() => new Date(now), [now]);
 
   // Scroll fades: only while there really is more content in that direction.
@@ -165,15 +168,15 @@ export function NotesTile() {
     body = (
       <div ref={listRef} className={listCls} role="list" aria-label={ru.tiles.notes} onScroll={updateFades}>
         {visible.map(({ note, due }) => {
-          const live = !note.done && due !== null;
-          const c = live ? countdown(due, now, true) : null;
+          const pending = !note.done && due !== null;
+          const c = pending ? countdown(due, now, live) : null;
           return (
             <NoteRow
               key={note.id}
               note={note}
               chip={c?.text ?? null}
               tone={c?.tone ?? null}
-              when={live ? formatDeadline(new Date(due), nowDate) : null}
+              when={pending ? formatDeadline(new Date(due), nowDate) : null}
             />
           );
         })}

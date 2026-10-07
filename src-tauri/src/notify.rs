@@ -9,7 +9,9 @@ use windows::UI::Notifications::{ToastNotification, ToastNotificationManager};
 /// Same as `identifier` in tauri.conf.json.
 const AUMID: &str = "kz.edu.astanait.aitudesk";
 /// Small grey line under every reminder: where to change or switch them off.
-const WHERE: &str = "Изменить можно в разделе «Напоминания»";
+fn where_to_change() -> &'static str {
+    crate::lang::pick("Изменить можно в разделе «Напоминания»", "You can change this in “Reminders”")
+}
 
 fn escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
@@ -36,7 +38,7 @@ pub fn show(title: &str, body: &str, silent: bool, quiet: bool) -> Result<(), St
         r#"<toast><visual><binding template="ToastGeneric"><text>{}</text><text>{}</text><text placement="attribution">{}</text></binding></visual>{audio}</toast>"#,
         escape(title),
         escape(body),
-        escape(WHERE)
+        escape(where_to_change())
     );
     let doc = XmlDocument::new().map_err(|e| e.to_string())?;
     doc.LoadXml(&HSTRING::from(xml)).map_err(|e| e.to_string())?;

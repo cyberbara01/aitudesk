@@ -99,11 +99,11 @@ const MAP_H: f64 = 320.0;
 const MAP_MIN_W: f64 = 400.0;
 const MAP_MIN_H: f64 = 220.0;
 
-/// Default layout (logical px): the column tiles flow top to bottom along the right edge and continue in a
-/// new column to the left when the screen is not tall enough (laptops, 125-150 % scaling); the map sits
+/// Default layout (logical px at the tiles' zoom, «Размер виджетов»): the column tiles flow top to bottom along
+/// the right edge and continue in a new column to the left when the screen is not tall enough; the map sits
 /// bottom-aligned to the left of the columns.
 fn default_rect(label: &str, wa: &WorkArea) -> Rect {
-    let s = wa.scale;
+    let s = wa.scale * crate::zoom::current();
     let px = |v: f64| (v * s).round() as i32;
     let margin = 24.0;
     let gap = 16.0;
@@ -141,6 +141,19 @@ fn default_rect(label: &str, wa: &WorkArea) -> Rect {
         y: wa.y + px(ly),
         w: px(lw) as u32,
         h: px(lh) as u32,
+    }
+}
+
+/// Every saved rect through `f` (the zoom of the tiles changed, see zoom.rs), written back at once.
+pub fn scale_saved(app: &AppHandle, f: impl Fn(&Rect) -> Rect) {
+    let saved = load_layout(app);
+    if saved.is_empty() {
+        return;
+    }
+    let scaled: HashMap<String, Rect> = saved.iter().map(|(k, r)| (k.clone(), f(r))).collect();
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(LAYOUT_KEY, json!(scaled));
+        let _ = store.save();
     }
 }
 
@@ -225,6 +238,10 @@ pub fn restore_all(app: &AppHandle) {
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
     *vis.hidden.lock().unwrap() = hidden;
+    // The zoom first: default rects and a saved layout made at another zoom depend on it.
+    if let Some(first) = crate::TILES.iter().find_map(|l| app.get_webview_window(l)) {
+        crate::zoom::apply(app, &work_area(&first));
+    }
     let mut disabled = vis.disabled.lock().unwrap();
     let mut pending = vis.pending.lock().unwrap();
     for label in crate::TILES {
@@ -412,7 +429,7 @@ pub fn reset(app: &AppHandle) -> Result<(), String> {
 /// Move every tile on screen to its saved (or default) rect after the layout changed. A tile still waiting for
 /// its first frame gets the new size now and appears at the new place; hidden and switched-off tiles take the
 /// new rect when they are shown (`unpark`).
-fn replace_shown(app: &AppHandle) {
+pub fn replace_shown(app: &AppHandle) {
     let vis = app.state::<Visibility>();
     let hidden = *vis.hidden.lock().unwrap();
     let disabled = vis.disabled.lock().unwrap();
@@ -438,9 +455,16 @@ fn replace_shown(app: &AppHandle) {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LayoutFile {
     pub screen: WorkArea,
+    /// Zoom of the tiles the rects were made at («Размер виджетов», zoom.rs); files from before it: 1.
+    #[serde(default = "unit_zoom")]
+    pub zoom: f64,
     pub tiles: HashMap<String, Rect>,
     #[serde(default)]
     pub defaults: Vec<String>,
+}
+
+fn unit_zoom() -> f64 {
+    1.0
 }
 
 /// «Конфиги»: the saved rect of every tile that has one (on this screen), the rest as defaults.
@@ -458,7 +482,7 @@ pub fn export(app: &AppHandle) -> Option<LayoutFile> {
             _ => defaults.push(label.to_string()),
         }
     }
-    Some(LayoutFile { screen, tiles, defaults })
+    Some(LayoutFile { screen, zoom: crate::zoom::current(), tiles, defaults })
 }
 
 /// A rect from another screen on this one: the same size in logical px (smaller if the screen is), kept at
@@ -507,14 +531,18 @@ pub fn import(app: &AppHandle, file: LayoutFile) -> Result<(), String> {
     if !valid(&file.screen) {
         return Err("invalid screen".into());
     }
+    // Sizes are kept in the widgets' own px: each side's monitor scale times its zoom of the tiles.
+    let theirs = if (0.5..=2.0).contains(&file.zoom) { file.zoom } else { 1.0 };
+    let from = WorkArea { scale: file.screen.scale * theirs, ..file.screen };
+    let to = WorkArea { scale: screen.scale * crate::zoom::current(), ..screen };
     let mut layout = load_layout(app);
     for label in crate::TILES {
         if let Some(r) = file.tiles.get(*label) {
             if (40..=20_000).contains(&r.w) && (40..=20_000).contains(&r.h) {
-                let mut next = adapt(r, &file.screen, &screen);
+                let mut next = adapt(r, &from, &to);
                 // Never smaller than a usable tile, whatever scale the file claims.
-                next.w = next.w.max((MIN_TILE_W * screen.scale).round() as u32);
-                next.h = next.h.max((MIN_TILE_H * screen.scale).round() as u32);
+                next.w = next.w.max((MIN_TILE_W * to.scale).round() as u32);
+                next.h = next.h.max((MIN_TILE_H * to.scale).round() as u32);
                 layout.insert(label.to_string(), clamp_into(next, &screen));
             }
         } else if file.defaults.iter().any(|d| d == label) {

@@ -10,7 +10,7 @@ import { extra } from "../i18n/ru.extra.system";
 import { settings, type SystemSettings } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { useSystemInfo, useUserName } from "../lib/useSystemInfo";
-import { SystemRows } from "../tiles/System";
+import { SystemRows, deviceName } from "../tiles/System";
 
 type LabelMode = SystemSettings["labelMode"];
 
@@ -23,7 +23,14 @@ const REVEAL_GRACE = 1500;
 const T = ru.settings.system;
 const X = extra.settings.system;
 
-const MODE_OPTIONS: readonly SelectOption<LabelMode>[] = [
+/** On a laptop the default is «Батарея» and «Ноутбук» is a choice of its own; on a PC both are «Стационарный ПК». */
+const LAPTOP_OPTIONS: readonly SelectOption<LabelMode>[] = [
+  { value: "default", label: ru.system.battery },
+  { value: "device", label: ru.system.laptop },
+  { value: "user", label: T.labelUser },
+  { value: "custom", label: T.labelCustom },
+];
+const PC_OPTIONS: readonly SelectOption<LabelMode>[] = [
   { value: "default", label: T.labelDefault },
   { value: "user", label: T.labelUser },
   { value: "custom", label: T.labelCustom },
@@ -94,6 +101,10 @@ export function SystemPage() {
 
   /** What the tile will show, including the label being typed right now. */
   const preview: SystemSettings = draft === sys.customLabel ? sys : { ...sys, customLabel: draft };
+  // The options follow this computer: a laptop has its charge in the first row, a PC «От сети».
+  const laptop = info.power?.hasBattery === true;
+  const fallback = deviceName(laptop);
+  const mode: LabelMode = !laptop && sys.labelMode === "device" ? "default" : sys.labelMode;
 
   const update = (p: Partial<SystemSettings>) => void settings.updateSystem(p);
 
@@ -132,7 +143,12 @@ export function SystemPage() {
 
       <Section title={T.label} description={X.labelHint}>
         <Row label={X.labelMode}>
-          <Select options={MODE_OPTIONS} value={sys.labelMode} onChange={(m) => update({ labelMode: m })} ariaLabel={X.labelMode} />
+          <Select
+            options={laptop ? LAPTOP_OPTIONS : PC_OPTIONS}
+            value={mode}
+            onChange={(m) => update({ labelMode: m })}
+            ariaLabel={X.labelMode}
+          />
         </Row>
         {sys.labelMode === "custom" && (
           <div className="row stack sys-custom-row">
@@ -142,7 +158,7 @@ export function SystemPage() {
               label={T.labelCustom}
               value={draft}
               onChange={onDraft}
-              placeholder={T.labelPlaceholder}
+              placeholder={laptop ? T.labelPlaceholderLaptop : T.labelPlaceholder}
               maxLength={LABEL_MAX}
               suffix={`${draft.length}/${LABEL_MAX}`}
               onBlur={commit}
@@ -151,14 +167,14 @@ export function SystemPage() {
               }}
             />
             {/* One hint for both states, so the field never jumps while typing. */}
-            <span className="row-hint">{X.customEmptyHint}</span>
+            <span className="row-hint">{X.customEmptyHint(fallback)}</span>
           </div>
         )}
         {sys.labelMode === "user" && (
-          <Row label={T.labelUser} hint={userName === "" ? X.userNameUnavailable : X.userNameHint}>
+          <Row label={T.labelUser} hint={userName === "" ? X.userNameUnavailable(fallback) : X.userNameHint}>
             <span className="sys-user">
               <Icon name="person" />
-              <span className="ellipsis">{userName === "" ? ru.system.desktopPc : userName}</span>
+              <span className="ellipsis">{userName === "" ? fallback : userName}</span>
             </span>
           </Row>
         )}

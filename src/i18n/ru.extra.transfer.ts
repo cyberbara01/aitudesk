@@ -1,12 +1,14 @@
 // Строки страницы «Конфиги» (настройки в одном файле), которых нет в ru.ts. Названия частей, которые уже есть
 // в ru.ts (разделы боковой панели, «Виджеты на рабочем столе»), берутся оттуда. Без длинных тире: правило автора.
+import { LANG, type Widen } from "./lang";
+import { en } from "./en/transfer";
 import { plural } from "./ru";
 
 const count = (n: number, one: string, few: string, many: string) => `${n} ${plural(n, one, few, many)}`;
 /** Non-breaking space: keeps «или https://» on one line. */
 const NBSP = String.fromCharCode(0xa0);
 
-export const extra = {
+const RU = {
   desc: "Конфиг: все ваши настройки в одном файле. Сохраните свой или загрузите чужой, а что именно сохранить и применить, выбираете вы",
 
   /** Части файла, которых нет среди разделов настроек. */
@@ -111,9 +113,12 @@ export const extra = {
   plainLabel: "Обычный текст",
   plainHint: "Конфиг хранится в формате JSON. Его можно открыть в Блокноте и посмотреть, что внутри",
   notIncludedLabel: "Что не переносится",
-  notIncludedHint: "Автозапуск и скрытие всех виджетов остаются такими, как на этом компьютере",
+  notIncludedHint: "Язык, размер виджетов, автозапуск и скрытие всех виджетов остаются такими, как на этом компьютере",
   addressesLabel: "Адреса ярлыков",
   addressesHint: `Из конфига загружаются только ярлыки с адресом, который начинается с http://${NBSP}или${NBSP}https://, а встроенные ярлыки AITU ведут только на сайты университета`,
   privacyLabel: "Приватность",
   privacyHint: "Загрузка не выключает скрытие текста на рабочем столе и названий сетей, если оно у вас включено",
 } as const;
+
+export type TransferStrings = Widen<typeof RU>;
+export const extra: TransferStrings = LANG === "en" ? en : RU;

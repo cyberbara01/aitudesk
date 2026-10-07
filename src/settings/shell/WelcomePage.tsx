@@ -1,5 +1,5 @@
 // Welcome page: shown instead of «Общие» the first time the settings window opens, and later from
-// «Как пользоваться». Five calm steps, each beside a small picture drawn with the real kit (tokens, the tile
+// «Как пользоваться». Six calm steps, each beside a small picture drawn with the real kit (tokens, the tile
 // menu's own classes, the style cards) or beside real shortcuts to the pages it mentions, then «Начать»,
 // which marks the page as seen and opens «Общие». The last step switches autostart on right here: right after
 // installing, that is the one setting that decides whether the tiles are still there after a restart.
@@ -96,6 +96,33 @@ function MenuPicture() {
   );
 }
 
+/** The map tile: the search field with a room number, that room found on the plan, the floor switch. */
+function MapPicture({ desk }: { desk: CSSProperties }) {
+  const sample = w.mapSample;
+  return (
+    <div className="ob-desk" style={desk}>
+      <span className="ob-tile ob-maptile">
+        <span className="ob-plan">
+          <span className="ob-search">
+            <Icon name="search" size={16} />
+            {sample.search}
+          </span>
+          {sample.rooms.map((room) => (
+            <span key={room} className={room === sample.search ? "ob-room ob-code found" : "ob-room ob-code"}>
+              {room}
+            </span>
+          ))}
+        </span>
+        <span className="ob-floors">
+          <span>3</span>
+          <span className="on">2</span>
+          <span>1</span>
+        </span>
+      </span>
+    </div>
+  );
+}
+
 /** The three design languages as on the style cards of «Оформление». */
 function StylesPicture({ desk }: { desk: CSSProperties }) {
   return (
@@ -151,9 +178,10 @@ export function WelcomePage() {
     <Page title={onboarded ? extra.shell.help : w.title} description={w.desc}>
       <ol className="ob-steps" aria-label={w.stepsLabel}>
         <Step n={1} title={w.tilesTitle} text={w.tilesText(nav.general)} picture={<DeskPicture desk={desk} />} />
-        <Step n={2} title={w.menuTitle} text={w.menuText(ru.menu.moveResize, ru.menu.settings)} picture={<MenuPicture />} />
+        <Step n={2} title={w.menuTitle} text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done)} picture={<MenuPicture />} />
+        <Step n={3} title={w.mapTitle} text={w.mapText} picture={<MapPicture desk={desk} />} />
         <Step
-          n={3}
+          n={4}
           title={w.dataTitle}
           text={w.dataText}
           aside={
@@ -171,7 +199,7 @@ export function WelcomePage() {
           }
         />
         <Step
-          n={4}
+          n={5}
           title={w.lookTitle}
           text={w.lookText(nav.appearance, styleNames.fluent, styleNames.aqua, styleNames.rice)}
           picture={<StylesPicture desk={desk} />}
@@ -182,7 +210,7 @@ export function WelcomePage() {
           }
         />
         <Step
-          n={5}
+          n={6}
           title={w.startTitle}
           text={w.startText(nav.reminders)}
           actions={

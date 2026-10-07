@@ -182,8 +182,8 @@ fn link_tags(html: &str) -> Vec<(String, String, u32)> {
 
 /// Best-effort icon for `url` as a data: URL.
 pub fn fetch(url: &str) -> Result<String, String> {
-    let base = origin(url).ok_or("Некорректный адрес")?;
-    let host = host_of(url).ok_or("Некорректный адрес")?;
+    let base = origin(url).ok_or("invalid address")?;
+    let host = host_of(url).ok_or("invalid address")?;
     let agent = agent();
 
     // 1. Apple touch icon (usually 180 px, crisp).
@@ -234,5 +234,5 @@ pub fn fetch(url: &str) -> Result<String, String> {
         }
     }
 
-    Err("Иконка сайта не найдена".into())
+    Err("no site icon found".into())
 }
