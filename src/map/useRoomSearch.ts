@@ -25,14 +25,14 @@ export function floorFromQuery(q: string): Floor | null {
 }
 
 /**
- * Toggles .room-found on every <g data-name> inside `layer` (the current floor); returns the number of matches.
+ * Toggles .room-found on every <g data-name> inside `layer` (one floor); returns the number of matches.
  * Matching is a plain substring test on data-name, like `[data-name*=…]` in the original.
  */
 export function highlightRooms(layer: Element, query: string): number {
   let found = 0;
   for (const g of layer.querySelectorAll<SVGGElement>("g[data-name]")) {
     const hit = query !== "" && (g.getAttribute("data-name") ?? "").includes(query);
-    g.classList.toggle("room-found", hit);
+    if (g.classList.contains("room-found") !== hit) g.classList.toggle("room-found", hit);
     if (hit) found++;
   }
   return found;
@@ -40,7 +40,7 @@ export function highlightRooms(layer: Element, query: string): number {
 
 export interface RoomSearch {
   floor: Floor;
-  /** User-initiated floor change (switch, wheel, keys) — clears the active search, as the original does. */
+  /** User-initiated floor change (switch, wheel, keys): clears the active search, as the original does. */
   setFloor: (f: Floor) => void;
   /** Upper-cased query; "" when no search is active. */
   query: string;

@@ -1,4 +1,4 @@
-// Room-code helpers shared by the tile (context menu) and the settings page (favourites list).
+// Room-code helpers shared by the tile (paint mode, context menu) and the settings page (marked rooms).
 // A room is a <g data-name> in the floor drawings: "C1.2.223K" (block C1, section 2, room 223, type K),
 // the nested "1.352K", or a named area such as "LIBRARY|BIBLIOTEKA|БИБЛИОТЕКА|…".
 import { extra } from "../i18n/ru.extra.map";
@@ -31,12 +31,20 @@ export function roomDisplayName(code: string): string {
   return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 
-/** Upper-cased data-name of the room group under a pointer target, if it belongs to the floor shown now. */
-export function roomFromTarget(target: Element, floor: Floor): string | null {
-  const g = target.closest<SVGGElement>("g[data-name]");
-  if (!g) return null;
+/**
+ * The room group under a pointer target if it can be marked: it belongs to the floor shown now and has a shape
+ * that can be filled (the coworking «Атамекен» is drawn with open curves only, so a colour has nothing to fill).
+ */
+export function roomGroupAt(target: Element | null, floor: Floor): SVGGElement | null {
+  const g = target?.closest<SVGGElement>("g[data-name]") ?? null;
+  if (!g || !(g.getAttribute("data-name") ?? "").trim()) return null;
   const layer = g.closest<SVGGElement>("g.floor");
   if (!layer || layer.getAttribute("data-floor") !== String(floor)) return null;
-  const code = (g.getAttribute("data-name") ?? "").trim().toUpperCase();
-  return code || null;
+  return g.querySelector(":scope > polygon, :scope > polyline, :scope > rect") ? g : null;
+}
+
+/** Upper-cased data-name of the markable room under a pointer target (see roomGroupAt). */
+export function roomAt(target: Element | null, floor: Floor): string | null {
+  const g = roomGroupAt(target, floor);
+  return g ? (g.getAttribute("data-name") ?? "").trim().toUpperCase() : null;
 }

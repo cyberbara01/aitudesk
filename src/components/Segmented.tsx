@@ -23,6 +23,9 @@ interface SegmentedProps<T extends string> {
 export function Segmented<T extends string>({ options, value, onChange, size = "md", fill, role = "radiogroup", ariaLabel, className }: SegmentedProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
   const [ind, setInd] = useState<{ x: number; w: number } | null>(null);
+  // Re-measure when the options themselves change, not only their number (the schedule tile's day row can
+  // swap one day for another and keep its length).
+  const optionsKey = options.map((o) => `${o.value}:${o.label}`).join("|");
 
   useLayoutEffect(() => {
     const root = ref.current;
@@ -36,7 +39,7 @@ export function Segmented<T extends string>({ options, value, onChange, size = "
     const ro = new ResizeObserver(measure);
     ro.observe(root);
     return () => ro.disconnect();
-  }, [value, options.length, size]);
+  }, [value, optionsKey, size]);
 
   const cls = ["segmented", size === "sm" ? "sm" : "", fill ? "fill" : "", className ?? ""].filter(Boolean).join(" ");
   const style = ind ? ({ "--seg-x": `${ind.x}px`, "--seg-w": `${ind.w}px` } as CSSProperties) : undefined;

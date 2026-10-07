@@ -1,6 +1,7 @@
-// Dialog for adding / editing one lesson: day, start–end («ЧЧ:ММ» mask, validated), title, teacher,
-// room, colour (accent or own) and a live preview of the row as the tile will draw it.
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+// Dialog for adding or editing one lesson: title, day, start and end («ЧЧ:ММ» mask, validated), teacher,
+// room, colour (accent or own) and a live preview of the row as the tile draws it. The title is the first
+// field, so the kit's Dialog focuses it on open; Esc and outside clicks are handled by the Dialog.
+import { useMemo, useState, type KeyboardEvent } from "react";
 import { Button } from "../../components/Button";
 import { ColorPicker } from "../../components/ColorPicker";
 import { Dialog } from "../../components/Dialog";
@@ -9,7 +10,7 @@ import { Segmented, type SegmentedOption } from "../../components/Segmented";
 import { TextField } from "../../components/TextField";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.schedule";
-import { SWATCHES } from "../../lib/design";
+import { SWATCHES, parseTime } from "../../lib/design";
 import {
   ALL_DAYS,
   DEFAULT_START,
@@ -38,7 +39,7 @@ export interface LessonEditorProps {
   lesson: Lesson | null;
   /** Pre-selected weekday for a new lesson. */
   day: Weekday;
-  /** The whole schedule — for suggested times and the overlap hint. */
+  /** The whole schedule: for suggested times and the overlap hint. */
   lessons: readonly Lesson[];
   onSave: (lesson: Lesson) => void;
   onClose: () => void;
@@ -72,17 +73,17 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
   const [room, setRoom] = useState(lesson?.room ?? "");
   const [colorMode, setColorMode] = useState<ColorMode>(lesson?.color ? "custom" : "accent");
   const [color, setColor] = useState(lesson?.color ?? SWATCHES[0]);
+  /** Time fields the user has left (their errors may show from then on). */
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
+  /** The title had text at some point: clearing it again is worth a message, merely leaving it empty is not. */
+  const [titleDirty, setTitleDirty] = useState(false);
+  /** A save was attempted (Enter in a field): every remaining error shows. */
   const [submitted, setSubmitted] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
 
-  // The kit's Dialog focuses the first control in DOM order — here the «Пн» button of the day Segmented,
-  // which the brief places above the fields. The form wants its required field (the title), so focus is
-  // moved there one frame later; `autoFocus` alone would be overridden by the dialog's own focus call.
-  useEffect(() => {
-    const id = requestAnimationFrame(() => rootRef.current?.querySelector<HTMLInputElement>("input.sched-focus")?.focus({ preventScroll: true }));
-    return () => cancelAnimationFrame(id);
-  }, []);
+  const changeTitle = (v: string) => {
+    setTitle(v);
+    if (v.trim()) setTitleDirty(true);
+  };
 
   const changeDay = (d: Weekday) => {
     setDay(d);
@@ -97,9 +98,9 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
     const masked = maskTime(start, v);
     setStart(masked);
     setTimesTouched(true);
-    if (!endTouched) {
-      const n = normalizeTime(masked);
-      const follow = n ? addMinutes(n, LESSON_MINUTES) : null;
+    // The end follows only a complete «ЧЧ:ММ», so it does not jump around while the start is typed.
+    if (!endTouched && parseTime(masked) !== null) {
+      const follow = addMinutes(masked, LESSON_MINUTES);
       if (follow) setEnd(follow);
     }
   };
@@ -110,6 +111,7 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
     setEndTouched(true);
   };
 
+  /** «8» → «08:00», «8:30» → «08:30» once the field is left. */
   const blurTime = (field: "start" | "end") => {
     const value = field === "start" ? start : end;
     const n = normalizeTime(value);
@@ -117,8 +119,17 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
     setTouched((t) => ({ ...t, [field]: true }));
   };
 
+  // Save stays disabled while the form is invalid (as in the note editor); messages appear only where they
+  // help: the title after a save attempt or once typed and cleared, a time once its field was left, and the
+  // order of the times («Конец должен быть позже начала») once either time was left.
   const errors = validateLesson({ start, end, title });
-  const shown = (f: Field) => (submitted || touched[f] ? errors[f] : undefined);
+  const valid = !hasErrors(errors);
+  const shown = (f: Field): string | undefined => {
+    if (submitted) return errors[f];
+    if (f === "title") return titleDirty ? errors.title : undefined;
+    if (f === "end") return touched.end || touched.start ? errors.end : undefined;
+    return touched.start ? errors.start : undefined;
+  };
 
   const overlap = useMemo(() => findOverlap(lessons, day, start, end, lesson?.id), [lessons, day, start, end, lesson?.id]);
 
@@ -126,7 +137,7 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
     setSubmitted(true);
     const s = normalizeTime(start);
     const e = normalizeTime(end);
-    if (!s || !e || hasErrors(errors)) return;
+    if (!s || !e || !valid) return;
     onSave({
       id: lesson?.id ?? newId(),
       day,
@@ -166,13 +177,23 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
       footer={
         <>
           <Button onClick={onClose}>{ru.common.cancel}</Button>
-          <Button variant="accent" onClick={save}>
+          <Button variant="accent" disabled={!valid} onClick={save}>
             {ru.common.save}
           </Button>
         </>
       }
     >
-      <div ref={rootRef} className="sched-editor">
+      <div className="sched-editor">
+        <TextField
+          label={ru.schedule.title}
+          value={title}
+          onChange={changeTitle}
+          onKeyDown={onEnter}
+          placeholder={ru.schedule.titlePlaceholder}
+          maxLength={TITLE_MAX}
+          error={shown("title")}
+        />
+
         <div className="sched-field">
           <span className="sched-field-label caption">{ru.schedule.day}</span>
           <Segmented<DayKey> fill options={DAY_OPTIONS} value={`${day}`} onChange={(v) => changeDay(Number(v) as Weekday)} ariaLabel={ru.schedule.day} />
@@ -211,18 +232,6 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
           )}
         </div>
 
-        <TextField
-          label={ru.schedule.title}
-          value={title}
-          onChange={setTitle}
-          onBlur={() => setTouched((t) => ({ ...t, title: true }))}
-          onKeyDown={onEnter}
-          placeholder={ru.schedule.titlePlaceholder}
-          maxLength={TITLE_MAX}
-          error={shown("title")}
-          inputClassName="sched-focus"
-        />
-
         <div className="grid-2">
           <TextField label={ru.schedule.teacher} value={teacher} onChange={setTeacher} onKeyDown={onEnter} placeholder={ru.schedule.teacherPlaceholder} maxLength={TEACHER_MAX} />
           <TextField label={ru.schedule.room} value={room} onChange={setRoom} onKeyDown={onEnter} placeholder={ru.schedule.roomPlaceholder} mono maxLength={ROOM_MAX} />
@@ -242,7 +251,7 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
         <div className="sched-field">
           <span className="sched-field-label caption">{ru.common.preview}</span>
           <div className="sched-preview" role="img" aria-label={extra.previewHint}>
-            <LessonRow lesson={preview} state="now" now={new Date()} preview />
+            <LessonRow lesson={preview} state="now" preview />
           </div>
         </div>
       </div>

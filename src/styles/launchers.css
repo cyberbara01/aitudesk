@@ -1,5 +1,5 @@
 /* =====================================================================================
-   Ярлыки — tile, settings page, launcher editor, icon picker.
+   Ярлыки: tile, settings page, launcher editor, icon picker.
    Colours, radii, spacing, type and motion come from tokens.css only. The launcher colour is data
    and arrives as --ln-color (inline); the tint is color-mix(--ln-color, --tint-alpha).
    ===================================================================================== */
@@ -7,14 +7,20 @@
 /* ---- Tile ------------------------------------------------------------------------- */
 .tile-launchers { display: flex; }
 
-/* 64 px cells; columns are measured by the tile (--ln-cols), rows that do not fit are not rendered. */
+/* 64 px cells; columns and rows are measured by LaunchersGrid (--ln-cols), rows that do not fit are not
+   rendered. The grid covers the tile's content box exactly: it pads itself by --s1 (room for the 2 px ring
+   plus 1 px offset of focused edge cells) and takes the same amount back with a negative margin, so the
+   measured content box is the tile's own. */
 .ln-grid {
   display: grid;
   grid-template-columns: repeat(var(--ln-cols, 3), 64px);
   grid-auto-rows: 64px;
   gap: var(--s2);
-  width: 100%;
-  height: 100%;
+  flex: 0 0 auto;
+  width: calc(100% + 2 * var(--s1));
+  height: calc(100% + 2 * var(--s1));
+  margin: calc(-1 * var(--s1));
+  padding: var(--s1);
   justify-content: center;
   align-content: center;
   overflow: hidden;
@@ -28,8 +34,8 @@
   justify-content: center;
   width: 64px;
   height: 64px;
-  padding: 0 var(--s1);
-  border-radius: var(--r-tile);
+  padding: 0;
+  border-radius: var(--r-card);
   color: var(--text);
   transition:
     background-color var(--t-fast) var(--ease-in),
@@ -39,20 +45,25 @@ button.ln-cell:hover { background: var(--ctl-fill); }
 button.ln-cell:active { background: var(--ctl-fill-pressed); transform: scale(.97); }
 button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 
-/* 36×36 square tinted with the launcher colour; the icon / letter take the colour at 100 %. */
+/* 36×36 square (radius 8, SPEC §3) tinted with the launcher colour. The icon / letter take the colour at
+   100 %, in the tone that reads on the square: --ln-ink-dark / --ln-ink-light come with the colour
+   (lib/launchers.ts launcherInk) and are picked by palette through --ln-ink, so the service cells below can
+   still set their own colour. */
 .ln-square {
+  --ln-ink: var(--ln-ink-dark, var(--ln-color, var(--accent)));
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
   width: 36px;
   height: 36px;
-  border-radius: var(--r-tile);
+  border-radius: var(--r8);
   background: color-mix(in srgb, var(--ln-color, var(--accent)) var(--tint-alpha), transparent);
-  color: var(--ln-color, var(--accent));
+  color: var(--ln-ink);
   overflow: hidden;
   transition: opacity var(--t-base) var(--ease-in);
 }
+:root[data-scheme="light"] .ln-square { --ln-ink: var(--ln-ink-light, var(--ln-color, var(--accent))); }
 .ln-square .icon { color: inherit; }
 .ln-img {
   display: block;
@@ -68,10 +79,12 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
   font-weight: 600;
 }
 
+/* The caption takes the whole cell plus half of each gap (72 px): neighbouring captions meet but never
+   overlap, and the default names fit without an ellipsis. */
 .ln-caption {
   display: block;
-  width: 100%;
-  margin-top: var(--s1);
+  width: calc(100% + var(--s2));
+  margin: var(--s1) calc(-1 * var(--s1)) 0;
   color: var(--text-2);
   text-align: center;
   white-space: nowrap;
@@ -79,54 +92,52 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
   text-overflow: ellipsis;
 }
 
-/* "Добавить": no tint, tertiary icon. "+N": neutral fill, secondary text. */
+/* «Добавить»: no tint, tertiary icon. «+N»: neutral fill, secondary text. */
 .ln-add .ln-square { background: transparent; color: var(--text-3); }
 .ln-more .ln-square { background: var(--ctl-fill); color: var(--text-2); }
 .ln-more .ln-caption { color: var(--text-3); }
 
-/* Aqua: squircle-ish square with the bright top edge of the glass. */
+/* Aqua: squircle-ish square with the bright top edge of the glass. Rice keeps 8 (its control radius).
+   The edge belongs to filled squares only: on the transparent «Добавить» square it would be a lone arc. */
 :root[data-style="aqua"] .ln-square { border-radius: var(--r-ctl); box-shadow: inset 0 1px 0 var(--tile-edge); }
-/* Rice: thin outline in the launcher colour, neutral stroke for the service cells. */
+:root[data-style="aqua"] .ln-add .ln-square { box-shadow: none; }
+/* Rice: thin outline in the glyph tone, neutral stroke for the service cells. */
 :root[data-style="rice"] .ln-square {
-  box-shadow: inset 0 0 0 var(--ctl-border-w) color-mix(in srgb, var(--ln-color, var(--accent)) 40%, transparent);
+  box-shadow: inset 0 0 0 var(--ctl-border-w) color-mix(in srgb, var(--ln-ink) 40%, transparent);
 }
 :root[data-style="rice"] .ln-add .ln-square,
 :root[data-style="rice"] .ln-more .ln-square { box-shadow: inset 0 0 0 var(--ctl-border-w) var(--ctl-stroke); }
 
 /* ---- Settings page ---------------------------------------------------------------- */
-/* Live preview: the tile material on a quiet backdrop, cells wrap to the page width. */
+/* Live preview: the real tile on a quiet stage, the hint under the stage (as on the «Система» page). */
 .ln-preview-wrap {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--s3);
-  padding: var(--s5);
+  gap: var(--s2);
+}
+.ln-stage {
+  display: flex;
+  justify-content: center;
+  padding: var(--s6);
   border-radius: var(--r-card);
   background: var(--surface-3);
   border: 1px solid var(--divider);
+  user-select: none;
+  -webkit-user-select: none;
 }
-/* The preview is the real tile at its default size (280 x 184), so the grid measures exactly like on the desktop.
-   .tile sizes itself to the window (100vw x 100vh) in a tile window; here it must not. */
-.ln-stage { display: flex; justify-content: center; width: 100%; }
+/* The tile at its default size (280 x 184): material, padding and grid come from .tile and .ln-grid, so it
+   measures exactly like the desktop tile in every style. In a tile window .tile fills the window
+   (100vw x 100vh); here it must not. */
 .ln-stage > .tile.ln-preview {
   flex: 0 0 auto;
   width: 280px;
   height: 184px;
-}
-.ln-preview {
-  display: flex;
-  padding: var(--tile-pad);
-  border-radius: var(--r-tile);
-  background: var(--tile-fill);
-  border: 1px solid var(--tile-border);
-  box-shadow: inset 0 1px 0 var(--tile-edge);
-  user-select: none;
-  -webkit-user-select: none;
   transition:
     background-color var(--t-base) var(--ease-in),
-    border-color var(--t-base) var(--ease-in);
+    border-color var(--t-base) var(--ease-in),
+    box-shadow var(--t-base) var(--ease-in);
 }
-.ln-preview.no-bg { background: transparent; border-color: transparent; box-shadow: none; }
+.ln-preview-hint { margin: 0; text-align: center; }
 
 /* Rows: icon square · name / host · controls. Built-ins are wrapped in .ln-item so the colour popover
    can sit under its row and the dividers still fall between items. */
@@ -139,7 +150,9 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
 .ln-item.off .row-label { color: var(--text-2); }
 .ln-warn { color: var(--caution); }
 
+/* Colour dot of a built-in: a swatch that opens the picker below its row (no hover scale here). */
 .ln-dot { flex: 0 0 auto; margin-right: var(--s1); }
+.ln-dot:hover { transform: none; }
 .ln-color-pop {
   padding: var(--s3) var(--s5) var(--s4);
   background: var(--surface-3);
@@ -152,29 +165,6 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
   padding: var(--s3) var(--s5) var(--s4);
   border-top: 1px solid var(--divider);
 }
-
-/* Empty state of "Свои ярлыки": accent badge, title, hint, the primary action. */
-.ln-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s2);
-  padding: var(--s8) var(--s5);
-  text-align: center;
-}
-.ln-empty .hint { max-width: 360px; }
-.ln-empty .btn { margin-top: var(--s2); }
-.ln-empty-icon {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  margin-bottom: var(--s1);
-  border-radius: var(--r-tile);
-  background: var(--accent-soft);
-  color: var(--accent-text);
-}
-.ln-empty-icon .icon { color: inherit; }
 
 /* ---- Launcher editor (Dialog) ------------------------------------------------------ */
 .ln-editor { display: flex; flex-direction: column; gap: var(--s4); }
@@ -206,6 +196,8 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
 .ln-form.ln-busy { opacity: .6; pointer-events: none; }
 .ln-field { display: flex; flex-direction: column; gap: var(--s2); }
 .ln-field-label { color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); }
+
+/* Site and letter modes: the square plus what it means. */
 .ln-mode {
   display: flex;
   align-items: center;
@@ -221,66 +213,56 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
   gap: 2px;
 }
 .ln-mode-text > span { overflow-wrap: anywhere; }
-.ln-mode .btn { flex: 0 0 auto; }
-/* Current Fluent icon doubles as a button that opens the picker. */
-.ln-mode-icon {
-  display: inline-flex;
-  flex: 0 0 auto;
-  border-radius: var(--r-tile);
-  transition: box-shadow var(--t-fast) var(--ease-in);
-}
-.ln-mode-icon:hover { box-shadow: 0 0 0 2px var(--ctl-stroke-strong); }
-.ln-mode-icon:active { box-shadow: 0 0 0 2px var(--accent); }
-.ln-mode-icon:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-:root[data-style="aqua"] .ln-mode-icon { border-radius: var(--r-ctl); }
 
-/* ---- Icon picker (Dialog 640) ------------------------------------------------------ */
-.ln-picker { display: flex; flex-direction: column; gap: var(--s3); }
-.ln-picker-head {
+/* Fluent mode: two rows of popular icons (36 px, spread over the width), then a hint and «Смотреть все». */
+.ln-fluent { display: flex; flex-direction: column; gap: var(--s3); }
+.ln-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--ln-strip-cols, 12), 36px);
+  grid-auto-rows: 36px;
+  gap: var(--s2);
+  justify-content: space-between;
+}
+.ln-strip .icon-btn { width: 36px; height: 36px; }
+.ln-fluent-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s3);
-  min-height: 28px;
-  color: var(--text-2);
 }
-/* Fixed-height scroll area (stable between popular / all / search); 4 px padding keeps focus rings visible. */
+.ln-fluent-foot .hint { min-width: 0; }
+.ln-fluent-foot .btn { flex: 0 0 auto; }
+
+/* ---- «Смотреть все»: the full icon set (Dialog 640) --------------------------------- */
+.ln-picker { display: flex; flex-direction: column; gap: var(--s3); }
+.ln-picker-head { min-height: var(--caption-lh); color: var(--text-2); }
+/* Fixed-height scroll area, the same for the full set and for search results. The --s1 padding keeps focus
+   rings of edge cells visible (PAD in IconPickerDialog.tsx); the scrollbar gutter is reserved so columns
+   never jump; scroll anchoring is off because the windowed rows change under it. */
 .ln-icon-scroll {
   position: relative;
-  height: clamp(240px, calc(100vh - 300px), 376px);
+  height: clamp(240px, calc(100vh - 280px), 400px);
   margin: calc(-1 * var(--s1));
   padding: var(--s1);
-  overflow-y: auto;
   overflow-x: hidden;
+  overflow-y: auto;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
 }
-.ln-icon-canvas { box-sizing: border-box; }
-.ln-icon-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--ln-pick-cols, 12), 40px);
-  grid-auto-rows: 40px;
-  gap: var(--s2);
-  justify-content: start;
+/* The canvas has the height of every row; only the rows in view are mounted, each cell placed absolutely. */
+.ln-icon-canvas { position: relative; }
+.ln-icon-canvas .ln-pick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
 }
-.ln-icon-grid .icon-btn { width: 40px; height: 40px; }
-.ln-picker-cta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s2);
+/* Many transparent cells side by side: no per-button bottom line in Aqua. */
+:root[data-style="aqua"] .ln-strip .icon-btn.subtle,
+:root[data-style="aqua"] .ln-icon-canvas .icon-btn.subtle { box-shadow: none; }
+.ln-picker-empty {
+  margin: 0;
   padding: var(--s6) var(--s4);
-  color: var(--text-3);
   text-align: center;
-}
-.ln-picker-cta .icon { color: var(--text-3); }
-.ln-picker-cta .body-strong { color: var(--text-2); }
-.ln-picker-cta .btn { margin-top: var(--s1); }
-.ln-picker-status {
-  min-height: var(--caption-lh);
-  color: var(--text-3);
-  font-size: var(--caption-size);
-  line-height: var(--caption-lh);
-  font-family: var(--font-mono);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }

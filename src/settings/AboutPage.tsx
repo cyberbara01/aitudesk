@@ -1,6 +1,6 @@
-// «О программе»: brand, author, credits, privacy, licences. Plain rows with one alignment rule:
-// label and hint on the left, actions on the right, no decorative icons.
-import { useState } from "react";
+// «О программе»: app header, author, credits, privacy, licences. Below the header everything is kit sections
+// with one alignment rule: label and hint on the left edge of the card, actions on the right, no icons.
+import { useId, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
@@ -14,8 +14,16 @@ const x = extra.about;
 
 const open = (url: string) => void openUrl(url).catch(() => undefined);
 
+/** The licence file is hard-wrapped at 80 columns; reflowed into paragraphs it wraps cleanly at any width. */
+const licenceParagraphs = licence
+  .replace(/\r\n?/g, "\n")
+  .trim()
+  .split(/\n\s*\n/)
+  .map((p) => p.replace(/\s*\n\s*/g, " "));
+
 export function AboutPage() {
   const [licenceOpen, setLicenceOpen] = useState(false);
+  const licenceId = useId();
 
   return (
     <Page title={ru.settings.nav.about}>
@@ -33,25 +41,16 @@ export function AboutPage() {
             <span className="about-dot" aria-hidden="true" />
             <span>{ab.openSource}</span>
             <span className="about-dot" aria-hidden="true" />
-            <span>MIT</span>
+            <span>{x.licenseName}</span>
           </div>
         </div>
       </header>
 
       <Section title={ab.authors}>
-        <div className="author">
-          <span className="avatar" aria-hidden="true">
-            {ab.author1.charAt(0).toUpperCase()}
-          </span>
-          <div className="author-text">
-            <span className="body-strong ellipsis">{ab.author1}</span>
-            <span className="row-hint ellipsis">{ab.author1Role}</span>
-          </div>
-          <div className="author-links">
-            <Button onClick={() => open(ab.author1Github)}>{ab.github}</Button>
-            <Button onClick={() => open(ab.telegramUrl)}>{ab.telegram}</Button>
-          </div>
-        </div>
+        <Row label={ab.author1} hint={ab.author1Role}>
+          <Button onClick={() => open(ab.author1Github)}>{ab.github}</Button>
+          <Button onClick={() => open(ab.telegramUrl)}>{ab.telegram}</Button>
+        </Row>
         <Row label={ab.feedback} hint={ab.feedbackHint}>
           <Button variant="accent" onClick={() => open(ab.telegramUrl)}>
             @{ab.author1Telegram}
@@ -61,9 +60,7 @@ export function AboutPage() {
 
       <Section title={ab.credits}>
         <Row label={ab.mapTitle} hint={ab.mapCredit}>
-          <Button size="sm" onClick={() => open(ab.mapRepo)}>
-            {x.mapRepoLabel}
-          </Button>
+          <Button onClick={() => open(ab.mapRepo)}>{x.mapRepoLabel}</Button>
         </Row>
         <Row label={ab.iconsTitle} hint={ab.iconsCredit} />
         <Row label={ab.fontsTitle} hint={ab.fontsCredit} />
@@ -78,11 +75,15 @@ export function AboutPage() {
         <p className="about-p">{ab.licenseText}</p>
         <div className="inline between">
           <span className="row-label">{x.mapLicence}</span>
-          <Button size="sm" aria-expanded={licenceOpen} onClick={() => setLicenceOpen((v) => !v)}>
+          <Button aria-expanded={licenceOpen} aria-controls={licenceId} onClick={() => setLicenceOpen((v) => !v)}>
             {licenceOpen ? x.hide : x.show}
           </Button>
         </div>
-        {licenceOpen && <pre className="licence-box">{licence}</pre>}
+        <div id={licenceId} className="licence-box" hidden={!licenceOpen}>
+          {licenceParagraphs.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
+        </div>
       </Section>
     </Page>
   );

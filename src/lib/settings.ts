@@ -33,6 +33,8 @@ export type TileId = "clock" | "system" | "launchers" | "map" | "schedule" | "no
 export const TILE_IDS: readonly TileId[] = ["clock", "system", "launchers", "map", "schedule", "notes"];
 
 export type ClockFont =
+  /** Follows the design language: Segoe UI Display (Windows 11), Inter (Aqua), JetBrains Mono (Rice). */
+  | "auto"
   | "segoe-display"
   | "segoe-text"
   | "bahnschrift"
@@ -42,13 +44,15 @@ export type ClockFont =
   | "sitka"
   | "script";
 
+export const CLOCK_FONT_IDS: readonly ClockFont[] = ["auto", "segoe-display", "segoe-text", "bahnschrift", "cascadia", "inter", "jetbrains", "sitka", "script"];
+
 export interface ClockSettings {
   /** Preset id the current values came from, or "custom" once edited by hand. */
   preset: string;
   font: ClockFont;
   /** 100..900 (clamped to what the font supports). */
   weight: number;
-  /** 75..100 — font-stretch, honoured by Bahnschrift only. */
+  /** 75..100: font-stretch, honoured by Bahnschrift only. */
   width: number;
   /** Time size in px, 24..160. */
   size: number;
@@ -206,7 +210,7 @@ export interface Settings {
 
 export const DEFAULT_CLOCK: ClockSettings = {
   preset: "classic",
-  font: "segoe-display",
+  font: "auto",
   weight: 300,
   width: 100,
   size: 56,
@@ -387,7 +391,9 @@ export function normalize(saved: unknown): Settings {
   const c = isObj(s.clock) ? s.clock : {};
   const clock: ClockSettings = {
     preset: str(c.preset, d.clock.preset),
-    font: oneOf(c.font, ["segoe-display", "segoe-text", "bahnschrift", "cascadia", "inter", "jetbrains", "sitka", "script"] as const, d.clock.font),
+    // v2.0 stored the untouched «Классика» look with Segoe UI Display; «Классика» now follows the design style.
+    // A font chosen by hand (any other preset or a custom look) is kept.
+    font: c.preset === "classic" && c.font === "segoe-display" ? "auto" : oneOf(c.font, CLOCK_FONT_IDS, d.clock.font),
     weight: num(c.weight, d.clock.weight, 100, 900),
     width: num(c.width, d.clock.width, 75, 100),
     size: num(c.size, d.clock.size, 24, 160),
@@ -509,7 +515,9 @@ export const RESET_SECTIONS: readonly ResetSection[] = ["appearance", "clock", "
 
 /**
  * Defaults for the customization of one section. User data stays: lessons, notes, custom launchers and
- * which built-ins are on, marked rooms, the custom label text of the system tile.
+ * which built-ins are on, marked rooms, the custom label text of the system tile. Privacy choices stay too
+ * (hidden schedule and note texts, hidden network and device names): a reset of the look must never put
+ * private text on the desktop.
  */
 function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
   const d = DEFAULT_SETTINGS;
@@ -519,15 +527,15 @@ function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
     case "clock":
       return { clock: d.clock };
     case "system":
-      return { system: { ...d.system, customLabel: s.system.customLabel } };
+      return { system: { ...d.system, customLabel: s.system.customLabel, hideNames: s.system.hideNames } };
     case "launchers":
       return { launchers: { ...d.launchers, builtIn: s.launchers.builtIn, custom: s.launchers.custom } };
     case "map":
       return { map: { ...d.map, favorites: s.map.favorites, lastFloor: s.map.lastFloor } };
     case "schedule":
-      return { schedule: { ...d.schedule, lessons: s.schedule.lessons } };
+      return { schedule: { ...d.schedule, lessons: s.schedule.lessons, privacy: s.schedule.privacy } };
     case "notes":
-      return { notes: { ...d.notes, notes: s.notes.notes } };
+      return { notes: { ...d.notes, notes: s.notes.notes, privacy: s.notes.privacy } };
   }
 }
 

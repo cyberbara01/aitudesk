@@ -1,6 +1,7 @@
 //! Tile positions: defaults (§3 "Сетка и размеры"), persistence in settings.json, show/hide, per-tile enable.
 
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
@@ -39,9 +40,17 @@ pub struct Visibility {
     pub hidden: Mutex<bool>,
     /// Tiles switched off in settings.
     pub disabled: Mutex<HashSet<String>>,
-    /// Tiles created off-screen at startup that have not rendered their first frame yet (label: target rect).
+    /// Tiles created off-screen at startup that have not appeared yet (label: target rect).
     pub pending: Mutex<HashMap<String, Rect>>,
+    /// Pending tiles whose page has rendered its first frame and that wait for the others.
+    pub ready: Mutex<HashSet<String>>,
+    /// The wait for slow pages is over: a tile that becomes ready from now on appears at once.
+    pub wait_over: AtomicBool,
 }
+
+/// How long the first ready tile waits for the others, so that the tiles appear together. All pages share
+/// one renderer process, so they finish their first frame one after another, a few hundred ms apart.
+const TOGETHER_MS: u64 = 1200;
 
 fn is_parked(pos: PhysicalPosition<i32>) -> bool {
     pos.x <= PARK + 1000
@@ -68,21 +77,55 @@ pub fn work_area(win: &WebviewWindow) -> WorkArea {
     }
 }
 
-/// Default layout (logical px): right column top-to-bottom Clock, System, Launchers; Map left of it, bottom-aligned.
+/// Column tiles of the default layout, top to bottom, with their default heights (logical px).
+const COLUMN: &[(&str, f64)] = &[
+    ("clock", 120.0),
+    ("system", 144.0),
+    ("launchers", 184.0),
+    ("schedule", 256.0),
+    ("notes", 200.0),
+];
+const MAP_W: f64 = 640.0;
+const MAP_H: f64 = 320.0;
+/// The map tile's minimum size (src/components/Tile.tsx); it keeps its 2:1 shape when narrowed.
+const MAP_MIN_W: f64 = 400.0;
+const MAP_MIN_H: f64 = 220.0;
+
+/// Default layout (logical px): the column tiles flow top to bottom along the right edge and continue in a
+/// new column to the left when the screen is not tall enough (laptops, 125-150 % scaling); the map sits
+/// bottom-aligned to the left of the columns.
 fn default_rect(label: &str, wa: &WorkArea) -> Rect {
     let s = wa.scale;
     let px = |v: f64| (v * s).round() as i32;
     let margin = 24.0;
     let gap = 16.0;
     let col_w = 280.0;
-    let right_x = wa.w as f64 / s - margin - col_w;
-    let (lx, ly, lw, lh) = match label {
-        "clock" => (right_x, margin, col_w, 120.0),
-        "system" => (right_x, margin + 120.0 + gap, col_w, 144.0),
-        "launchers" => (right_x, margin + 120.0 + gap + 144.0 + gap, col_w, 184.0),
-        "schedule" => (right_x, margin + 120.0 + gap + 144.0 + gap + 184.0 + gap, col_w, 240.0),
-        "notes" => (right_x - gap - col_w, margin, col_w, 200.0),
-        "map" => (right_x - gap - 640.0, wa.h as f64 / s - margin - 320.0, 640.0, 320.0),
+    let width = wa.w as f64 / s;
+    let bottom = wa.h as f64 / s - margin;
+    let right_x = width - margin - col_w;
+
+    let mut x = right_x;
+    let mut y = margin;
+    let mut found = None;
+    for &(name, h) in COLUMN {
+        if y > margin && y + h > bottom {
+            x -= col_w + gap;
+            y = margin;
+        }
+        if name == label {
+            found = Some((x, y, col_w, h));
+        }
+        y += h + gap;
+    }
+    // `x` is now the leftmost column used.
+    let (lx, ly, lw, lh) = match (label, found) {
+        (_, Some(r)) => r,
+        ("map", None) => {
+            // Left of the columns; on a narrow screen narrower (down to its minimum) rather than over a column.
+            let w = (x - gap - margin).clamp(MAP_MIN_W, MAP_W);
+            let h = (w * MAP_H / MAP_W).round().max(MAP_MIN_H);
+            ((x - gap - w).max(margin), (bottom - h).max(margin), w, h)
+        }
         _ => (margin, margin, col_w, 120.0),
     };
     Rect {
@@ -135,6 +178,22 @@ fn park(win: &WebviewWindow) {
     let _ = win.set_position(Position::Physical(PhysicalPosition::new(PARK, PARK)));
 }
 
+/// A tile the user switched off or hid is out of sight, so its page is told so: WebView2 then reports the
+/// page as hidden, stops drawing and throttles its timers, and the tiles' own timers (clock, notes, system
+/// polling) pause until it is shown again. Startup parking does not use this: those pages must render their
+/// first frame off-screen.
+fn set_page_visible(win: &WebviewWindow, visible: bool) {
+    let _ = win.with_webview(move |w| {
+        // SAFETY: a plain COM call on this window's own WebView2 controller, run on the main thread.
+        let _ = unsafe { w.controller().SetIsVisible(visible) };
+    });
+}
+
+fn park_hidden(win: &WebviewWindow) {
+    park(win);
+    set_page_visible(win, false);
+}
+
 /// Startup: tiles are created visible but off-screen (tauri.conf.json x/y = -32000). Give each its final size
 /// now, so the page lays out exactly as it will look, and keep it parked until the page reports its first
 /// frame (`reveal`). Moving an already rendered window on screen shows its content at once: no empty glass,
@@ -152,11 +211,46 @@ pub fn restore_all(app: &AppHandle) {
             pending.insert(label.to_string(), rect);
         } else {
             disabled.insert(label.to_string());
+            set_page_visible(&win, false);
         }
     }
 }
 
-/// The tile rendered its first frame: move it from the parking position to its rect (once).
+/// The page of tile `label` rendered its first frame. The tiles appear together: the last ready one reveals
+/// them all; a slow page holds the others back for at most TOGETHER_MS, after that each remaining tile
+/// appears as soon as it is ready.
+pub fn mark_ready(app: &AppHandle, label: &str) {
+    let vis = app.state::<Visibility>();
+    let (all_ready, first) = {
+        let pending = vis.pending.lock().unwrap();
+        if !pending.contains_key(label) {
+            return;
+        }
+        let mut ready = vis.ready.lock().unwrap();
+        let first = ready.is_empty();
+        ready.insert(label.to_string());
+        (pending.keys().all(|k| ready.contains(k)), first)
+    };
+    if all_ready || vis.wait_over.load(Ordering::SeqCst) {
+        reveal_ready(app);
+    } else if first {
+        let app = app.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(TOGETHER_MS));
+            app.state::<Visibility>().wait_over.store(true, Ordering::SeqCst);
+            reveal_ready(&app);
+        });
+    }
+}
+
+fn reveal_ready(app: &AppHandle) {
+    let labels: Vec<String> = app.state::<Visibility>().ready.lock().unwrap().drain().collect();
+    for label in labels {
+        reveal(app, &label);
+    }
+}
+
+/// Move a pending tile from the parking position to its rect (once).
 pub fn reveal(app: &AppHandle, label: &str) {
     let vis = app.state::<Visibility>();
     let Some(rect) = vis.pending.lock().unwrap().remove(label) else { return };
@@ -197,7 +291,14 @@ pub fn save_rect(app: &AppHandle, label: &str, rect: Rect) -> Result<(), String>
 fn unpark(app: &AppHandle, win: &WebviewWindow, label: &str) {
     app.state::<Visibility>().pending.lock().unwrap().remove(label);
     let rect = resolve_rect(app, win, label);
-    place(win, label, rect);
+    set_page_visible(win, true);
+    // A page that was hidden draws a fresh frame first, off-screen, then the tile moves into view.
+    let win = win.clone();
+    let label = label.to_string();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        place(&win, &label, rect);
+    });
 }
 
 /// Hide = park off-screen (hide() would drop the acrylic); show = move back to the saved rect.
@@ -207,7 +308,7 @@ pub fn set_hidden(app: &AppHandle, hidden: bool) {
     for label in crate::TILES {
         let Some(win) = app.get_webview_window(label) else { continue };
         if hidden {
-            park(&win);
+            park_hidden(&win);
         } else if !disabled.contains(*label) {
             unpark(app, &win, label);
         }
@@ -239,7 +340,7 @@ pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
         }
     } else {
         disabled.insert(label.to_string());
-        park(&win);
+        park_hidden(&win);
     }
 }
 

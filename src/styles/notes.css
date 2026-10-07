@@ -1,1 +1,333 @@
-/* Notes tile and settings page (owned by the notes implementer). */
+/* =====================================================================================
+   Notes: «Заметки» (V2-BRIEF §6.4)
+   Tile: round «выполнено» toggle, text (two lines), countdown chip; the list scrolls without a scrollbar.
+   Plus the settings page, the note editor and two kit components that live here for now: TextArea and
+   DatePicker. Tokens only, so the three styles and every palette apply by themselves.
+   ===================================================================================== */
+
+/* ---- «Выполнено» toggle (tile and settings list) ---- */
+/* 28 px target, laid out as 20 px (negative margins) so it sits on the first 20 px text line. */
+.note-check {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: -4px;
+  border-radius: 50%;
+  color: var(--text-3);
+  transition: color var(--t-fast) var(--ease-in);
+}
+.note-check > .icon { grid-area: 1 / 1; }
+.note-check-hint { opacity: 0; transition: opacity var(--t-fast) var(--ease-in); }
+.note-check-ring { transition: opacity var(--t-fast) var(--ease-in); }
+.note-check:hover { color: var(--text-2); }
+.note-check:hover .note-check-hint { opacity: 1; }
+.note-check:hover .note-check-ring { opacity: 0; }
+.note-check:active { color: var(--text); }
+.note-check.done { color: var(--accent); }
+.note-check.done:hover { color: color-mix(in srgb, var(--accent) 80%, var(--text) 20%); }
+/* Coloured notes: ring, hover check and done fill in the note colour. The colours are dark-glass tones, so on
+   light palettes they are pulled towards the text colour to stay readable. */
+.note-check.colored { --note-ink: var(--note-color); color: var(--note-ink); }
+:root[data-scheme="light"] .note-check.colored { --note-ink: color-mix(in srgb, var(--note-color) 70%, var(--text) 30%); }
+.note-check.colored:hover,
+.note-check.colored.done { color: var(--note-ink); }
+.note-check.colored.done:hover { color: color-mix(in srgb, var(--note-ink) 80%, var(--text) 20%); }
+
+/* ---- Countdown chip (tile and editor) ---- */
+.note-chip {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-family: var(--font-text);
+  font-size: var(--caption-size);
+  line-height: var(--caption-lh);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: var(--num-features);
+  white-space: nowrap;
+  transition: color var(--t-base) var(--ease-in), background-color var(--t-base) var(--ease-in), border-color var(--t-base) var(--ease-in);
+}
+/* Only the numbers take --font-num (JetBrains Mono in Rice); words and spaces stay proportional. */
+.note-chip-num { font-family: var(--font-num); }
+.note-chip.soon { background: var(--accent-soft); color: var(--accent-text); }
+.note-chip.now { background: var(--accent); color: var(--on-accent); }
+.note-chip.overdue { background: color-mix(in srgb, var(--critical) 14%, transparent); color: var(--critical); }
+:root[data-style="aqua"] .note-chip { padding: 0 8px; border-radius: 999px; }
+/* Rice: outlined, no fills (the due minute keeps a soft accent fill). */
+:root[data-style="rice"] .note-chip {
+  background: transparent;
+  border: var(--ctl-border-w) solid color-mix(in srgb, currentColor 40%, transparent);
+}
+:root[data-style="rice"] .note-chip.now { background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent); }
+
+/* =====================================================================================
+   Tile
+   ===================================================================================== */
+.tile-notes {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Rows carry 4 px above and below (8 px between rows); the list reaches 4 px into the tile padding so the
+   first line still starts at the padding edge. Scrolls by wheel, no scrollbar; fades hint at hidden rows. */
+.notes-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: calc(-1 * var(--s1)) 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.notes-list::-webkit-scrollbar { display: none; }
+.notes-list.fade-top {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px);
+  mask-image: linear-gradient(to bottom, transparent, #000 20px);
+}
+.notes-list.fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+}
+.notes-list.fade-top.fade-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+}
+
+.note-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding: var(--s1) 0;
+}
+.note-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s1);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.note-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  color: var(--text);
+}
+.note-row.done .note-text {
+  color: var(--text-3);
+  text-decoration: line-through;
+  text-decoration-color: var(--text-3);
+}
+/* The eye (privacy) is 24 px: centred on the first 20 px line. */
+.note-row .reveal-btn { margin: -2px 0; }
+
+/* Chip, then the absolute deadline when the tile is tall enough; wraps instead of overflowing. */
+.note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--s2);
+  max-width: 100%;
+  min-width: 0;
+}
+.note-when {
+  display: none;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+@media (min-height: 260px) {
+  :root[data-window="notes"] .note-when { display: block; }
+}
+
+/* Empty (kit EmptyState, compact): fills the tile and stays centred; anchored to the top if it ever overflows. */
+.tile-notes .notes-empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: safe center;
+  overflow-wrap: anywhere;
+}
+
+/* =====================================================================================
+   Settings → «Заметки»
+   ===================================================================================== */
+.notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5) var(--s3);
+}
+.notes-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.notes-head .btn { flex: none; }
+
+/* Kit EmptyState under the list head. */
+.notes-page-empty { border-top: 1px solid var(--divider); }
+
+.note-items { display: flex; flex-direction: column; }
+.note-item {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--s3);
+  min-height: 56px;
+  padding: var(--s2) var(--s5);
+  border-top: 1px solid var(--divider);
+}
+.note-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.note-item-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  color: var(--text);
+}
+.note-item.done .note-item-title { color: var(--text-3); text-decoration: line-through; }
+.note-item-meta { color: var(--text-3); }
+.note-item-due { font-weight: 600; color: var(--text-2); }
+.note-item-due.soon,
+.note-item-due.now { color: var(--accent-text); }
+.note-item-due.overdue { color: var(--critical); }
+.note-item-actions { display: flex; gap: var(--s1); }
+
+/* ---- Note editor (Dialog) ---- */
+.note-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+  padding-top: var(--s1);
+}
+.note-field { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
+.note-field-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
+.note-field-text { display: flex; flex-direction: column; min-width: 0; }
+.note-field-head > :last-child { flex: none; }
+.note-deadline { display: flex; flex-direction: column; gap: var(--s3); }
+.note-deadline-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 144px;
+  gap: var(--s3);
+  align-items: start;
+}
+.note-quick { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.note-due { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
+.note-due-past { color: var(--caution); }
+
+/* =====================================================================================
+   Kit: TextArea (src/components/TextArea.tsx)
+   Shares .textfield-input (fill, strong bottom line, accent underline in focus, Aqua / Rice variants).
+   ===================================================================================== */
+.textfield-input.textarea-input {
+  display: block;
+  height: auto;
+  min-height: calc(var(--ta-min-rows, 3) * var(--body-lh) + 12px + 2 * var(--ctl-border-w));
+  max-height: calc(var(--ta-max-rows, 8) * var(--body-lh) + 12px + 2 * var(--ctl-border-w));
+  padding: 6px var(--s3);
+  line-height: var(--body-lh);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  resize: none;
+  field-sizing: content;
+}
+.textarea-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.textarea-hint {
+  min-width: 0;
+  color: var(--text-3);
+  font-size: var(--caption-size);
+  line-height: var(--caption-lh);
+}
+.textarea-counter {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: var(--caption-size);
+  line-height: var(--caption-lh);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.textarea-counter.limit { color: var(--critical); }
+
+/* =====================================================================================
+   Kit: DatePicker (src/components/DatePicker.tsx)
+   The field is a .select-btn; the flyout is a .popover placed with fixed coordinates (portal), so no
+   scrolling or clipping container can cut it.
+   ===================================================================================== */
+.datepicker { min-width: 0; }
+.dp-field { width: 100%; min-width: 0; }
+.dp-field .select-text { flex: 1 1 auto; }
+.dp-field[aria-expanded="true"] { background: var(--ctl-fill-hover); }
+.dp-placeholder { color: var(--text-3); }
+
+.popover.dp-pop {
+  position: fixed;
+  z-index: 300;
+  top: 0;
+  left: 0;
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+  padding: var(--s2);
+  border-radius: var(--r-card);
+  visibility: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.dp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 0 0 var(--s1) var(--s2);
+}
+.dp-title { white-space: nowrap; }
+.dp-nav { display: flex; gap: 2px; }
+
+.dp-grid { display: flex; flex-direction: column; gap: 2px; }
+.dp-row { display: grid; grid-template-columns: repeat(7, 36px); gap: 2px; }
+.dp-weekday { display: grid; place-items: center; height: 28px; color: var(--text-3); }
+.dp-day {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.dp-day:hover { background: var(--ctl-fill-hover); }
+.dp-day:active { background: var(--ctl-fill-pressed); }
+.dp-day.past { color: var(--text-3); }
+.dp-day.outside { color: var(--text-disabled); }
+.dp-day.today { color: var(--accent-text); font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--accent); }
+.dp-day.selected { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.dp-day.selected:hover { background: color-mix(in srgb, var(--accent) 90%, var(--on-accent) 10%); }
+.dp-day.selected.today { box-shadow: inset 0 0 0 2px var(--accent), inset 0 0 0 3px var(--on-accent); }
+
+/* Rice: rounded squares; the chosen day is outlined with the accent over a soft fill. */
+:root[data-style="rice"] .dp-day { border-radius: var(--r-sm); }
+:root[data-style="rice"] .dp-day.today { box-shadow: inset 0 0 0 1.5px var(--accent-soft); }
+:root[data-style="rice"] .dp-day.selected { background: var(--accent-soft); color: var(--accent-text); box-shadow: inset 0 0 0 1.5px var(--accent); }
+:root[data-style="rice"] .dp-day.selected:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }

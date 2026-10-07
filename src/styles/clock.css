@@ -1,8 +1,14 @@
 /* =====================================================================================
-   Clock — tile face (shared by the tile, the settings preview and the preset cards)
-   Colour, family, weight, size and tracking of the time come from settings as inline styles;
-   everything else is tokens, so all three styles and five palettes apply on their own.
+   Clock: the face (shared by the tile, the settings preview and the preset cards)
+   Family, weight, size, tracking and colour of the time come from settings as inline styles;
+   everything else is tokens, so the three styles and all palettes apply on their own.
    ===================================================================================== */
+/* Clock font «Как в стиле» (font: "auto"): the display face of each design language. On :root, so the
+   tile, the settings page and the Appearance preview resolve it alike. */
+:root { --clock-font-auto: var(--font-segoe-display); }
+:root[data-style="aqua"] { --clock-font-auto: var(--font-inter); }
+:root[data-style="rice"] { --clock-font-auto: var(--font-jetbrains); }
+
 .clock-face {
   display: flex;
   flex-direction: column;
@@ -14,7 +20,7 @@
 .clock-stack {
   display: flex;
   flex-direction: column;
-  gap: 4px;                 /* = GAP_COLUMN in src/lib/clock.ts */
+  gap: var(--s1);           /* = GAP_COLUMN in src/lib/clock.ts */
   min-width: 0;
   max-width: 100%;
 }
@@ -22,30 +28,29 @@
 .clock-stack.beside {
   flex-direction: row;
   align-items: baseline;
-  gap: 12px;                /* = GAP_ROW */
+  gap: var(--s3);           /* = GAP_ROW */
 }
 .clock-time {
   flex: 0 0 auto;
   white-space: nowrap;
-  line-height: 1.1;
+  line-height: calc(60 / 56);   /* SPEC §3: the clock is 56/60 */
   font-kerning: normal;
 }
 .clock-colon { display: inline; }
-.clock-colon.blink { animation: clock-blink 1s steps(1, end) infinite; }
-@keyframes clock-blink {
-  0%   { opacity: 1; }
-  50%  { opacity: .25; }
-  100% { opacity: .25; }
-}
+/* Opt-in blink (settings), 1 s period per brief 3.1: useClockNow dims the colon for the second half of each
+   second (two frames a second; a CSS animation would redraw the window at the display rate). Off under
+   reduced motion. */
+.clock-colon.dim { opacity: .25; }
+/* am / pm: a third of the digits, but never below caption size */
 .clock-ampm {
-  margin-left: .18em;
-  font-size: .3em;
-  font-weight: 500;
+  margin-left: .25em;
+  font-size: max(var(--caption-size), .32em);
   letter-spacing: 0;
   font-variant-numeric: normal;
-  opacity: .72;
+  opacity: .8;
 }
 .clock-date {
+  position: relative;
   flex: 0 1 auto;
   min-width: 0;
   max-width: 100%;
@@ -57,103 +62,119 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-@media (prefers-reduced-motion: reduce) {
-  .clock-colon.blink { animation: none; }
+.clock-date-sizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Preset thumbnails draw the date as a line in its colour: scaled down to a card, the text would be specks. */
+.clock-date-line {
+  display: inline-block;
+  height: .45em;
+  border-radius: .225em;
+  background: currentColor;
+  opacity: .7;
+  vertical-align: middle;
 }
 
 /* =====================================================================================
-   Clock — settings page
+   Clock: settings page
    ===================================================================================== */
 
-/* Stage: a wallpaper stand-in with the real tile material on top */
+/* Stage: the live preview. The desk stands in for the wallpaper: the accent mixed into the palette's base,
+   so the glass tile always has something to sit on (no grey on grey) in every palette and style. */
 .clock-stage {
   display: flex;
   flex-direction: column;
   gap: var(--s3);
   padding: var(--s4) var(--s5);
   border-radius: var(--r-card);
-  background: var(--surface-3);
-  border: 1px solid var(--divider);
-  user-select: none;
-  -webkit-user-select: none;
+  background: var(--surface-2);
+  border: var(--ctl-border-w) solid var(--divider);
 }
 .clock-stage-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--s3);
-}
-.clock-stage-body {
-  display: flex;
-  justify-content: center;
-  padding: var(--s2) 0;
+  min-height: var(--ctl-h);
 }
 .clock-stage-hint { margin: 0; }
-.clock-preview {
-  position: relative;
-  max-width: 100%;
-  padding: var(--tile-pad);
-  border-radius: var(--r-tile);
-  background: var(--tile-fill);
-  border: 1px solid var(--tile-border);
-  box-shadow: inset 0 1px 0 var(--tile-edge);
-  overflow: hidden;
-  transition: width var(--t-slow) var(--ease-move), height var(--t-slow) var(--ease-move);
+.clock-desk,
+.clock-card-preview {
+  --clock-desk: color-mix(in srgb, var(--accent) 22%, var(--surface-base));
+  background: var(--clock-desk);
 }
-.clock-preview.no-bg {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
+:root[data-scheme="light"] .clock-desk,
+:root[data-scheme="light"] .clock-card-preview {
+  --clock-desk: color-mix(in srgb, var(--accent) 16%, var(--surface-base));
+}
+.clock-desk {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s6);       /* = DESK_PAD in ClockPage.tsx */
+  border-radius: var(--r-ctl);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* The real tile material (.tile) at a preview size; zoomed down when the window is narrower than that size. */
+.tile.clock-preview {
+  flex: 0 0 auto;
+  zoom: var(--clock-preview-zoom, 1);
 }
 
-/* Preset gallery: option cards with a half-scale copy of a 280×120 tile */
+/* Preset gallery: three columns of option cards, each with the preset drawn on a small desk. */
 .clock-presets {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s3);
   user-select: none;
   -webkit-user-select: none;
 }
-.clock-preset { align-items: stretch; min-width: 0; }
+.clock-preset { min-width: 0; }
 .clock-card-preview {
   display: grid;
   place-items: center;
-  padding: var(--s2) 0;
-  background: var(--surface-3);
+  padding: var(--s3);       /* = CARD_PAD in ClockPage.tsx */
 }
-.clock-mini {
+/* A 280×120 tile scaled to the card width (the zoom is set from the card size) */
+.tile.clock-mini {
+  flex: none;
   width: 280px;
   height: 120px;
-  zoom: .5;
-  padding: var(--tile-pad);
-  border-radius: var(--r-tile);
-  background: var(--tile-fill);
-  border: 1px solid var(--tile-border);
-  box-shadow: inset 0 1px 0 var(--tile-edge);
-  overflow: hidden;
-}
-.clock-mini.no-bg {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
+  zoom: var(--clock-mini-zoom, .5);
 }
 
 /* Controls */
 .clock-font-select .select-btn,
-.clock-date-select .select-btn { min-width: 220px; }
+.clock-date-select .select-btn { min-width: 224px; }
 .clock-sliders { width: 100%; }
-.clock-slider-hints {
+.clock-sliders .slider-value { white-space: nowrap; }
+.clock-slider-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: var(--s1);
+  gap: var(--s1);
+  min-width: 0;
 }
+/* A disabled slider (width, for fonts without a width axis): no accent fill, quiet thumb and readout. */
+.clock-sliders .slider-input:disabled::-webkit-slider-runnable-track { background: var(--text-disabled); }
+.clock-sliders .slider:has(.slider-input:disabled) .slider-label,
+.clock-sliders .slider:has(.slider-input:disabled) .slider-value { color: var(--text-disabled); }
+:root[data-style="aqua"] .clock-sliders .slider-input:disabled::-webkit-slider-thumb {
+  background: var(--surface-base);
+  border-color: var(--text-disabled);
+  box-shadow: none;
+}
+/* Vertical alignment reuses the text-align glyphs turned a quarter: left = top, right = bottom. */
+.clock-valign .seg-item .icon { transform: rotate(90deg); }
 .clock-color-control {
   flex-direction: column;
   align-items: stretch;
   gap: var(--s3);
 }
-.clock-color-picker {
-  max-width: 440px;
-  padding: var(--s2) 0 var(--s1);
-}
+/* Stacked controls fill the row, so their right edge lines up with the selects and switches above. */
+.clock-color-picker { padding: var(--s1) 0; }

@@ -1,25 +1,27 @@
-// Settings → «Карта» (brief §3.4): colour scheme cards with a static legend, tile background, labels and
-// pictograms; controls (switch side, search field, zoom buttons); floors (default, remember last); the list of
-// favourite rooms (colour, code, note, remove). The real tile on the desktop is the live preview.
-import { useEffect, useState, type CSSProperties, type KeyboardEvent } from "react";
+// Settings → «Карта» (brief §3.4, 6.3): «Внешний вид» (scheme cards with legends, glass, silhouette, codes,
+// pictograms), «Элементы управления» (floor switch side and visibility, search field, zoom buttons), «Этажи»,
+// «Отмеченные кабинеты» (colour, code, note, remove) and the section reset. The tile on the desktop is the
+// live preview. Marked-room edits go through src/map/favorites.ts (functional updates of the store).
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { IconButton } from "../components/Button";
 import { ColorPicker } from "../components/ColorPicker";
-import { Icon } from "../components/Icon";
+import { EmptyState } from "../components/EmptyState";
+import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
 import { Segmented, type SegmentedOption } from "../components/Segmented";
 import { Switch } from "../components/Switch";
-import { TextField } from "../components/TextField";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.map";
 import { FAVORITE_COLORS, MAP_SCHEMES } from "../lib/design";
 import { settings, type MapFavorite, type MapScheme, type MapSettings } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
+import { recolorRoom, setRoomNote, unmarkRoom } from "../map/favorites";
+import { onRadioGroupKeyDown } from "../lib/radioGroup";
 import { floorOfRoom, isRoomCode, roomDisplayName } from "../map/rooms";
 
 const T = ru.settings.map;
 
 type FloorValue = "1" | "2" | "3";
-type SwitchSide = MapSettings["switchSide"];
 
 const FLOOR_OPTIONS: readonly SegmentedOption<FloorValue>[] = [
   { value: "1", label: "1" },
@@ -27,47 +29,65 @@ const FLOOR_OPTIONS: readonly SegmentedOption<FloorValue>[] = [
   { value: "3", label: "3" },
 ];
 
-const SIDE_OPTIONS: readonly SegmentedOption<SwitchSide>[] = [
+const SIDE_OPTIONS: readonly SegmentedOption<MapSettings["switchSide"]>[] = [
   { value: "left", label: ru.common.left },
   { value: "right", label: ru.common.right },
 ];
 
-/** Legend squares of a scheme card: the four room types by data-name suffix. */
-const LEGEND: readonly { type: "p" | "k" | "l" | "o"; letter: string }[] = [
-  { type: "p", letter: "P" },
-  { type: "k", letter: "K" },
-  { type: "l", letter: "L" },
-  { type: "o", letter: extra.legendOther },
+const MODE_OPTIONS: readonly SegmentedOption<MapSettings["switchMode"]>[] = [
+  { value: "always", label: extra.switchAlways },
+  { value: "hover", label: extra.switchHover },
+];
+
+/** Legend of a scheme card: the four room types by data-name suffix, then the gym and coworking, toilets, exits. */
+const LEGEND: readonly { type: string; text: string }[] = [
+  { type: "p", text: "P" },
+  { type: "k", text: "K" },
+  { type: "l", text: "L" },
+  { type: "o", text: extra.legendOther },
+  { type: "x", text: "" },
+  { type: "wc", text: "" },
+  { type: "exit", text: "" },
 ];
 
 const NOTE_MAX = 60;
+/** A colour dragged in the custom editor is written once it rests this long (ms), not on every pointer move. */
+const COLOR_COMMIT_MS = 150;
+
+const byFloorThenCode = (a: MapFavorite, b: MapFavorite) =>
+  (floorOfRoom(a.room) ?? 9) - (floorOfRoom(b.room) ?? 9) || a.room.localeCompare(b.room, "ru");
 
 export function MapPage() {
   const m = useSettings().map;
   const update = (p: Partial<MapSettings>) => void settings.updateMap(p);
-
-  const favorites = [...m.favorites].sort(
-    (a, b) => (floorOfRoom(a.room) ?? 9) - (floorOfRoom(b.room) ?? 9) || a.room.localeCompare(b.room, "ru"),
-  );
+  const marked = [...m.favorites].sort(byFloorThenCode);
 
   return (
     <Page title={ru.settings.nav.map} description={extra.pageDesc}>
       <Section title={T.look}>
         <Row label={T.scheme} stack>
-          <div className="grid-4 map-scheme-grid" role="radiogroup" aria-label={T.scheme}>
+          <div className="grid-4 map-scheme-grid" role="radiogroup" aria-label={T.scheme} onKeyDown={onRadioGroupKeyDown}>
             {MAP_SCHEMES.map((id) => (
               <SchemeCard key={id} id={id} selected={m.scheme === id} onSelect={() => update({ scheme: id })} />
             ))}
           </div>
         </Row>
-        <Row label={T.background} hint={T.backgroundHint}>
-          <Switch checked={m.background} onChange={(v) => update({ background: v })} />
+        <Row label={T.background} hint={extra.backgroundHint}>
+          <Switch checked={m.background} onChange={(v) => update({ background: v })} ariaLabel={T.background} />
+        </Row>
+        <Row label={extra.silhouette} hint={m.background ? extra.silhouetteOff : extra.silhouetteHint}>
+          <Switch
+            checked={m.silhouette}
+            disabled={m.background}
+            onChange={(v) => update({ silhouette: v })}
+            ariaLabel={extra.silhouette}
+          />
         </Row>
         <Row label={T.labels} hint={extra.labelsHint}>
-          <Switch checked={m.showLabels} onChange={(v) => update({ showLabels: v })} />
+          <Switch checked={m.showLabels} onChange={(v) => update({ showLabels: v })} ariaLabel={T.labels} />
         </Row>
         <Row label={T.icons} hint={extra.iconsHint}>
-          <Switch checked={m.showIcons} onChange={(v) => update({ showIcons: v })} />
+          <Switch checked={m.showIcons} onChange={(v) => update({ showIcons: v })} ariaLabel={T.icons} />
         </Row>
       </Section>
 
@@ -75,49 +95,54 @@ export function MapPage() {
         <Row label={T.switchSide} hint={extra.switchSideHint}>
           <Segmented options={SIDE_OPTIONS} value={m.switchSide} onChange={(v) => update({ switchSide: v })} ariaLabel={T.switchSide} />
         </Row>
+        <Row label={extra.switchMode} hint={extra.switchModeHint}>
+          <Segmented options={MODE_OPTIONS} value={m.switchMode} onChange={(v) => update({ switchMode: v })} ariaLabel={extra.switchMode} />
+        </Row>
         <Row label={T.showSearch} hint={extra.showSearchHint}>
-          <Switch checked={m.showSearch} onChange={(v) => update({ showSearch: v })} />
+          <Switch checked={m.showSearch} onChange={(v) => update({ showSearch: v })} ariaLabel={T.showSearch} />
         </Row>
         <Row label={T.showZoom} hint={extra.showZoomHint}>
-          <Switch checked={m.showZoom} onChange={(v) => update({ showZoom: v })} />
+          <Switch checked={m.showZoom} onChange={(v) => update({ showZoom: v })} ariaLabel={T.showZoom} />
         </Row>
       </Section>
 
       <Section title={T.floors}>
         <Row label={T.defaultFloor} hint={m.rememberFloor ? extra.defaultFloorHint : undefined}>
-          <Segmented
-            options={FLOOR_OPTIONS}
-            value={String(m.defaultFloor) as FloorValue}
-            onChange={(v) => update({ defaultFloor: Number(v) as 1 | 2 | 3 })}
-            ariaLabel={T.defaultFloor}
-          />
+          {/* Unused while the last floor is remembered: the fieldset disables the segmented control (map.css greys it). */}
+          <fieldset className="map-fieldset" disabled={m.rememberFloor}>
+            <Segmented
+              options={FLOOR_OPTIONS}
+              value={String(m.defaultFloor) as FloorValue}
+              onChange={(v) => update({ defaultFloor: Number(v) as 1 | 2 | 3 })}
+              ariaLabel={T.defaultFloor}
+            />
+          </fieldset>
         </Row>
         <Row label={T.rememberFloor} hint={extra.rememberFloorHint}>
-          <Switch checked={m.rememberFloor} onChange={(v) => update({ rememberFloor: v })} />
+          <Switch checked={m.rememberFloor} onChange={(v) => update({ rememberFloor: v })} ariaLabel={T.rememberFloor} />
         </Row>
       </Section>
 
-      <Section title={T.favorites} description={favorites.length ? extra.favoritesCount(favorites.length) : T.favoritesHint}>
-        {favorites.length === 0 ? (
-          <div className="map-fav-empty">
-            <Icon name="star" size={24} />
-            <span>{ru.map.noFavorites}</span>
-          </div>
+      <Section title={extra.marked} description={extra.markedDesc}>
+        {marked.length === 0 ? (
+          <EmptyState title={extra.markedEmpty} hint={extra.markedEmptyHint} />
         ) : (
-          favorites.map((f) => <FavoriteRow key={f.room} fav={f} />)
+          marked.map((f) => <MarkedRow key={f.room} fav={f} />)
         )}
       </Section>
+
+      <ResetSection section="map" />
     </Page>
   );
 }
 
 function SchemeCard({ id, selected, onSelect }: { id: MapScheme; selected: boolean; onSelect: () => void }) {
-  const hintKey = `${id}Hint` as const;
   return (
     <button
       type="button"
       role="radio"
       aria-checked={selected}
+      tabIndex={selected ? 0 : -1}
       className={selected ? "option-card selected" : "option-card"}
       onClick={() => {
         if (!selected) onSelect();
@@ -126,43 +151,81 @@ function SchemeCard({ id, selected, onSelect }: { id: MapScheme; selected: boole
       <span className="card-preview map-legend" data-map-scheme={id} aria-hidden="true">
         {LEGEND.map((l) => (
           <span key={l.type} className="map-legend-sw" data-type={l.type}>
-            {l.letter}
+            {l.text}
           </span>
         ))}
       </span>
-      <span className="card-title">{T.schemes[id]}</span>
-      <span className="card-hint">{T.schemes[hintKey]}</span>
+      <span className="card-text">
+        <span className="card-title">{T.schemes[id]}</span>
+        <span className="card-hint">{T.schemes[`${id}Hint` as const]}</span>
+      </span>
     </button>
   );
 }
 
-function FavoriteRow({ fav }: { fav: MapFavorite }) {
+/** One marked room: colour dot (opens the picker), code or area name with its floor, note, remove. */
+function MarkedRow({ fav }: { fav: MapFavorite }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [note, setNote] = useState(fav.note ?? "");
+  const [color, setColor] = useState(fav.color);
+  /** Set by Esc: the blur that follows must not save the text being discarded. */
+  const discard = useRef(false);
+  /** A colour picked but not yet written (see COLOR_COMMIT_MS). */
+  const pending = useRef<string | null>(null);
+  const timer = useRef(0);
+  const room = fav.room;
 
-  // Note changed elsewhere (another window): resync the field.
+  // Changed elsewhere (the tile, another window): resync, unless the user is in the middle of an edit here.
+  useEffect(() => setNote(fav.note ?? ""), [fav.note]);
   useEffect(() => {
-    setNote(fav.note ?? "");
-  }, [fav.note]);
+    if (pending.current === null) setColor(fav.color);
+  }, [fav.color]);
 
-  const patch = (p: Partial<MapFavorite>) =>
-    void settings.updateMap({ favorites: settings.get().map.favorites.map((f) => (f.room === fav.room ? { ...f, ...p } : f)) });
-  const remove = () => void settings.updateMap({ favorites: settings.get().map.favorites.filter((f) => f.room !== fav.room) });
+  const flushColor = useCallback(() => {
+    window.clearTimeout(timer.current);
+    const hex = pending.current;
+    pending.current = null;
+    if (hex) void recolorRoom(room, hex);
+  }, [room]);
+
+  // Leaving the page with a colour still pending writes it at once.
+  useEffect(() => () => flushColor(), [flushColor]);
+
+  const pickColor = (hex: string) => {
+    setColor(hex);
+    pending.current = hex;
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(flushColor, COLOR_COMMIT_MS);
+  };
+
+  const togglePicker = () => {
+    if (pickerOpen) flushColor();
+    setPickerOpen((v) => !v);
+  };
 
   const saveNote = () => {
+    if (discard.current) {
+      discard.current = false;
+      return;
+    }
     const text = note.trim().slice(0, NOTE_MAX);
-    if (text !== (fav.note ?? "")) patch({ note: text || undefined });
+    if (text !== note) setNote(text);
+    if (text !== (fav.note ?? "")) void setRoomNote(room, text);
   };
+
   const onNoteKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") e.currentTarget.blur();
-    else if (e.key === "Escape") {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      discard.current = true;
       setNote(fav.note ?? "");
       e.currentTarget.blur();
     }
   };
 
-  const floor = floorOfRoom(fav.room);
-  const name = roomDisplayName(fav.room);
+  const floor = floorOfRoom(room);
+  const name = roomDisplayName(room);
 
   return (
     <div className="row map-fav-row">
@@ -170,31 +233,38 @@ function FavoriteRow({ fav }: { fav: MapFavorite }) {
         <button
           type="button"
           className={pickerOpen ? "map-fav-dot open" : "map-fav-dot"}
-          style={{ "--fav": fav.color } as CSSProperties}
-          aria-label={ru.menu.favoriteColor}
+          style={{ "--fav": color } as CSSProperties}
+          aria-label={extra.colorFor(name)}
           aria-expanded={pickerOpen}
-          onClick={() => setPickerOpen((v) => !v)}
+          onClick={togglePicker}
         />
         <div className="row-text map-fav-text">
-          <span className={isRoomCode(fav.room) ? "row-label mono ellipsis" : "row-label ellipsis"} title={name}>
+          <span className={isRoomCode(room) ? "row-label mono ellipsis" : "row-label ellipsis"} title={name}>
             {name}
           </span>
           {floor !== null && <span className="row-hint">{ru.map.floorN(floor)}</span>}
         </div>
-        <TextField
-          className="map-fav-note"
-          value={note}
-          placeholder={ru.map.notePlaceholder}
-          maxLength={NOTE_MAX}
-          onChange={setNote}
-          onBlur={saveNote}
-          onKeyDown={onNoteKey}
-        />
-        <IconButton icon="delete" label={ru.common.remove} variant="subtle" onClick={remove} />
+        <div className="textfield map-fav-note">
+          <div className="textfield-wrap">
+            <input
+              className="textfield-input"
+              type="text"
+              value={note}
+              placeholder={ru.map.notePlaceholder}
+              maxLength={NOTE_MAX}
+              spellCheck={false}
+              aria-label={extra.noteFor(name)}
+              onChange={(e) => setNote(e.target.value)}
+              onBlur={saveNote}
+              onKeyDown={onNoteKey}
+            />
+          </div>
+        </div>
+        <IconButton icon="delete" label={extra.unmarkRoom(name)} variant="danger" onClick={() => void unmarkRoom(room)} />
       </div>
       {pickerOpen && (
         <div className="map-fav-picker">
-          <ColorPicker value={fav.color} onChange={(hex) => patch({ color: hex })} swatches={FAVORITE_COLORS} />
+          <ColorPicker value={color} onChange={pickColor} swatches={FAVORITE_COLORS} />
         </div>
       )}
     </div>

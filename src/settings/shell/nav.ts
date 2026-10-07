@@ -34,7 +34,7 @@ export const TILE_ICONS: Record<TileId, string> = {
 
 /** Tabs whose page opens an editor for `edit`. */
 export function acceptsEdit(tab: TabId): boolean {
-  return tab === "launchers" || tab === "notes";
+  return tab === "launchers" || tab === "notes" || tab === "schedule";
 }
 
 export function isTab(v: unknown): v is TabId {

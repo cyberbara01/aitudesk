@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "../components/Button";
 import { ColorPicker } from "../components/ColorPicker";
-import { Icon } from "../components/Icon";
+import { EmptyState } from "../components/EmptyState";
+import { hasIcon } from "../components/Icon";
+import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
 import { Switch } from "../components/Switch";
+import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.launchers";
 import {
   BUILT_IN,
+  cacheIconSvgs,
   hostOf,
   isBuiltInKey,
   moveCustom,
@@ -19,6 +23,7 @@ import {
 } from "../lib/launchers";
 import { settings, type BuiltInLauncher, type CustomLauncher } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
+import { iconSvgFor, trustedIconSvg } from "./launchers/iconCache";
 import { LauncherEditor } from "./launchers/LauncherEditor";
 import { LauncherIcon, type LauncherLook } from "./launchers/LauncherIcon";
 import { LaunchersGrid } from "./launchers/LaunchersGrid";
@@ -35,7 +40,10 @@ type DraftColors = Partial<Record<BuiltInLauncher, string>>;
 
 const itemDomId = (key: BuiltInLauncher) => `ln-item-${key}`;
 
-/** «Ярлыки»: live preview, built-in launchers (switch + colour), custom launchers (editor dialog), display options. */
+/**
+ * «Ярлыки»: live preview, built-in launchers (switch + colour), custom launchers (editor dialog), display
+ * options, reset of the section.
+ */
 export function LaunchersPage({ editId }: Props) {
   const s = useSettings();
   const loaded = useSettingsLoaded();
@@ -43,6 +51,8 @@ export function LaunchersPage({ editId }: Props) {
   const [editor, setEditor] = useState<{ item: CustomLauncher | null } | null>(null);
   const [colorOpen, setColorOpen] = useState<BuiltInLauncher | null>(null);
   const [draftColors, setDraftColors] = useState<DraftColors>({});
+  /** Launchers the preview hides behind «+N»: the hint then explains how to make the tile bigger. */
+  const [previewHidden, setPreviewHidden] = useState(0);
   const pending = useRef<{ key: BuiltInLauncher; hex: string; timer: number } | null>(null);
   const handledEdit = useRef<string | null>(null);
   /** Set by the deep link: once the colour popover is open, move focus into it (a mouse toggle keeps focus on the dot). */
@@ -61,7 +71,7 @@ export function LaunchersPage({ editId }: Props) {
   }, [loaded, editId]);
 
   // The opened colour popover sits below the preview and the section heads: bring it into view, and after a
-  // deep link put focus on its current swatch so «Изменить» on the tile lands on something visibly changed.
+  // deep link put focus on its current swatch so «Цвет…» on the tile lands on something visibly changed.
   useEffect(() => {
     if (!colorOpen) return;
     const item = document.getElementById(itemDomId(colorOpen));
@@ -71,6 +81,26 @@ export function LaunchersPage({ editId }: Props) {
     const pop = item?.querySelector<HTMLElement>(".ln-color-pop");
     (pop?.querySelector<HTMLElement>('.cp-swatch[aria-checked="true"]') ?? pop?.querySelector<HTMLElement>(".cp-swatch"))?.focus();
   }, [colorOpen]);
+
+  // Launchers saved before the icon cache existed: store their icon markup once, so the desktop tile draws
+  // them without loading the full icon set. The page shows these icons anyway, so this costs no extra load.
+  useEffect(() => {
+    if (!loaded) return;
+    const names = new Set<string>();
+    for (const c of settings.get().launchers.custom) {
+      if (c.icon.kind === "fluent" && hasIcon(c.icon.name) && !trustedIconSvg(c.icon)) names.add(c.icon.name);
+    }
+    if (!names.size) return;
+    let alive = true;
+    void Promise.all([...names].map(async (n) => [n, await iconSvgFor(n)] as const)).then((pairs) => {
+      const found = new Map<string, string>();
+      for (const [n, svg] of pairs) if (svg) found.set(n, svg);
+      if (alive && found.size) void cacheIconSvgs(found);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [loaded]);
 
   // ---- Built-in colours: instant draft, debounced persistence ----
   const commitColor = useCallback((key: BuiltInLauncher, hex: string) => {
@@ -120,15 +150,15 @@ export function LaunchersPage({ editId }: Props) {
 
   return (
     <Page title={ru.settings.nav.launchers} description={extra.description}>
-      {/* Live preview: the real tile material at the default tile size (280×184 → 3×2 cells), so the
-          «Добавить» / «+N» rule is exercised exactly as on the desktop. */}
+      {/* Live preview: the real tile (material, padding and grid of the chosen style) at the default tile
+          size 280 x 184, so «Добавить» and «+N» appear exactly as on a desktop tile of that size. */}
       <div className="ln-preview-wrap">
         <div className="ln-stage">
           <div className={ln.background ? "tile tile-launchers ln-preview" : "tile tile-launchers no-bg ln-preview"} role="img" aria-label={ru.common.preview}>
-            <LaunchersGrid items={items} showLabels={ln.showLabels} />
+            <LaunchersGrid items={items} showLabels={ln.showLabels} onHiddenChange={setPreviewHidden} />
           </div>
         </div>
-        <p className="hint ln-preview-hint">{extra.preview}</p>
+        <p className="hint ln-preview-hint">{previewHidden > 0 ? extra.previewOverflow(previewHidden) : extra.preview}</p>
       </div>
 
       <Section title={ru.settings.launchers.builtIn} description={extra.builtInHint}>
@@ -169,42 +199,43 @@ export function LaunchersPage({ editId }: Props) {
 
       <Section title={ru.settings.launchers.custom} description={extra.customHint}>
         {ln.custom.length === 0 ? (
-          <div className="ln-empty">
-            <span className="ln-empty-icon">
-              <Icon name="apps" size={24} />
-            </span>
-            <span className="body-strong">{ru.settings.launchers.noCustom}</span>
-            <span className="hint">{extra.noCustomHint}</span>
-            <Button variant="accent" icon="add" onClick={openNew}>
-              {ru.settings.launchers.addLauncher}
-            </Button>
-          </div>
+          <EmptyState
+            title={ru.settings.launchers.noCustom}
+            hint={extra.noCustomHint}
+            action={{ label: ru.settings.launchers.addLauncher, icon: "add", onClick: openNew }}
+          />
         ) : (
           <>
-            {ln.custom.map((c, i) => (
-              <div key={c.id} className="row ln-row">
-                <LauncherIcon look={c} />
-                <div className="row-text">
-                  <span className="row-label ellipsis">{c.name}</span>
-                  <span className="row-hint mono ellipsis">{c.url}</span>
-                  {siteIconMissing(c.icon) && <span className="row-hint ln-warn">{ru.settings.launchers.iconFailed}</span>}
+            {ln.custom.map((c, i) => {
+              const first = i === 0;
+              const last = i === ln.custom.length - 1;
+              return (
+                <div key={c.id} className="row ln-row">
+                  <LauncherIcon look={c} />
+                  {/* Host only, like the built-ins: the full URL is in the editor. */}
+                  <div className="row-text">
+                    <span className="row-label ellipsis">{c.name}</span>
+                    <span className="row-hint mono ellipsis">{hostOf(c.url)}</span>
+                    {siteIconMissing(c.icon) && <span className="row-hint ln-warn">{ru.settings.launchers.iconFailed}</span>}
+                  </div>
+                  {/* Row actions as on every list page: quiet icon buttons, delete turns critical on hover. */}
+                  <div className="row-control">
+                    <Tooltip text={extra.moveUp} disabled={first}>
+                      <IconButton icon="arrow_up" label={extra.moveUp} variant="subtle" disabled={first} onClick={() => void moveCustom(c.id, -1)} />
+                    </Tooltip>
+                    <Tooltip text={extra.moveDown} disabled={last}>
+                      <IconButton icon="arrow_down" label={extra.moveDown} variant="subtle" disabled={last} onClick={() => void moveCustom(c.id, 1)} />
+                    </Tooltip>
+                    <Tooltip text={ru.common.edit}>
+                      <IconButton icon="edit" label={ru.common.edit} variant="subtle" onClick={() => setEditor({ item: c })} />
+                    </Tooltip>
+                    <Tooltip text={ru.common.remove}>
+                      <IconButton icon="delete" label={ru.common.remove} variant="danger" onClick={() => void removeCustom(c.id)} />
+                    </Tooltip>
+                  </div>
                 </div>
-                <div className="row-control">
-                  <IconButton icon="arrow_up" label={extra.moveUp} variant="subtle" disabled={i === 0} onClick={() => void moveCustom(c.id, -1)} />
-                  <IconButton
-                    icon="arrow_down"
-                    label={extra.moveDown}
-                    variant="subtle"
-                    disabled={i === ln.custom.length - 1}
-                    onClick={() => void moveCustom(c.id, 1)}
-                  />
-                  <Button onClick={() => setEditor({ item: c })}>{ru.common.edit}</Button>
-                  <Button variant="danger" onClick={() => void removeCustom(c.id)}>
-                    {ru.common.remove}
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             <div className="ln-foot">
               <Button variant="accent" icon="add" onClick={openNew}>
                 {ru.settings.launchers.addLauncher}
@@ -224,6 +255,8 @@ export function LaunchersPage({ editId }: Props) {
       </Section>
 
       {editor && <LauncherEditor item={editor.item} showLabels={ln.showLabels} onClose={closeEditor} />}
+
+      <ResetSection section="launchers" />
     </Page>
   );
 }

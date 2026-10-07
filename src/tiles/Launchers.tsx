@@ -10,9 +10,11 @@ import { LaunchersGrid } from "../settings/launchers/LaunchersGrid";
 
 /**
  * «Ярлыки»: the shared LaunchersGrid (64 px cells measured from the tile's content box; «Добавить» in a
- * free cell, «+N» only when real launchers are cut — the rule is documented on the grid). Click opens the
+ * free cell, «+N» only when real launchers are cut, the rule is documented on the grid). Click opens the
  * URL in the default browser; right-click offers Изменить / Удалить for a custom launcher and
  * Цвет… / Выключить ярлык for a built-in one (built-ins are switched off, not deleted).
+ * Custom Fluent icons are drawn from the markup cached in the launcher, so this window never loads the
+ * full icon set.
  */
 export function LaunchersTile() {
   const s = useSettings();

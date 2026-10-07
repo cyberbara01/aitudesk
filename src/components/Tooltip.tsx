@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type ReactNode } from "react";
 
 interface Props {
   text: string;
@@ -14,50 +14,79 @@ const DELAY = 500;
 const GAP = 4;
 
 /**
- * Hover tooltip (§3): caption text, radius 4, --tooltip-fill, appears after 500 ms with no animation
- * (the spec defines the delay only); placed below the anchor (above when there is no room) and clamped
- * inside the window. Closes on pointer leave / press, when the window loses focus or scrolls, and when
- * the anchor unmounts.
+ * Layout of the bubble. The look is the kit's .tooltip (base.css); these rules belong to the component because
+ * the bubble is rendered inside its anchor: wrap long text and stay inside a small tile window, and do not
+ * inherit the anchor's text styling (alignment, number fonts, weight).
+ */
+const BUBBLE: CSSProperties = {
+  maxWidth: `min(320px, calc(100vw - ${2 * GAP}px))`,
+  whiteSpace: "normal",
+  overflowWrap: "anywhere",
+  textAlign: "left",
+  fontFamily: "var(--font-text)",
+  fontWeight: 400,
+  fontStyle: "normal",
+  letterSpacing: "normal",
+  fontVariantNumeric: "normal",
+  fontFeatureSettings: "normal",
+};
+
+type Phase = "idle" | "pending" | "open";
+
+/**
+ * Hover tooltip (SPEC §3): caption text, radius 4, --tooltip-fill, appears after 500 ms with no animation;
+ * placed below the anchor (above when there is no room) and clamped inside the window. Also opens for keyboard
+ * focus inside the anchor. From the moment it is armed it closes on pointer leave / press, Esc, blur of the
+ * focused element, when the window loses focus, scrolls or resizes, and when the anchor unmounts.
  */
 export function Tooltip({ text, className, disabled, children }: Props) {
+  const id = useId();
   const anchor = useRef<HTMLSpanElement>(null);
   const tip = useRef<HTMLDivElement>(null);
   const timer = useRef(0);
-  const [open, setOpen] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const open = phase === "open";
 
   const show = () => {
     if (disabled) return;
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setOpen(true), DELAY);
+    setPhase((p) => (p === "open" ? p : "pending"));
+    timer.current = window.setTimeout(() => setPhase("open"), DELAY);
   };
-  const hide = () => {
+  const hide = useCallback(() => {
     window.clearTimeout(timer.current);
-    setOpen(false);
+    setPhase("idle");
+  }, []);
+  const onFocus = (e: FocusEvent<HTMLSpanElement>) => {
+    if (e.target instanceof Element && e.target.matches(":focus-visible")) show();
   };
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   // A tooltip that became disabled while open (or pending) goes away.
   useEffect(() => {
-    if (!disabled) return;
-    window.clearTimeout(timer.current);
-    setOpen(false);
-  }, [disabled]);
+    if (disabled) hide();
+  }, [disabled, hide]);
 
-  // Anything that moves the anchor or takes the pointer away closes it.
+  // While pending or open, anything that moves the anchor or takes the user elsewhere cancels it.
+  const armed = phase !== "idle";
   useEffect(() => {
-    if (!open) return;
-    const close = () => setOpen(false);
-    window.addEventListener("blur", close);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
-    return () => {
-      window.removeEventListener("blur", close);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
+    if (!armed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") hide();
     };
-  }, [open]);
+    window.addEventListener("blur", hide);
+    window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("blur", hide);
+      window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [armed, hide]);
 
   useLayoutEffect(() => {
     if (!open) {
@@ -76,15 +105,19 @@ export function Tooltip({ text, className, disabled, children }: Props) {
   }, [open, text]);
 
   return (
-    <span ref={anchor} className={className} onPointerEnter={show} onPointerLeave={hide} onPointerDown={hide}>
+    <span
+      ref={anchor}
+      className={className}
+      aria-describedby={open ? id : undefined}
+      onPointerEnter={show}
+      onPointerLeave={hide}
+      onPointerDown={hide}
+      onFocus={onFocus}
+      onBlur={hide}
+    >
       {children}
       {open && (
-        <div
-          ref={tip}
-          role="tooltip"
-          className="tooltip tooltip-pop"
-          style={pos ?? { left: 0, top: 0, visibility: "hidden" }}
-        >
+        <div id={id} ref={tip} role="tooltip" className="tooltip" style={{ ...BUBBLE, ...(pos ?? { left: 0, top: 0, visibility: "hidden" }) }}>
           {text}
         </div>
       )}

@@ -22,13 +22,14 @@ export function Button({ variant = "default", size = "md", icon, className, chil
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon: string;
   label: string;
-  variant?: "default" | "subtle";
+  /** "danger": quiet like subtle, turns critical on hover (delete actions in lists). */
+  variant?: "default" | "subtle" | "danger";
   selected?: boolean;
   filled?: boolean;
 }
 
 export function IconButton({ icon, label, variant = "default", selected, filled, className, type = "button", ...rest }: IconButtonProps) {
-  const cls = ["icon-btn", variant === "subtle" ? "subtle" : "", selected ? "selected" : "", className ?? ""].filter(Boolean).join(" ");
+  const cls = ["icon-btn", variant !== "default" ? variant : "", selected ? "selected" : "", className ?? ""].filter(Boolean).join(" ");
   return (
     <button type={type} className={cls} aria-label={label} title={undefined} {...rest}>
       <Icon name={icon} variant={filled || selected ? "filled" : "regular"} />

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { accentPreset, isDarkTheme, isHex, onColor, resolveTheme, withAlpha } from "./design";
+import { accentPreset, isDarkTheme, isHex, onColor, readableOn, resolveTheme, withAlpha } from "./design";
 import { markAppearanceApplied } from "./ready";
 import { settings, type Settings, type StyleId, type ThemeId } from "./settings";
 
@@ -17,14 +17,30 @@ export interface Appearance {
 
 const root = document.documentElement;
 
+/**
+ * The surface an accent has to stand out from in each palette: the lightest card on dark palettes, the
+ * darkest card on light ones (worst case for contrast).
+ */
+const ACCENT_BACKDROP: Record<ResolvedTheme, string> = {
+  dark: "#2A2B32",
+  darker: "#1F2025",
+  black: "#141414",
+  light: "#ECECEF",
+  gray: "#DDDEE3",
+};
+
 function applyAppearance(a: Appearance) {
   root.setAttribute("data-theme", a.theme);
   root.setAttribute("data-style", a.style);
   root.setAttribute("data-scheme", a.dark ? "dark" : "light");
-  root.style.setProperty("--accent", a.accent);
-  root.style.setProperty("--on-accent", onColor(a.accent));
-  root.style.setProperty("--accent-soft", withAlpha(a.accent, a.dark ? 0.18 : 0.14));
-  root.style.setProperty("--accent-text", a.accent);
+  // Any accent (a custom one above all) is nudged lighter or darker until it reads on this palette:
+  // 3:1 for fills and selection marks, 4.5:1 for accent text. Curated presets already pass and stay as is.
+  const bg = ACCENT_BACKDROP[a.theme];
+  const fill = readableOn(a.accent, bg, 3);
+  root.style.setProperty("--accent", fill);
+  root.style.setProperty("--on-accent", onColor(fill));
+  root.style.setProperty("--accent-soft", withAlpha(fill, a.dark ? 0.18 : 0.14));
+  root.style.setProperty("--accent-text", readableOn(a.accent, bg, 4.5));
   // Native side: light or dark system backdrop for this window; the settings window also switches its
   // material by style (Mica for Windows 11, acrylic for Aqua, a solid surface for Rice).
   const material = a.style === "aqua" ? "acrylic" : a.style === "rice" ? "none" : "mica";

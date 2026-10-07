@@ -122,6 +122,27 @@ export function shade(hex: string, t: number): string {
   return rgbToHex({ r: r + (target - r) * k, g: g + (target - g) * k, b: b + (target - b) * k });
 }
 
+/** WCAG contrast ratio of two opaque colours (1..21). */
+export function contrast(a: string, b: string): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/**
+ * `hex` moved towards white (on a dark background) or black (on a light one) just far enough to reach `min`
+ * contrast against `bg`; unchanged when it already does. Keeps a custom accent readable on every palette.
+ */
+export function readableOn(hex: string, bg: string, min: number): string {
+  if (contrast(hex, bg) >= min) return hex.toUpperCase();
+  const lighten = luminance(bg) < 0.5;
+  for (let t = 0.04; t < 1; t += 0.04) {
+    const c = shade(hex, lighten ? t : -t);
+    if (contrast(c, bg) >= min) return c;
+  }
+  return lighten ? "#FFFFFF" : "#000000";
+}
+
 export interface HSV {
   h: number; // 0..360
   s: number; // 0..1
@@ -184,6 +205,8 @@ export interface ClockFontMeta {
 }
 
 export const CLOCK_FONTS: readonly ClockFontMeta[] = [
+  // The family of the current design language (--clock-font-auto in clock.css); weights common to all three.
+  { id: "auto", family: "var(--clock-font-auto)", weights: [300, 700], width: false, bundled: true },
   { id: "segoe-display", family: '"Segoe UI Variable Display", "Segoe UI", sans-serif', weights: [300, 700], width: false, bundled: false },
   { id: "segoe-text", family: '"Segoe UI Variable Text", "Segoe UI", sans-serif', weights: [300, 700], width: false, bundled: false },
   { id: "inter", family: '"Inter", "Segoe UI", sans-serif', weights: [100, 900], width: false, bundled: true },
@@ -207,7 +230,7 @@ export interface ClockPreset {
 export const CLOCK_PRESETS: readonly ClockPreset[] = [
   {
     id: "classic",
-    values: { font: "segoe-display", weight: 300, width: 100, size: 56, letterSpacing: -2, seconds: false, dateFormat: "long", datePosition: "below", align: "left", valign: "top", color: "text", dateColor: "secondary", tabular: true, background: true, blinkColon: false },
+    values: { font: "auto", weight: 300, width: 100, size: 56, letterSpacing: -2, seconds: false, dateFormat: "long", datePosition: "below", align: "left", valign: "top", color: "text", dateColor: "secondary", tabular: true, background: true, blinkColon: false },
   },
   {
     id: "grand",

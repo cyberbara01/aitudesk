@@ -13,6 +13,19 @@ interface SliderProps {
   className?: string;
 }
 
+/** The readout with only its numbers in the number font (mono in Rice), so units and spaces keep their width. */
+function readout(text: string) {
+  return text.split(/([-+]?\d+(?:[.,]\d+)?)/).map((part, i) =>
+    /\d/.test(part) ? (
+      <span key={i} className="slider-num">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
 /** Range slider with label and tabular readout; accent fill up to the thumb. */
 export function Slider({ value, min, max, step = 1, onChange, label, format, disabled, className }: SliderProps) {
   const id = useId();
@@ -27,7 +40,7 @@ export function Slider({ value, min, max, step = 1, onChange, label, format, dis
               {label}
             </label>
           )}
-          <span className="slider-value">{format ? format(value) : value}</span>
+          <span className="slider-value">{readout(format ? format(value) : String(value))}</span>
         </div>
       )}
       <input

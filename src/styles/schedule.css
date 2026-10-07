@@ -1,7 +1,7 @@
 /* =====================================================================================
-   Schedule — «Расписание» (V2-BRIEF §3.5)
+   Schedule: «Расписание» (V2-BRIEF 3.5 and 6.2)
    Tile: weekday row on top, the day's lessons below (scrolls without a visible scrollbar).
-   Everything is drawn with tokens, so the three styles and five palettes apply by themselves.
+   Drawn with tokens only, so the three styles and all palettes apply by themselves.
    ===================================================================================== */
 
 /* ---- Tile ---- */
@@ -10,138 +10,154 @@
   flex-direction: column;
   gap: var(--s3);
 }
-
-/* Weekday row: segments share the width evenly; side padding is minimal so seven labels fit at 240 px. */
-.sched-days { flex: 0 0 auto; }
-.sched-days .segmented.sm .seg-item { padding: 0 2px; min-width: 0; }
-
-/* Today: a 4 px accent dot under its label. Fluent (accent line) and Rice (accent outline) already mark
-   the selected pill with accent, so there the dot shows only while another day is viewed; Aqua's thumb
-   carries no accent, so the dot stays on today even while it is selected. */
-.sched-days[data-today="1"] .seg-item[data-value="1"]::after,
-.sched-days[data-today="2"] .seg-item[data-value="2"]::after,
-.sched-days[data-today="3"] .seg-item[data-value="3"]::after,
-.sched-days[data-today="4"] .seg-item[data-value="4"]::after,
-.sched-days[data-today="5"] .seg-item[data-value="5"]::after,
-.sched-days[data-today="6"] .seg-item[data-value="6"]::after,
-.sched-days[data-today="7"] .seg-item[data-value="7"]::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  width: 4px;
-  height: 4px;
-  margin-left: -2px;
-  border-radius: 50%;
-  background: var(--accent);
+/* Every tile is its own window, so the viewport is the tile: short tiles get a tighter gap. */
+@media (max-height: 159px) {
+  .tile-schedule { gap: var(--s2); }
 }
-:root:not([data-style="aqua"]) .sched-days .seg-item.selected::after { content: none; }
 
-/* Lesson ink: the lesson colour, or the accent. Lesson colours are dark-glass tones, so on light
-   palettes a coloured lesson's ink is pulled towards the text colour; the accent already has its deep tone. */
-.sched-row, .sched-item, .sched-week-block { --lesson-ink: var(--lesson-color, var(--accent)); }
-:root[data-scheme="light"] .sched-row.colored,
-:root[data-scheme="light"] .sched-item.colored,
-:root[data-scheme="light"] .sched-week-block.colored { --lesson-ink: color-mix(in srgb, var(--lesson-color) 70%, var(--text) 30%); }
+/* Weekday row: segments share the width evenly; minimal side padding lets seven labels fit at 200 px. */
+.sched-days { flex: none; }
+.sched-days .seg-item { min-width: 0; padding: 0 2px; }
 
-/* The list: fills the rest, scrolls by wheel, no scrollbar; fades hint at hidden rows. Rows are 8 px apart (4 + 4). */
+/* Today: its label in the accent colour in every style, selected or not. Rice also paints the selected
+   label with the accent, so in this row its selection (the accent outline) keeps the plain text colour. */
+:root[data-style="rice"] .sched-days .seg-item.selected { color: var(--text); }
+:root .sched-days[data-today="1"] .seg-item[data-value="1"],
+:root .sched-days[data-today="2"] .seg-item[data-value="2"],
+:root .sched-days[data-today="3"] .seg-item[data-value="3"],
+:root .sched-days[data-today="4"] .seg-item[data-value="4"],
+:root .sched-days[data-today="5"] .seg-item[data-value="5"],
+:root .sched-days[data-today="6"] .seg-item[data-value="6"],
+:root .sched-days[data-today="7"] .seg-item[data-value="7"] { color: var(--accent-text); }
+
+/* Lesson ink: the lesson's own colour or the accent. lib/schedule.ts (lessonInkStyle) supplies the colour
+   in two tones checked for contrast: as is or lighter for dark palettes, deeper for light ones. */
+.sched-row,
+.sched-item,
+.sched-week-block { --lesson-ink: var(--ink-dark, var(--accent)); }
+:root[data-scheme="light"] .sched-row,
+:root[data-scheme="light"] .sched-item,
+:root[data-scheme="light"] .sched-week-block { --lesson-ink: var(--ink-light, var(--accent)); }
+
+/* The list fills the rest and scrolls by wheel without a scrollbar. Rows carry 4 px above and below
+   (8 px between rows); the negative margin puts the first and the last text on the list's edges. */
 .sched-list {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0;
   flex: 1 1 auto;
   min-height: 0;
+  margin: calc(-1 * var(--s1)) 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: none;
 }
 .sched-list::-webkit-scrollbar { display: none; }
+/* Edge fades only while rows are hidden in that direction; 8 px in a short list. Schedule.tsx scrolls the
+   current lesson to 4 px less than the fade below the top, so its text starts where the fade ends.
+   Bottom: Schedule.tsx sets --cut to the end of the last whole text line and --fade-end to 8 px; below the
+   cut nothing shows (a sliced line never appears), above it the last complete line fades a little. */
+.sched-list { --fade: 16px; --cut: 100%; --fade-end: var(--fade); }
+.sched-list.short { --fade: 8px; }
 .sched-list.fade-top {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px);
-  mask-image: linear-gradient(to bottom, transparent, #000 20px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade));
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--fade));
 }
 .sched-list.fade-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
+  mask-image: linear-gradient(to bottom, #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
 }
 .sched-list.fade-top.fade-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
 }
 
-/* Row: time column · bar · content. The bar column is always 3 px wide so a state change never shifts text. */
+/* Row: bar · text · eye. The bar column is always 3 px wide, so a state change never shifts the text. */
 .sched-row {
-  display: grid;
-  grid-template-columns: max-content 3px minmax(0, 1fr);
-  column-gap: var(--s2);
-  align-items: start;
-  padding: var(--s1) 0;
-  transition: opacity var(--t-base) var(--ease-in);
-}
-.sched-row.past { opacity: .6; }
-
-.sched-time {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-family: var(--font-num);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: var(--num-features);
-  white-space: nowrap;
+  align-items: stretch;
+  gap: var(--s2);
+  padding: var(--s1) 0;
 }
-.sched-start { font-size: var(--body-size); line-height: var(--body-lh); color: var(--text); }
-.sched-end { font-size: var(--caption-size); line-height: var(--caption-lh); color: var(--text-2); }
-
-/* The bar is painted only where it means something: the running lesson (accent / lesson colour) and
-   coloured lessons; plain rows keep the column empty so the tile stays quiet. */
+/* The bar is painted only where it means something: the running lesson (full) and coloured lessons (soft). */
 .sched-bar {
-  justify-self: center;
-  align-self: stretch;
-  width: 2px;
+  flex: none;
+  width: 3px;
   margin: 2px 0;
   border-radius: var(--r2);
   background: transparent;
-  transition: background-color var(--t-base) var(--ease-in), width var(--t-fast) var(--ease-in);
+  transition: background-color var(--t-base) var(--ease-in), opacity var(--t-base) var(--ease-in);
 }
-.sched-row.colored .sched-bar { background: color-mix(in srgb, var(--lesson-ink) 65%, transparent); }
-.sched-row.now .sched-bar { width: 3px; background: var(--lesson-ink); }
+.sched-row.colored .sched-bar { background: color-mix(in srgb, var(--lesson-ink) 55%, transparent); }
+.sched-row.now .sched-bar { background: var(--lesson-ink); }
 
-.sched-content { display: flex; flex-direction: column; min-width: 0; }
-/* Badge ink: the accent text tone, or the lesson ink pulled towards the text colour so it reads on any palette. */
-.sched-badge { font-weight: 600; color: var(--accent-text); }
-.sched-row.colored .sched-badge { color: color-mix(in srgb, var(--lesson-ink) 55%, var(--text) 45%); }
+.sched-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  container-type: inline-size;
+  transition: opacity var(--t-base) var(--ease-in);
+}
+.sched-row.past > .sched-bar,
+.sched-row.past > .sched-body { opacity: .6; }
+
+/* «08:00 - 09:20» and the badge share a line while they fit; on narrow tiles the badge wraps under it. */
+.sched-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--s2);
+  min-width: 0;
+}
+/* The range is in the text font; only its two times are .num (number font, tabular digits). */
+.sched-time {
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.sched-badge {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--text);
+}
+.sched-row.now .sched-badge { color: var(--accent-text); }
+.sched-row.now.colored .sched-badge { color: var(--lesson-ink); }
+/* A narrow row keeps the badge on the time line: «Сейчас» (the range shows the end) and «через 25 мин». */
+@container (max-width: 229px) {
+  .sched-row.now .sched-badge-sep,
+  .sched-row.now .sched-badge-detail,
+  .sched-row.next .sched-badge-label,
+  .sched-row.next .sched-badge-sep { display: none; }
+}
+
 .sched-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
-  color: var(--text);
 }
 .sched-meta { color: var(--text-2); }
+/* Privacy: the eye sits at the right end of the row, centred on it. */
+.sched-row > .reveal-btn { align-self: center; }
 
-/* Empty states: centred while they fit (auto margins on the first / last child), otherwise anchored to
-   the top and scrollable — nothing is ever clipped. The icon goes when the window is too short for it. */
-.sched-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s2);
+/* Empty states (kit EmptyState, compact; its hint gives way on short tiles): they fill the rest of the tile
+   and are centred while they fit, otherwise they start at the top and scroll, so nothing is clipped. The
+   centring gives the vertical room, so only side padding is kept. */
+.tile-schedule .sched-empty {
   flex: 1 1 auto;
   min-height: 0;
+  justify-content: safe center;
   padding: 0 var(--s2);
-  text-align: center;
-  color: var(--text-2);
   overflow-y: auto;
+  overflow-wrap: anywhere;
   scrollbar-width: none;
 }
-.sched-empty::-webkit-scrollbar { display: none; }
-.sched-empty > * { flex-shrink: 0; }
-.sched-empty > :first-child { margin-top: auto; }
-.sched-empty > :last-child { margin-bottom: auto; }
-.sched-empty .icon { color: var(--text-3); }
-.sched-empty .body { overflow-wrap: anywhere; }
-.tile-schedule.compact .sched-empty { gap: var(--s1); }
+.tile-schedule .sched-empty::-webkit-scrollbar { display: none; }
 
 /* =====================================================================================
    Settings → «Расписание»
@@ -159,6 +175,7 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 2px;
   padding: 0 calc(2px + var(--ctl-border-w));
+  container-type: inline-size;
 }
 .sched-week-col {
   display: flex;
@@ -173,11 +190,15 @@
 .sched-week-col:hover { background: var(--surface-3); }
 .sched-week-col.today { color: var(--accent-text); }
 .sched-week-count {
+  min-height: var(--caption-lh);
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-variant-numeric: tabular-nums;
+}
+/* Narrow overview (the 720 px window): only the number, nothing for an empty day, so no count is cut. */
+@container (max-width: 399px) {
+  .sched-week-word { display: none; }
 }
 .sched-week-track {
   position: relative;
@@ -223,19 +244,6 @@
 }
 .sched-day-head .btn { flex: 0 0 auto; }
 
-/* Hidden-weekend note inside the card. */
-.sched-note {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s2);
-  margin: 0 var(--s5) var(--s3);
-  padding: var(--s2) var(--s3);
-  border-radius: var(--r-sm);
-  background: var(--surface-3);
-  color: var(--text-2);
-}
-.sched-note .icon { flex-shrink: 0; color: var(--text-3); margin-top: 1px; }
-
 /* Lesson rows of the chosen day. */
 .sched-items { display: flex; flex-direction: column; }
 .sched-item {
@@ -253,26 +261,15 @@
   border-radius: var(--r2);
   background: var(--lesson-ink);
 }
+/* As on the tile: the two times in the number font, the separator in the text font. */
 .sched-item-time { color: var(--text-2); white-space: nowrap; }
 .sched-item-text { display: flex; flex-direction: column; min-width: 0; }
 .sched-item-title { color: var(--text); }
 .sched-item-meta { color: var(--text-3); }
 .sched-item-actions { display: flex; gap: var(--s1); }
-/* Icon-only «Удалить»: the kit's danger tone (as .btn.danger) on a subtle icon button. */
-.icon-btn.sched-item-danger { color: var(--critical); }
-.icon-btn.sched-item-danger:hover { background: color-mix(in srgb, var(--critical) 14%, transparent); }
 
-.sched-day-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s1);
-  padding: var(--s6) var(--s5);
-  border-top: 1px solid var(--divider);
-  text-align: center;
-  color: var(--text-2);
-}
-.sched-day-empty .icon { color: var(--text-3); margin-bottom: var(--s1); }
+/* The chosen day has no lessons (kit EmptyState): separated from the day head like a list row. */
+.sched-day-empty { border-top: 1px solid var(--divider); }
 
 /* ---- Lesson editor (Dialog) ---- */
 .sched-editor {
@@ -296,3 +293,4 @@
 
 /* Clear confirmation. */
 .sched-confirm { display: flex; flex-direction: column; gap: var(--s1); padding-bottom: var(--s1); }
+.sched-confirm .body { color: var(--text); }

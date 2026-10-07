@@ -33,7 +33,9 @@
         "visible": true,
         "focus": false,
         "x": -32000,
-        "y": -32000
+        "y": -32000,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
+        "scrollBarStyle": "fluentOverlay"
       },
       {
         "label": "system",
@@ -53,7 +55,9 @@
         "visible": true,
         "focus": false,
         "x": -32000,
-        "y": -32000
+        "y": -32000,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
+        "scrollBarStyle": "fluentOverlay"
       },
       {
         "label": "launchers",
@@ -73,7 +77,9 @@
         "visible": true,
         "focus": false,
         "x": -32000,
-        "y": -32000
+        "y": -32000,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
+        "scrollBarStyle": "fluentOverlay"
       },
       {
         "label": "map",
@@ -93,14 +99,16 @@
         "visible": true,
         "focus": false,
         "x": -32000,
-        "y": -32000
+        "y": -32000,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
+        "scrollBarStyle": "fluentOverlay"
       },
       {
         "label": "schedule",
         "title": "AITU Desk: расписание",
         "url": "index.html",
         "width": 280,
-        "height": 240,
+        "height": 256,
         "decorations": false,
         "transparent": true,
         "alwaysOnBottom": true,
@@ -113,7 +121,9 @@
         "visible": true,
         "focus": false,
         "x": -32000,
-        "y": -32000
+        "y": -32000,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
+        "scrollBarStyle": "fluentOverlay"
       },
       {
         "label": "notes",
@@ -133,7 +143,9 @@
         "visible": true,
         "focus": false,
         "x": -32000,
-        "y": -32000
+        "y": -32000,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
+        "scrollBarStyle": "fluentOverlay"
       }
     ]
   },

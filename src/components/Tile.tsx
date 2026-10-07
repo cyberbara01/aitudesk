@@ -4,6 +4,7 @@ import { ru } from "../i18n/ru";
 import { useEditMode } from "../lib/editMode";
 import { settings, type TileId } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
+import { Button } from "./Button";
 import { ContextMenu, type MenuItemSpec } from "./ContextMenu";
 
 interface TileProps {
@@ -47,7 +48,11 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
 
   const onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (edit.editing) return;
+    if (edit.editing) {
+      // While moving or resizing, the menu offers the way out.
+      setMenu({ x: e.clientX, y: e.clientY, items: [{ id: "done", label: ru.common.done, icon: "checkmark", onSelect: edit.stop }] });
+      return;
+    }
     const extra = menuItems?.(e.target as HTMLElement) ?? [];
     const standard: MenuItemSpec[] = [
       { id: "move", label: ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked, hint: locked ? ru.edit.locked : undefined },
@@ -61,6 +66,13 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
   return (
     <div className={cls} onContextMenu={onContextMenu} onPointerDown={edit.editing ? edit.onDragStart : undefined}>
       {children}
+      {edit.editing && (
+        <div className="edit-pill" onPointerDown={(e) => e.stopPropagation()}>
+          <Button size="sm" variant="accent" icon="checkmark" onClick={edit.stop}>
+            {ru.common.done}
+          </Button>
+        </div>
+      )}
       {edit.editing && <div className="resize-grip" onPointerDown={edit.onResizeStart} />}
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={closeMenu} />}
     </div>

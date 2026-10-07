@@ -1,10 +1,9 @@
-/* AITU Desk — settings window: shell, «Общие», «Оформление», «О программе».
-   Layout primitives (.shell .sidebar .nav-item .content .page .section .row .option-card) live in base.css;
-   this file adds only what base.css lacks: brand / footer details, page transition, icon rows,
-   the CSS-drawn card previews, the live tile preview and the About page. Tokens only. */
+/* AITU Desk: settings window, the shell and the pages «Общие», «Оформление», «О программе».
+   The layout kit (.shell .sidebar .nav-item .content .page .section .row .option-card) lives in base.css. This
+   file only adds what these pages need on top of it and never restyles a kit control. Tokens only. */
 
 /* =====================================================================================
-   Startup: controls whose value arrives over IPC render without transitions until settled
+   Startup: switches whose value arrives over IPC render without transitions until it is known
    ===================================================================================== */
 .settling,
 .settling * { transition: none !important; animation: none !important; }
@@ -13,138 +12,118 @@
    Shell
    ===================================================================================== */
 /* The content column is the only scroller: pin its height so the wheel works anywhere over a page. */
-.shell { height: 100%; min-height: 0; overflow: hidden; }
-.content { height: 100%; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.shell { min-height: 0; overflow: hidden; }
+.content { height: 100%; min-height: 0; overflow-x: hidden; overscroll-behavior: contain; }
 .page-title { margin: 0; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item { width: 100%; }
 .nav-item > .ellipsis { min-width: 0; }
-.sidebar-foot {
-  display: flex; align-items: center; flex-wrap: wrap; gap: var(--s1);
-  padding: var(--s3) var(--s3) var(--s1);
-  color: var(--text-3);
-  font-size: var(--caption-size); line-height: var(--caption-lh);
-}
-.kbd {
-  display: inline-flex; align-items: center;
-  height: 20px; padding: 0 var(--s1);
-  border-radius: var(--r-sm);
-  border: 1px solid var(--divider);
-  background: var(--surface-3);
-  color: var(--text-2);
-  font-family: var(--font-num); font-size: var(--caption-size); line-height: var(--caption-lh);
-}
+.nav-item:not(.selected):active { background: var(--ctl-fill-pressed); color: var(--text-2); }
 /* Page fade on tab switch (opacity only, so fixed-position dialogs are never re-parented). */
 .content.anim > * { animation: page-in var(--t-base) var(--ease-in); }
 @keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* =====================================================================================
-   Rows with a leading icon (tinted square, like macOS System Settings)
+   Rows: leading icon in a tinted square, error hint, result of an action
    ===================================================================================== */
 .row-icon {
-  display: grid; place-items: center;
-  width: 32px; height: 32px; flex: none;
+  display: grid; place-items: center; flex: none;
+  width: var(--s8); height: var(--s8);
   border-radius: var(--r-ctl);
   background: var(--accent-soft);
   color: var(--accent-text);
 }
-.row-icon.neutral { background: var(--surface-3); color: var(--text-2); }
 .row-icon .icon { color: inherit; }
 .row-icon + .row-text { flex: 1 1 auto; }
-:root[data-style="aqua"] .row-icon { border-radius: var(--r-ctl); box-shadow: inset 0 1px 0 var(--tile-edge); }
-:root[data-style="rice"] .row-icon { border: 1.5px solid var(--accent-soft); }
-
-/* Transient feedback next to a control («Раскладка сброшена»); a live region, so it is announced. */
+:root[data-style="aqua"] .row-icon { box-shadow: inset 0 1px 0 var(--tile-edge); }
+:root[data-style="rice"] .row-icon { border: var(--ctl-border-w) solid var(--accent-soft); }
+.row-hint.error { color: var(--critical); }
+/* Next to the button that caused it («Раскладка сброшена»); the element is a polite live region. */
 .status-text { min-width: 0; color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); }
 .status-text.ok { color: var(--success); }
 .status-text.fail { color: var(--critical); }
-/* A row whose hint turns into an error message. */
-.row-status.error .row-hint { color: var(--critical); }
 
 /* =====================================================================================
-   Option cards: inner text block, selected badge, horizontal variant
+   «Оформление»: option cards (text block, selected check, horizontal variant, pressed state)
    ===================================================================================== */
-.card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 0 var(--s1) var(--s1); }
-.card-preview { position: relative; }
-.card-check {
-  position: absolute; top: 6px; right: 6px;
-  display: grid; place-items: center;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-}
-.card-check .icon { color: inherit; }
-:root[data-style="rice"] .card-check { border-radius: var(--r-sm); }
+/* Text starts on the preview's left edge, as in the kit's own cards. */
+.card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-bottom: var(--s1); }
+/* The selected card shows a check after its title, so nothing covers the preview it depicts. */
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s1); min-width: 0; }
+.card-tick { flex: none; color: var(--accent-text); }
+.choice .option-card:not(.selected):active { background: var(--ctl-fill-pressed); }
 .option-card.horizontal { flex-direction: row; align-items: center; gap: var(--s3); width: 100%; padding: var(--s3) var(--s4); }
 .option-card.horizontal .card-text { flex: 1 1 auto; padding: 0; }
-.option-card.horizontal .card-tick { flex: none; color: var(--accent-text); }
 .sub-label { padding-top: var(--s1); color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); font-weight: 600; }
 
-/* ---- Style cards: a mini tile drawn in THAT design language (shapes and fonts from an inline map) ---- */
-.sp { height: 80px; background: var(--desk); display: grid; place-items: center; }
+/* ---- Style cards: a mini tile drawn in THAT design language, on the wallpaper of the current palette ---- */
+.sp, .tp { height: 80px; display: grid; place-items: center; }
+.sp { background: var(--desk); }
 .sp-tile {
   position: relative;
-  display: flex; flex-direction: column; gap: 3px;
-  width: min(108px, calc(100% - 12px)); height: 56px;
-  padding: 8px 10px;
+  display: flex; flex-direction: column; gap: var(--s1);
+  width: min(108px, calc(100% - var(--s4))); height: 56px;
+  padding: var(--s2) var(--s3);
   background: var(--tile-fill);
   border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
   box-shadow: inset 0 1px 0 var(--tile-edge);
 }
-.sp-time { font-size: 18px; line-height: 20px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--text); }
-.sp-bar { display: block; width: 44px; height: 4px; border-radius: 2px; background: var(--text-3); }
-.sp-bar.short { width: 28px; }
-.sp-switch { position: absolute; right: 8px; bottom: 8px; width: 20px; height: 11px; border-radius: 999px; background: var(--accent); }
-.sp-switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 7px; height: 7px; border-radius: 50%; background: var(--on-accent); }
+.sp-time { color: var(--text); font-size: var(--subtitle-size); line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Bars are relative, so at any card width they stay clear of the switch in the corner. */
+.sp-bar { display: block; width: 55%; height: var(--s1); border-radius: var(--r2); background: var(--text-3); }
+.sp-bar.short { width: 35%; }
+.sp-switch { position: absolute; right: var(--s2); bottom: var(--s2); width: 20px; height: 12px; border-radius: 999px; background: var(--accent); }
+.sp-switch::after { content: ""; position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--on-accent); }
 /* Fluent: radius 6, Segoe UI Display light, thin top edge */
-.sp[data-sp="fluent"] .sp-tile { border-radius: 6px; }
+.sp[data-sp="fluent"] .sp-tile { border-radius: var(--r6); }
 .sp[data-sp="fluent"] .sp-time { font-family: var(--font-segoe-display); font-weight: 300; }
-/* Aqua: large radius, Inter, bright edge, soft shadow, iOS switch */
-.sp[data-sp="aqua"] .sp-tile { border-radius: 12px; box-shadow: inset 0 1px 0 var(--tile-edge), 0 2px 6px rgba(0, 0, 0, .12); }
+/* Aqua: large radius, Inter light, bright top edge, pill switch with the white knob of the Aqua kit switch */
+.sp[data-sp="aqua"] .sp-tile { border-radius: 14px; }
 .sp[data-sp="aqua"] .sp-time { font-family: var(--font-inter); font-weight: 300; }
-.sp[data-sp="aqua"] .sp-switch { width: 22px; height: 13px; }
-.sp[data-sp="aqua"] .sp-switch::after { width: 9px; height: 9px; background: #fff; box-shadow: 0 1px 1px rgba(0, 0, 0, .25); }
-/* Rice: radius 9, 1.5 px accent-tinted border, mono digits, square toggle, no shadow */
-.sp[data-sp="rice"] .sp-tile { border-radius: 9px; border: 1.5px solid var(--accent-soft); box-shadow: none; }
+.sp[data-sp="aqua"] .sp-switch { width: 24px; height: 14px; }
+.sp[data-sp="aqua"] .sp-switch::after { width: 10px; height: 10px; background: #fff; }
+/* Rice: 1.5 px accent-tinted border, mono digits, square toggle, no edge highlight */
+.sp[data-sp="rice"] .sp-tile { border-radius: 10px; border: 1.5px solid var(--accent-soft); box-shadow: none; }
 .sp[data-sp="rice"] .sp-time { font-family: var(--font-jetbrains); font-weight: 600; }
-.sp[data-sp="rice"] .sp-switch { border-radius: 3px; background: var(--accent-soft); border: 1.5px solid var(--accent); }
-.sp[data-sp="rice"] .sp-switch::after { top: 1px; right: 1px; width: 6px; height: 6px; border-radius: 1.5px; background: var(--accent); }
-/* The cards depict their own style: when Rice is active (--tile-edge: transparent) the Fluent and Aqua
-   previews keep a top-edge highlight, otherwise the three cards look alike. */
+.sp[data-sp="rice"] .sp-switch { border-radius: var(--r4); background: var(--accent-soft); border: 1.5px solid var(--accent); }
+.sp[data-sp="rice"] .sp-switch::after { top: 1.5px; right: 1.5px; width: 6px; height: 6px; border-radius: var(--r2); background: var(--accent); }
+/* Each card depicts its own style: while Rice is active (--tile-edge: transparent) the Fluent and Aqua
+   cards keep their top-edge highlight, otherwise the three cards look alike. */
 :root[data-style="rice"] .sp[data-sp="fluent"] { --tile-edge: color-mix(in srgb, var(--text) 16%, transparent); }
 :root[data-style="rice"] .sp[data-sp="aqua"] { --tile-edge: color-mix(in srgb, var(--text) 28%, transparent); }
 
-/* ---- Theme cards: wallpaper + mini tile in the palette's swatch colours (data from THEMES) ---- */
-.tp { height: 80px; background: var(--tp-bg); display: grid; place-items: center; }
-.tp.split { grid-template-columns: 1fr 1fr; background: none; }
-.tp-half { width: 100%; height: 100%; display: grid; place-items: center; background: var(--tp-bg); }
+/* ---- Theme cards: wallpaper and a mini tile in the palette's own colours (THEMES[].swatch) ---- */
+.tp { background: var(--tp-bg); }
+.tp.split { grid-template-columns: 1fr 1fr; }
+.tp-half { align-self: stretch; justify-self: stretch; display: grid; place-items: center; background: var(--tp-bg); }
 .tp-tile {
-  display: flex; flex-direction: column; gap: 4px;
-  width: 92px; padding: 8px 10px;
-  border-radius: calc(var(--r-tile) * .75);
+  display: flex; flex-direction: column; gap: var(--s1);
+  width: min(96px, calc(100% - var(--s4))); padding: var(--s2) var(--s3);
+  border-radius: var(--r-ctl);
   background: var(--tp-fill);
   border: 1px solid color-mix(in srgb, var(--tp-text) 12%, transparent);
 }
-.tp-time { font-family: var(--font-display); font-size: 16px; line-height: 18px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--tp-text); }
-.tp-bar { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--tp-muted); }
-.split .tp-tile { width: 46px; padding: 6px 7px; gap: 3px; }
-.split .tp-time { font-size: 12px; line-height: 14px; }
-.split .tp-bar { width: 22px; height: 3px; }
+.tp-time { color: var(--tp-text); font-family: var(--font-display); font-size: var(--subtitle-size); line-height: 1; font-weight: 400; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tp-bar { display: block; width: 40px; height: var(--s1); border-radius: var(--r2); background: var(--tp-muted); }
+.split .tp-tile { width: 44px; padding: 6px; gap: var(--s1); border-radius: var(--r-sm); }
+.split .tp-time { font-size: var(--caption-size); }
+.split .tp-bar { width: 20px; }
 
-/* ---- Accent: one radio group — «Как в Windows», two-tone preset dots (left = tone for dark palettes,
-        right = for light ones), «Свой цвет» ---- */
+/* ---- Accent: one radio group: «Как в Windows», two-tone preset dots (left half = tone for dark
+        palettes, right half = for light ones), «Свой цвет» ---- */
 .acc-group { display: flex; flex-direction: column; gap: var(--s3); }
-.acc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: var(--s1); }
+/* 60 px cells: at the default window width the 15 presets make two rows (8 + 7), not 7 + 7 + 1. */
+.acc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: var(--s1); }
 .acc-item {
   display: flex; flex-direction: column; align-items: center; gap: var(--s1);
+  min-width: 0;
   padding: var(--s2) var(--s1);
   border-radius: var(--r-ctl);
   color: var(--text-2);
   transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
 }
 .acc-item:hover { background: var(--ctl-fill-hover); color: var(--text); }
-.acc-item:active { background: var(--ctl-fill-pressed); }
+.acc-item:active { background: var(--ctl-fill-pressed); color: var(--text-2); }
 .acc-item.selected { color: var(--text); }
 .acc-name { max-width: 100%; font-size: var(--caption-size); line-height: var(--caption-lh); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .acc-dot {
@@ -153,22 +132,23 @@
   border-radius: 50%;
   overflow: hidden;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 12%, transparent);
-  transition: outline-color var(--t-fast) var(--ease-in);
 }
 .acc-dot::before, .acc-dot::after { content: ""; position: absolute; top: 0; bottom: 0; width: 50%; }
 .acc-dot::before { left: 0; background: var(--tone-dark); }
 .acc-dot::after { right: 0; background: var(--tone-light); }
 .acc-dot.solid::before, .acc-dot.solid::after { background: var(--tone); }
-/* «Свой цвет» reuses the kit's rainbow swatch (.cp-swatch.custom) so the gradient is defined once;
-   the swatch's own border and hover scale are neutralised here. */
+/* «Свой цвет» reuses the kit's rainbow swatch (.cp-swatch.custom), so the gradient is defined once;
+   the swatch's own border and hover scale do not apply to this dot. */
 .acc-dot.cp-swatch { border: 0; }
 .acc-dot.cp-swatch:hover { transform: none; }
 .acc-dot.cp-swatch::before, .acc-dot.cp-swatch::after { content: none; }
 .acc-item.selected .acc-dot { outline: 2px solid var(--text); outline-offset: 2px; }
+/* Rice marks the selection with an accent outline (V2-BRIEF §1). */
 :root[data-style="rice"] .acc-dot { border-radius: var(--r-sm); }
-/* The picker's R/G/B inputs sit in ~48 px columns: tighter padding so three digits stay visible. */
-.page .cp-fields .textfield-input { padding: 0 var(--s2); }
-.page .cp-fields .textfield-input::-webkit-inner-spin-button { display: none; }
+:root[data-style="rice"] .acc-item.selected .acc-dot { outline-color: var(--accent); }
+/* The accent picker's R/G/B fields are 48 px wide: a tighter inset and no spin buttons, so «255» fits. */
+.accent-picker .cp-fields .textfield-input { padding: 0 var(--s2); }
+.accent-picker .cp-fields .textfield-input::-webkit-inner-spin-button { display: none; }
 
 /* =====================================================================================
    Live preview («Так будут выглядеть плитки»): wallpaper-coloured desk with two mini tiles
@@ -183,7 +163,7 @@
   position: relative;
   display: flex; flex-direction: column;
   flex: 1 1 184px; min-width: 184px; max-width: 320px; min-height: 104px;
-  padding: calc(var(--tile-pad) * .75);
+  padding: calc(var(--tile-pad) - var(--s1));
   border-radius: var(--r-tile);
   background: var(--tile-fill);
   border: 1px solid var(--tile-border);
@@ -209,70 +189,40 @@
 }
 
 /* =====================================================================================
-   About
+   «О программе»: the app header; everything below it is kit sections and rows
    ===================================================================================== */
-.about-hero { display: flex; align-items: center; gap: var(--s5); padding: var(--s1) 0; }
+/* Mark and text block are both 72 px tall: name 28 + tagline 20 + meta 4 + 16, two 2 px gaps. */
+.about-hero { display: flex; align-items: center; gap: var(--s5); }
 .about-mark {
   display: grid; place-items: center; flex: none;
   width: 72px; height: 72px;
-  border-radius: var(--r-tile);
+  border-radius: var(--r-card);
   background: var(--accent);
   color: var(--on-accent);
   box-shadow: inset 0 1px 0 var(--tile-edge);
 }
 .about-mark .icon { width: 36px; height: 36px; flex-basis: 36px; color: inherit; }
-.about-mark { width: 64px; height: 64px; }
 .about-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.about-name { font-family: var(--font-display); font-size: var(--title-size); line-height: var(--title-lh); font-weight: 600; letter-spacing: -0.01em; }
+.about-name { font-family: var(--font-display); font-size: var(--subtitle-size); line-height: var(--subtitle-lh); font-weight: 600; }
 .about-tagline { color: var(--text-2); }
 .about-meta {
   display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2);
   margin-top: var(--s1);
   color: var(--text-3);
   font-size: var(--caption-size); line-height: var(--caption-lh);
-}
-.about-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; flex: none; }
-.badge {
-  display: inline-flex; align-items: center; gap: var(--s1);
-  height: var(--s6); padding: 0 var(--s2);
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-size: var(--caption-size); line-height: var(--caption-lh); font-weight: 600;
   white-space: nowrap;
 }
-.badge.neutral { background: var(--surface-3); color: var(--text-2); }
-.badge .icon { color: inherit; }
-:root[data-style="rice"] .badge { border-radius: var(--r-sm); }
-
-.author { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); padding: var(--s3) var(--s5); }
-.author + .row { border-top: 1px solid var(--divider); }
-.avatar {
-  display: grid; place-items: center; flex: none;
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-family: var(--font-display); font-size: var(--body-size); font-weight: 600;
-}
-:root[data-style="rice"] .avatar { border-radius: var(--r-ctl); }
-.author-text { display: flex; flex-direction: column; flex: 1 1 100px; min-width: 0; }
-.author-links { display: flex; gap: var(--s2); flex: none; }
-.link-btn { color: var(--accent-text); font-weight: 600; border-radius: var(--r2); white-space: nowrap; transition: color var(--t-fast) var(--ease-in); }
-.link-btn:hover { text-decoration: underline; }
-.link-btn:active { color: var(--text-2); }
-.link-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
-
+.about-dot { width: var(--s1); height: var(--s1); border-radius: 50%; background: currentColor; flex: none; }
 .about-p { margin: 0; color: var(--text-2); }
 .inline.between { justify-content: space-between; }
 .licence-box {
-  margin: 0;
+  display: flex; flex-direction: column; gap: var(--s2);
   padding: var(--s3) var(--s4);
   border-radius: var(--r-ctl);
   background: var(--surface-3);
   color: var(--text-2);
-  font-family: var(--font-text); font-size: var(--caption-size); line-height: var(--caption-lh);
-  white-space: pre-wrap;
-  user-select: text; -webkit-user-select: text;
+  font-size: var(--caption-size); line-height: var(--caption-lh);
   animation: pop-in var(--t-base) var(--ease-in);
 }
+.licence-box[hidden] { display: none; }
+.licence-box p { margin: 0; }

@@ -22,7 +22,11 @@ interface Props {
   onClose: () => void;
 }
 
-/** Fluent context menu rendered inside the tile and clamped to its bounds (padding 4, items h32, icon 16). */
+/**
+ * Context menu rendered inside the tile and clamped to its bounds (padding 4, items h32, icon 16; long menus
+ * scroll). Like a native menu it opens with no item highlighted: the menu itself takes the focus, the arrow
+ * keys then move through the items (Home/End jump), Enter activates, Esc closes.
+ */
 export function ContextMenu({ x, y, items, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
@@ -35,7 +39,7 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
     const left = Math.max(4, Math.min(x, vw - r.width - 4));
     const top = Math.max(4, Math.min(y, vh - r.height - 4));
     setPos({ left, top });
-    (el.querySelector("button:not(:disabled)") as HTMLButtonElement | null)?.focus();
+    el.focus({ preventScroll: true });
   }, [x, y]);
 
   useEffect(() => {
@@ -43,12 +47,16 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
       if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
-      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      } else if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End") {
         e.preventDefault();
         const buttons = Array.from(ref.current?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []);
         if (!buttons.length) return;
         const i = buttons.indexOf(document.activeElement as HTMLButtonElement);
-        const next = e.key === "ArrowDown" ? (i + 1) % buttons.length : (i - 1 + buttons.length) % buttons.length;
+        let next: number;
+        if (e.key === "Home") next = 0;
+        else if (e.key === "End") next = buttons.length - 1;
+        else if (i < 0) next = e.key === "ArrowDown" ? 0 : buttons.length - 1;
+        else next = e.key === "ArrowDown" ? (i + 1) % buttons.length : (i - 1 + buttons.length) % buttons.length;
         buttons[next].focus();
       }
     };
@@ -66,7 +74,7 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
   }, [onClose]);
 
   return (
-    <div ref={ref} className="ctx-menu" role="menu" style={pos} onContextMenu={(e) => e.preventDefault()}>
+    <div ref={ref} className="ctx-menu" role="menu" tabIndex={-1} style={pos} onContextMenu={(e) => e.preventDefault()}>
       {items.map((it) =>
         it.separator ? (
           <div key={it.id} className="ctx-sep" role="separator" />

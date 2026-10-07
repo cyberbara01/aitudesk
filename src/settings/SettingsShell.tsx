@@ -1,5 +1,7 @@
 // Settings window (label "settings"): sidebar with brand + navigation, scrolling content with one page.
 // Initial tab from ?tab=&edit=, later from the "settings-navigate" event; arrow keys move within the sidebar.
+// The window starts hidden and is shown once its first real frame is ready (src/lib/ready.ts); pages render
+// only after the stored settings are loaded.
 import { Fragment, useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "../components/Icon";
 import { ru } from "../i18n/ru";
@@ -14,6 +16,7 @@ import { MapPage } from "./MapPage";
 import { SchedulePage } from "./SchedulePage";
 import { NotesPage } from "./NotesPage";
 import { SystemPage } from "./SystemPage";
+import { useRootAttribute, useSettled } from "./shell/hooks";
 import { TABS, acceptsEdit, readInitialRoute, type Route, type TabId } from "./shell/nav";
 import { useNavigateEvent } from "./shell/useNavigateEvent";
 
@@ -33,7 +36,7 @@ function renderPage(route: Route) {
     case "map":
       return <MapPage />;
     case "schedule":
-      return <SchedulePage />;
+      return <SchedulePage key={`schedule-${route.nonce}`} editId={route.edit} />;
     case "notes":
       return <NotesPage key={`notes-${route.nonce}`} editId={route.edit} />;
     case "about":
@@ -46,6 +49,9 @@ export function SettingsWindow() {
   // Page fade only after the first user-driven switch (nothing animates at startup).
   const [animate, setAnimate] = useState(false);
   const loaded = useSettingsLoaded();
+  // The sidebar may paint before the stored palette is applied to <html>; until that palette has been in
+  // place for a moment, transitions are off, so nothing fades from the default look when the window appears.
+  const settled = useSettled(useRootAttribute("data-theme") !== null);
   const contentRef = useRef<HTMLElement>(null);
   const navRef = useRef<HTMLElement>(null);
 
@@ -64,6 +70,7 @@ export function SettingsWindow() {
   }, [route.tab]);
 
   const onNavKey = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     const i = TABS.findIndex((t) => t.id === route.tab);
     let next: number;
     if (e.key === "ArrowDown") next = (i + 1) % TABS.length;
@@ -78,7 +85,7 @@ export function SettingsWindow() {
   };
 
   return (
-    <div className="shell">
+    <div className={settled ? "shell" : "shell settling"}>
       <aside className="sidebar">
         <div className="sidebar-brand">
           <span className="brand-mark" aria-hidden="true">

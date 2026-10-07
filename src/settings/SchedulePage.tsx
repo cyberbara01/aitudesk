@@ -1,9 +1,11 @@
-// Settings → «Расписание»: a week overview (lesson blocks per day) over the day selector, the chosen
-// day's lessons with «Изменить» / «Удалить» and «Добавить пару», display switches, and a guarded reset.
-import { useCallback, useMemo, useState, type CSSProperties } from "react";
+// Settings → «Расписание»: a week overview (lesson blocks per day) over the day selector, the chosen day's
+// lessons with «Изменить» / «Удалить» and «Добавить пару», the display and privacy switches, clearing the
+// whole schedule (confirmed) and, last, the reset of this section's look.
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Button, IconButton } from "../components/Button";
 import { Dialog } from "../components/Dialog";
-import { Icon } from "../components/Icon";
+import { EmptyState } from "../components/EmptyState";
+import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
 import { Segmented, type SegmentedOption } from "../components/Segmented";
 import { Switch } from "../components/Switch";
@@ -11,7 +13,19 @@ import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.schedule";
 import { isoWeekday, parseTime } from "../lib/design";
-import { ALL_DAYS, clearLessons, lessonsForDay, removeLesson, timeRange, upsertLesson, weekCounts, weekRange } from "../lib/schedule";
+import {
+  ALL_DAYS,
+  clearLessons,
+  lessonInkStyle,
+  lessonsForDay,
+  msUntilMidnight,
+  removeLesson,
+  TIME_SEP,
+  upsertLesson,
+  visibleDays,
+  weekCounts,
+  weekRange,
+} from "../lib/schedule";
 import { settings, type Lesson, type ScheduleSettings, type Weekday } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { LessonEditor } from "./schedule/LessonEditor";
@@ -29,18 +43,57 @@ const DAY_OPTIONS: readonly SegmentedOption<DayKey>[] = ALL_DAYS.map((d) => ({ v
 
 const T = ru.settings.schedule;
 
-export function SchedulePage() {
+/** Longest wait between weekday checks: also catches a midnight that passed while the PC was asleep. */
+const TODAY_RECHECK = 15 * 60_000;
+
+/** Today's weekday, kept current while the window stays open across midnight. */
+function useToday(): Weekday {
+  const [today, setToday] = useState<Weekday>(() => isoWeekday(new Date()));
+  useEffect(() => {
+    let timer = 0;
+    const arm = () => {
+      timer = window.setTimeout(() => {
+        setToday(isoWeekday(new Date()));
+        arm();
+      }, Math.min(msUntilMidnight(new Date()) + 250, TODAY_RECHECK));
+    };
+    arm();
+    return () => window.clearTimeout(timer);
+  }, []);
+  return today;
+}
+
+/** `editId`: "new" opens the editor on a new lesson for today, a lesson id opens that lesson (from the tile). */
+export function SchedulePage({ editId }: { editId?: string | null }) {
   const s = useSettings();
-  const { lessons, showWeekend, followToday, background } = s.schedule;
-  const today = isoWeekday(new Date());
+  const { lessons, showWeekend, showEmptyDays, followToday, background, privacy } = s.schedule;
+  const today = useToday();
   const [day, setDay] = useState<Weekday>(today);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+
+  // Opened from the tile: show the editor once.
+  const editHandled = useRef(false);
+  useEffect(() => {
+    if (editHandled.current || !editId) return;
+    editHandled.current = true;
+    if (editId === "new") {
+      setEditor({ key: Date.now(), lesson: null, day: today });
+      return;
+    }
+    const l = settings.get().schedule.lessons.find((x) => x.id === editId);
+    if (l) {
+      setDay(l.day);
+      setEditor({ key: Date.now(), lesson: l, day: l.day });
+    }
+  }, [editId, today]);
 
   const dayLessons = useMemo(() => lessonsForDay(lessons, day), [lessons, day]);
   const counts = useMemo(() => weekCounts(lessons), [lessons]);
   const range = useMemo(() => weekRange(lessons), [lessons]);
   const span = range.to - range.from;
+  // Whether the chosen day is in the tile's weekday row right now (explains an empty day below).
+  const shownOnTile = useMemo(() => visibleDays(lessons, showWeekend, showEmptyDays).includes(day), [lessons, showWeekend, showEmptyDays, day]);
 
   const update = (p: Partial<ScheduleSettings>) => void settings.updateSchedule(p);
 
@@ -59,9 +112,6 @@ export function SchedulePage() {
     setConfirmClear(false);
   };
 
-  // The tile shows a weekend day whenever it has lessons; only an empty one is hidden while the switch is off.
-  const weekendNote = !showWeekend && (day === 6 || day === 7) && dayLessons.length === 0;
-
   return (
     <Page title={ru.settings.nav.schedule} description={extra.pageDesc}>
       <Section title={`${T.lessons} ${T.perDay}`} description={extra.perWeek(lessons.length)}>
@@ -73,7 +123,11 @@ export function SchedulePage() {
               const n = counts[d - 1];
               return (
                 <button key={d} type="button" tabIndex={-1} className={cls} onClick={() => setDay(d)}>
-                  <span className="sched-week-count caption">{n ? extra.lessonsCount(n) : extra.noLessonsShort}</span>
+                  {/* «3 пары» / «нет пар»; when the overview is narrow only «3» (the words hide). */}
+                  <span className="sched-week-count caption">
+                    {n > 0 && <span className="num">{n}</span>}
+                    <span className="sched-week-word">{n > 0 ? ` ${extra.lessonsWord(n)}` : extra.noLessonsShort}</span>
+                  </span>
                   <span className="sched-week-track">
                     {lessonsForDay(lessons, d).map((l) => {
                       const st = parseTime(l.start);
@@ -82,9 +136,9 @@ export function SchedulePage() {
                       const style: CSSProperties = {
                         top: `${((st - range.from) / span) * 100}%`,
                         height: `${((en - st) / span) * 100}%`,
-                        ...(l.color ? ({ "--lesson-color": l.color } as CSSProperties) : {}),
+                        ...lessonInkStyle(l.color),
                       };
-                      return <span key={l.id} className={l.color ? "sched-week-block colored" : "sched-week-block"} style={style} />;
+                      return <span key={l.id} className="sched-week-block" style={style} />;
                     })}
                   </span>
                 </button>
@@ -100,19 +154,12 @@ export function SchedulePage() {
               <span className="body-strong">{ru.schedule.weekdaysLong[day - 1]}</span>
               {day === today && <span className="sched-today-pill caption">{ru.schedule.today}</span>}
             </span>
-            <span className="hint">{dayLessons.length ? extra.lessonsCount(dayLessons.length) : extra.dayEmpty}</span>
+            {dayLessons.length > 0 && <span className="hint">{extra.lessonsCount(dayLessons.length)}</span>}
           </div>
           <Button variant="accent" icon="add" onClick={openAdd}>
             {ru.schedule.addLesson}
           </Button>
         </div>
-
-        {weekendNote && (
-          <div className="sched-note caption" role="note">
-            <Icon name="info" size={16} />
-            <span>{extra.weekendHidden}</span>
-          </div>
-        )}
 
         {dayLessons.length ? (
           <div className="sched-items" role="list">
@@ -120,16 +167,15 @@ export function SchedulePage() {
               const teacher = l.teacher.trim();
               const room = l.room.trim();
               return (
-                <div
-                  key={l.id}
-                  className={l.color ? "sched-item colored" : "sched-item"}
-                  role="listitem"
-                  style={l.color ? ({ "--lesson-color": l.color } as CSSProperties) : undefined}
-                >
+                <div key={l.id} className="sched-item" role="listitem" style={lessonInkStyle(l.color)}>
                   <span className="sched-item-bar" aria-hidden="true" />
-                  <span className="sched-item-time num">{timeRange(l)}</span>
+                  <span className="sched-item-time">
+                    <span className="num">{l.start}</span>
+                    {TIME_SEP}
+                    <span className="num">{l.end}</span>
+                  </span>
                   <div className="sched-item-text">
-                    <span className="sched-item-title ellipsis">{l.title}</span>
+                    <span className="sched-item-title ellipsis">{l.title.trim() || ru.schedule.lesson}</span>
                     {(teacher || room) && (
                       <span className="sched-item-meta caption ellipsis">
                         {teacher}
@@ -138,13 +184,13 @@ export function SchedulePage() {
                       </span>
                     )}
                   </div>
-                  {/* Icon-only actions keep the title column usable at the 720 px window minimum. */}
+                  {/* The common row actions: pencil, and a trash that turns critical only on hover. */}
                   <div className="sched-item-actions">
                     <Tooltip text={ru.common.edit}>
                       <IconButton icon="edit" label={ru.common.edit} variant="subtle" onClick={() => openEdit(l)} />
                     </Tooltip>
                     <Tooltip text={ru.common.remove}>
-                      <IconButton icon="delete" label={ru.common.remove} variant="subtle" className="sched-item-danger" onClick={() => void removeLesson(l.id)} />
+                      <IconButton icon="delete" label={ru.common.remove} variant="danger" onClick={() => void removeLesson(l.id)} />
                     </Tooltip>
                   </div>
                 </div>
@@ -152,27 +198,31 @@ export function SchedulePage() {
             })}
           </div>
         ) : (
-          <div className="sched-day-empty">
-            <Icon name="calendar_ltr" />
-            <span className="body">{extra.dayEmpty}</span>
-            <span className="hint">{extra.dayEmptyHint}</span>
-          </div>
+          // «Добавить пару» is right above in the day head, so the empty state carries no button of its own.
+          <EmptyState className="sched-day-empty" title={extra.dayEmpty} hint={shownOnTile ? extra.dayEmptyHint : extra.dayHiddenHint} />
         )}
       </Section>
 
       <Section title={T.options}>
-        <Row label={ru.schedule.showWeekend} hint={extra.showWeekendHint}>
-          <Switch checked={showWeekend} onChange={(v) => update({ showWeekend: v })} ariaLabel={ru.schedule.showWeekend} />
+        <Row label={extra.showEmptyDays} hint={extra.showEmptyDaysHint}>
+          <Switch checked={showEmptyDays} onChange={(v) => update({ showEmptyDays: v })} ariaLabel={extra.showEmptyDays} />
+        </Row>
+        {/* With empty days hidden only days with lessons are shown, so this switch has nothing to add. */}
+        <Row label={ru.schedule.showWeekend} hint={showEmptyDays ? extra.showWeekendHint : extra.showWeekendOffHint}>
+          <Switch checked={showWeekend} disabled={!showEmptyDays} onChange={(v) => update({ showWeekend: v })} ariaLabel={ru.schedule.showWeekend} />
         </Row>
         <Row label={ru.schedule.followToday} hint={extra.followTodayHint}>
           <Switch checked={followToday} onChange={(v) => update({ followToday: v })} ariaLabel={ru.schedule.followToday} />
+        </Row>
+        <Row label={ru.common.privacy} hint={ru.common.privacyHint}>
+          <Switch checked={privacy} onChange={(v) => update({ privacy: v })} ariaLabel={ru.common.privacy} />
         </Row>
         <Row label={T.background} hint={extra.backgroundHint}>
           <Switch checked={background} onChange={(v) => update({ background: v })} ariaLabel={T.background} />
         </Row>
       </Section>
 
-      <Section title={extra.resetTitle}>
+      <Section>
         <Row label={T.clear} hint={extra.clearHint}>
           <Button variant="danger" icon="delete" disabled={lessons.length === 0} onClick={() => setConfirmClear(true)}>
             {extra.clearShort}
@@ -184,23 +234,25 @@ export function SchedulePage() {
 
       <Dialog
         open={confirmClear}
-        title={T.clear}
+        title={extra.clearTitle}
         onClose={closeConfirm}
         width="440px"
         footer={
           <>
             <Button onClick={closeConfirm}>{ru.common.cancel}</Button>
             <Button variant="danger" icon="delete" onClick={doClear}>
-              {ru.common.remove}
+              {extra.clearShort}
             </Button>
           </>
         }
       >
         <div className="sched-confirm">
-          <span className="body">{T.clearConfirm}</span>
-          <span className="hint">{extra.perWeek(lessons.length)}</span>
+          <span className="body">{extra.clearText}</span>
+          <span className="hint">{extra.inSchedule(lessons.length)}</span>
         </div>
       </Dialog>
+
+      <ResetSection section="schedule" />
     </Page>
   );
 }

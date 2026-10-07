@@ -13,6 +13,12 @@ use tauri::Manager;
 /// Labels of the tile windows declared in tauri.conf.json.
 pub const TILES: &[&str] = &["clock", "system", "launchers", "map", "schedule", "notes"];
 
+/// WebView2 arguments of every window, taken from the tile windows in tauri.conf.json by build.rs (windows
+/// with different arguments cannot share one WebView2 environment). The first part is wry's default;
+/// `--process-per-site` lets all our pages (one origin) share a single renderer process instead of one per
+/// window, which saves about a quarter of the app's memory.
+pub const BROWSER_ARGS: &str = env!("AITUDESK_BROWSER_ARGS");
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {

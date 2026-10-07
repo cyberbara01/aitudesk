@@ -1,33 +1,45 @@
+import { useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow, PhysicalSize } from "@tauri-apps/api/window";
 import { Icon } from "../components/Icon";
 import { Tile } from "../components/Tile";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
-import type { SystemSettings } from "../lib/settings";
-import { useSettings } from "../lib/useSettings";
-import {
-  useSystemInfo,
-  useUserName,
-  type BluetoothInfo,
-  type PowerInfo,
-  type SystemInfo,
-  type WifiInfo,
-} from "../lib/useSystemInfo";
+import type { StyleId, SystemSettings } from "../lib/settings";
+import { useSettings, useSettingsLoaded } from "../lib/useSettings";
+import { useSystemInfo, useUserName, type BluetoothInfo, type PowerInfo, type SystemInfo, type WifiInfo } from "../lib/useSystemInfo";
 
-/** Icon colour: --text, --text-3 (no connection), --caution / --critical (battery thresholds). */
-type Tone = "text" | "text-3" | "caution" | "critical";
+/**
+ * Icon state; each design language colours it in system.css. neutral: battery, desktop; on: connected;
+ * off: no connection, adapter off, unknown level; caution / critical: battery at 40 % / 20 % or below.
+ */
+type Tone = "neutral" | "on" | "off" | "caution" | "critical";
 
 interface RowSpec {
   id: "power" | "wifi" | "bluetooth";
-  /** null while the first fetch is pending (renders an empty icon slot). */
+  /** null while the first fetch is pending (an empty icon slot keeps the layout). */
   icon: string | null;
   tone: Tone;
   label: string;
-  value: string;
+  /** Digits of the value, set in --font-num (JetBrains Mono in Rice); never cut. */
+  num?: string;
+  /** Unit after the digits («%»), in the text font after a narrow no-break space. */
+  unit?: string;
+  /** Text part of the value (after the number, if any); the part that ellipsizes. */
+  text?: string;
+  /** «+N» after device names; never cut. */
+  count?: string;
   /** Tooltip on the value. */
   hint?: string;
 }
 
-const NBSP = " ";
+const NBSP = "\u00A0";
+/** Narrow no-break space between a number and its unit («64 %»); a full space looks doubled next to mono digits. */
+const NNBSP = "\u202F";
+
+/** Logical px; must match system.css (.sys-row) and --tile-pad in tokens.css. */
+const ROW_H = 36;
+const MIN_W = 220;
 
 /** Label of the first row on a machine without a battery, per settings.system.labelMode. */
 function pcLabel(s: SystemSettings, userName: string | null): string {
@@ -38,16 +50,18 @@ function pcLabel(s: SystemSettings, userName: string | null): string {
 
 function batteryRow(p: PowerInfo | null, noBatteryLabel: string): RowSpec {
   const id = "power";
-  if (!p) return { id, icon: null, tone: "text", label: ru.system.battery, value: "" };
-  if (!p.hasBattery) return { id, icon: "desktop", tone: "text", label: noBatteryLabel, value: ru.system.mains };
+  // Until the first answer it is not known whether this is a laptop: no label rather than a wrong one.
+  if (!p) return { id, icon: null, tone: "neutral", label: "" };
+  if (!p.hasBattery) return { id, icon: "desktop", tone: "neutral", label: noBatteryLabel, text: ru.system.mains };
   const pct = p.percent;
-  if (pct === null) return { id, icon: "battery_0", tone: "text", label: ru.system.battery, value: ru.system.none };
-  const tone: Tone = pct <= 20 ? "critical" : pct <= 40 ? "caution" : "text";
+  if (pct === null) return { id, icon: "battery_0", tone: "off", label: ru.system.battery, text: ru.system.none };
+  const tone: Tone = pct <= 20 ? "critical" : pct <= 40 ? "caution" : "neutral";
   const level = Math.min(10, Math.max(0, Math.round(pct / 10)));
-  const percent = `${pct}${NBSP}%`;
+  const num = String(pct);
+  const unit = "%";
   return p.charging
-    ? { id, icon: "battery_charge", tone, label: ru.system.battery, value: `${percent} · ${ru.system.charging}` }
-    : { id, icon: `battery_${level}`, tone, label: ru.system.battery, value: percent };
+    ? { id, icon: "battery_charge", tone, label: ru.system.battery, num, unit, text: ru.system.charging }
+    : { id, icon: `battery_${level}`, tone, label: ru.system.battery, num, unit };
 }
 
 /** 5/4 bars → wifi_1 (full), 3 → wifi_2, 2 → wifi_3, 1/0 → wifi_4; unknown → full. */
@@ -61,48 +75,61 @@ function wifiIcon(bars: number | null): string {
 function wifiRow(w: WifiInfo | null, hideNames: boolean): RowSpec {
   const id = "wifi";
   const label = ru.system.wifi;
-  if (!w) return { id, icon: null, tone: "text", label, value: "" };
-  if (!w.connected) return { id, icon: "wifi_off", tone: "text-3", label, value: ru.system.notConnected };
+  if (!w) return { id, icon: null, tone: "neutral", label };
+  if (!w.connected) return { id, icon: "wifi_off", tone: "off", label, text: ru.system.notConnected };
   const icon = wifiIcon(w.bars);
   const ssid = w.ssid?.trim() ?? "";
-  const hiddenByWindows = w.ssidHidden || ssid === "";
   // The user asked not to see names: say «подключено» and skip the «how to reveal the SSID» hint.
-  if (hideNames) return { id, icon, tone: "text", label, value: ru.system.connected };
-  if (hiddenByWindows) return { id, icon, tone: "text", label, value: ru.system.connected, hint: ru.system.ssidHint };
-  return { id, icon, tone: "text", label, value: ssid };
+  if (hideNames) return { id, icon, tone: "on", label, text: ru.system.connected };
+  if (w.ssidHidden || ssid === "") return { id, icon, tone: "on", label, text: ru.system.connected, hint: ru.system.ssidHint };
+  return { id, icon, tone: "on", label, text: ssid };
 }
 
 function bluetoothRow(b: BluetoothInfo | null, hideNames: boolean): RowSpec {
   const id = "bluetooth";
   const label = ru.system.bluetooth;
-  if (!b) return { id, icon: null, tone: "text", label, value: "" };
-  if (!b.available) return { id, icon: "bluetooth_disabled", tone: "text-3", label, value: ru.system.btOff };
+  if (!b) return { id, icon: null, tone: "neutral", label };
+  if (!b.available) return { id, icon: "bluetooth_disabled", tone: "off", label, text: ru.system.btOff };
   const n = b.devices.length;
-  if (n === 0) return { id, icon: "bluetooth", tone: "text-3", label, value: ru.system.noBtConnections };
-  if (hideNames) return { id, icon: "bluetooth_connected", tone: "text", label, value: ru.system.devices(n) };
+  if (n === 0) return { id, icon: "bluetooth", tone: "off", label, text: ru.system.noBtConnections };
+  if (hideNames) return { id, icon: "bluetooth_connected", tone: "on", label, text: ru.system.devices(n) };
   const shown = b.devices.slice(0, 2).join(", ");
   const rest = n - 2;
-  return { id, icon: "bluetooth_connected", tone: "text", label, value: rest > 0 ? `${shown} ${ru.system.more(rest)}` : shown };
+  return { id, icon: "bluetooth_connected", tone: "on", label, text: shown, count: rest > 0 ? ru.system.more(rest) : undefined };
 }
 
 /**
- * One 36 px status row: icon 20 (tone colour) · label body · value body in --font-num, tabular, --text-2.
- * Grid columns: icon · label (keeps its width, truncates only when nothing else can give) · value (ellipsis).
+ * One status row: icon (tone colour) · label · value on the right in --text-2.
+ * Which side gives way in a narrow tile depends on the row (system.css, data-row): in the first row the value is
+ * short and stays whole while a long PC label shortens; in the Wi-Fi and Bluetooth rows the label is one short
+ * word and the network or device names shorten. Within the value only the text shortens: the number and the «+N»
+ * stay whole, and «· заряжается» steps aside in a narrow tile (the charge icon says the same).
  */
-function Row({ icon, tone, label, value, hint }: RowSpec) {
-  const valueCls = "sys-value body";
+function StatusRow({ id, icon, tone, label, num, unit, text, count, hint }: RowSpec) {
+  const value = (
+    <>
+      {num && (
+        <span className="sys-fixed">
+          <span className="num">{num}</span>
+          {unit && `${NNBSP}${unit}`}
+        </span>
+      )}
+      {text && <span className={num ? "sys-text sys-more" : "sys-text"}>{num ? `${NBSP}· ${text}` : text}</span>}
+      {count && <span className="sys-fixed">{`${NBSP}${count}`}</span>}
+    </>
+  );
   return (
-    <div className="sys-row" role="listitem">
+    <div className="sys-row" data-row={id} role="listitem">
       <span className={`sys-icon-wrap tone-${tone}`} aria-hidden="true">
         {icon && <Icon name={icon} className="sys-icon" />}
       </span>
       <span className="sys-label body">{label}</span>
       {hint ? (
-        <Tooltip text={hint} className={valueCls}>
+        <Tooltip text={hint} className="sys-value body">
           {value}
         </Tooltip>
       ) : (
-        <span className={valueCls}>{value}</span>
+        <span className="sys-value body">{value}</span>
       )}
     </div>
   );
@@ -116,7 +143,7 @@ interface SystemRowsProps {
 /**
  * The tile's rows for a given snapshot and settings (also drives the live preview on the settings page).
  * Battery always; Wi-Fi / Bluetooth per showWifi / showBluetooth; names per hideNames; first row label per labelMode.
- * The group is centred vertically with even gaps when there is spare height, otherwise it starts at the top (CSS).
+ * The rows are centred with even gaps when there is spare height and squeeze down when there is not (CSS).
  */
 export function SystemRows({ info, settings }: SystemRowsProps) {
   const userName = useUserName(settings.labelMode === "user");
@@ -126,19 +153,62 @@ export function SystemRows({ info, settings }: SystemRowsProps) {
   return (
     <div className="sys-rows" role="list">
       {rows.map((r) => (
-        <Row key={r.id} {...r} />
+        <StatusRow key={r.id} {...r} />
       ))}
     </div>
   );
 }
 
+interface RowsFit {
+  /** Tile height with 36 px rows, on the 8 px grid: the minimum size in edit mode. */
+  comfortable: number;
+  /** Below this even rows squeezed to their minimum would not fit. */
+  tight: number;
+}
+
+/** Heights (logical px) a tile with `rows` rows needs in a design language: rows, --tile-pad on both sides, 1 px border. */
+function rowsFit(rows: number, style: StyleId): RowsFit {
+  const pad = style === "aqua" ? 18 : 16;
+  const rowMin = style === "aqua" ? 28 : 24;
+  const frame = 2 * pad + 2;
+  return { comfortable: Math.ceil((rows * ROW_H + frame) / 8) * 8, tight: rows * rowMin + frame };
+}
+
+/**
+ * Rows switched back on while the tile was made short for fewer rows: grow the window once to the comfortable
+ * height and save it (keeps its position; the native side never saves a parked position), so nothing is clipped.
+ */
+function useGrowToFit({ comfortable, tight }: RowsFit, enabled: boolean) {
+  useEffect(() => {
+    if (!enabled || window.innerHeight >= tight) return;
+    let cancelled = false;
+    const win = getCurrentWindow();
+    (async () => {
+      const [pos, size, scale] = await Promise.all([win.outerPosition(), win.outerSize(), win.scaleFactor()]);
+      const h = Math.round(comfortable * scale);
+      if (cancelled || size.height >= h) return;
+      await win.setSize(new PhysicalSize(size.width, h));
+      await invoke("save_rect", { label: "system", x: pos.x, y: pos.y, w: size.width, h });
+    })().catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [comfortable, tight, enabled]);
+}
+
 /** «Система»: battery / Wi-Fi / Bluetooth, non-interactive rows on glass (or straight on the wallpaper). */
 export function SystemTile() {
+  const loaded = useSettingsLoaded();
   const s = useSettings();
-  const info = useSystemInfo();
+  const sys = s.system;
+  const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: loaded });
+  const fit = rowsFit(1 + Number(sys.showWifi) + Number(sys.showBluetooth), s.style);
+  useGrowToFit(fit, loaded);
+  // Wait for the stored settings so the tile never flashes default rows (or toggles the acrylic twice).
+  if (!loaded) return null;
   return (
-    <Tile label="system" className="tile-system" background={s.system.background}>
-      <SystemRows info={info} settings={s.system} />
+    <Tile label="system" className="tile-system" background={sys.background} minSize={{ w: MIN_W, h: fit.comfortable }}>
+      <SystemRows info={info} settings={sys} />
     </Tile>
   );
 }

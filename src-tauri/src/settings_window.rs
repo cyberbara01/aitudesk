@@ -43,6 +43,9 @@ pub fn open(app: &AppHandle, tab: &str, edit: Option<&str>) {
             .center()
             .transparent(true)
             .visible(false)
+            .additional_browser_args(crate::BROWSER_ARGS)
+            // Thin overlay scrollbars, as in Windows 11 apps (must match the tiles, see build.rs).
+            .scroll_bar_style(tauri::webview::ScrollBarStyle::FluentOverlay)
             .build();
         match built {
             Ok(win) => {

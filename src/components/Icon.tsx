@@ -20,7 +20,7 @@ function loadAll(): Promise<Record<string, string>> {
 
 export type IconVariant = "regular" | "filled";
 
-/** Every icon name available at 20 px (regular), sorted — for pickers. */
+/** Every icon name available at 20 px (regular), sorted, for pickers. */
 export const ALL_ICON_NAMES: readonly string[] = iconNames as string[];
 
 export function hasIcon(name: string, size: 16 | 20 = 20, variant: IconVariant = "regular"): boolean {

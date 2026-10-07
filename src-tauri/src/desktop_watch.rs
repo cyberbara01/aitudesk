@@ -18,8 +18,9 @@
 //! DWM rounding are untouched.
 
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::sync::OnceLock;
+use std::time::Instant;
 
 use tauri::{AppHandle, Manager};
 use windows::core::{w, BOOL};
@@ -27,7 +28,8 @@ use windows::Win32::Foundation::{HWND, LPARAM};
 use windows::Win32::UI::Accessibility::{SetWinEventHook, HWINEVENTHOOK};
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, EnumWindows, FindWindowExW, GetClassNameW, GetShellWindow, GetWindow, GetWindowLongW,
-    IsWindowVisible, SetTimer, SetWindowPos, EVENT_SYSTEM_FOREGROUND, GWL_EXSTYLE, GW_HWNDNEXT, GW_HWNDPREV,
+    IsWindowVisible, SetTimer, SetWindowPos, EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND,
+    EVENT_SYSTEM_MINIMIZESTART, GWL_EXSTYLE, GW_HWNDNEXT, GW_HWNDPREV,
     HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOPMOST, SET_WINDOW_POS_FLAGS, SWP_NOACTIVATE, SWP_NOMOVE,
     SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, WINEVENT_OUTOFCONTEXT, WS_DISABLED, WS_EX_NOACTIVATE,
     WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
@@ -38,9 +40,27 @@ static DESKTOP_SHOWN: AtomicBool = AtomicBool::new(false);
 /// HWND of the hidden z-order sentinel (0 = not created).
 static SENTINEL: AtomicIsize = AtomicIsize::new(0);
 
-/// Poll interval. The foreground hook reacts immediately; the poll catches Explorer's late re-raise of the
-/// desktop. Each poll is a few cheap user32 calls.
-const POLL_MS: u32 = 150;
+/// Poll interval for a moment after any foreground change or window minimize/restore (the hooks react at
+/// once; this poll catches Explorer's late re-raise of the desktop or its late lowering). Each poll is one
+/// walk down the z-order from the desktop host.
+const FAST_MS: u32 = 150;
+/// While the desktop is shown and nothing happens: the tiles are in view, a late re-raise is caught quickly.
+const SHOWN_MS: u32 = 500;
+/// Idle safety net for shell paths without any of the hooked events (an Explorer restart, for one). Keeps the
+/// process from waking several times a second while nothing happens.
+const SLOW_MS: u32 = 1000;
+/// How long the fast poll stays on after a hooked event.
+const FAST_AFTER_EVENT_MS: u64 = 3000;
+
+/// All state below is touched only on the main thread (hook and timer callbacks arrive through its loop).
+static TIMER_ID: AtomicUsize = AtomicUsize::new(0);
+static TIMER_MS: AtomicU32 = AtomicU32::new(0);
+static FAST_UNTIL_MS: AtomicU64 = AtomicU64::new(0);
+static EPOCH: OnceLock<Instant> = OnceLock::new();
+
+fn now_ms() -> u64 {
+    EPOCH.get_or_init(Instant::now).elapsed().as_millis() as u64
+}
 
 const ZPOS: SET_WINDOW_POS_FLAGS =
     SET_WINDOW_POS_FLAGS(SWP_NOMOVE.0 | SWP_NOSIZE.0 | SWP_NOACTIVATE.0 | SWP_NOOWNERZORDER.0 | SWP_NOSENDCHANGING.0);
@@ -137,21 +157,27 @@ fn keep_sentinel_down(s: HWND, host: HWND) {
     }
 }
 
-/// True when `target` is somewhere below `host` in the top-level z-order.
-fn is_below(host: HWND, target: HWND) -> bool {
+/// One walk down the top-level z-order from `host`: whether the sentinel is below it, and whether any tile is.
+fn below_host(host: HWND, sentinel: HWND, tiles: &[HWND]) -> (bool, bool) {
+    let (mut sentinel_below, mut tile_below) = (false, false);
     let mut h = unsafe { GetWindow(host, GW_HWNDNEXT) };
     let mut guard = 0;
     while let Ok(hwnd) = h {
         if hwnd.0.is_null() || guard > 8192 {
             break;
         }
-        if hwnd == target {
-            return true;
+        if hwnd == sentinel {
+            sentinel_below = true;
+        } else if tiles.contains(&hwnd) {
+            tile_below = true;
+        }
+        if sentinel_below && tile_below {
+            break;
         }
         h = unsafe { GetWindow(hwnd, GW_HWNDNEXT) };
         guard += 1;
     }
-    false
+    (sentinel_below, tile_below)
 }
 
 fn tile_hwnds(app: &AppHandle) -> Vec<HWND> {
@@ -212,12 +238,17 @@ fn check() {
     let Some(s) = sentinel() else { return };
     let Some(host) = desktop_host() else { return };
     keep_sentinel_down(s, host);
-    let shown = unsafe { IsWindowVisible(host) }.as_bool() && is_below(host, s);
-    let was = DESKTOP_SHOWN.swap(shown, Ordering::SeqCst);
     let tiles = tile_hwnds(app);
+    let (sentinel_below, tile_below) = below_host(host, s, &tiles);
+    let shown = unsafe { IsWindowVisible(host) }.as_bool() && sentinel_below;
+    let was = DESKTOP_SHOWN.swap(shown, Ordering::SeqCst);
+    if shown != was {
+        // A transition: watch closely for a while (Explorer settles the z-order in a few steps).
+        FAST_UNTIL_MS.fetch_max(now_ms() + FAST_AFTER_EVENT_MS, Ordering::Relaxed);
+    }
     if shown {
         // Explorer may raise the desktop again shortly after the first lift: keep the tiles above it.
-        if !was || tiles.iter().any(|&t| is_below(host, t)) {
+        if !was || tile_below {
             lift(&tiles, host);
         }
     } else if was {
@@ -225,7 +256,29 @@ fn check() {
     }
 }
 
-unsafe extern "system" fn on_foreground(
+/// Fast poll right after a hooked event or a transition, medium while the desktop is shown, slow otherwise.
+/// SetTimer with the id of an existing thread timer replaces its interval.
+fn schedule_poll() {
+    let want = if now_ms() < FAST_UNTIL_MS.load(Ordering::Relaxed) {
+        FAST_MS
+    } else if DESKTOP_SHOWN.load(Ordering::Relaxed) {
+        SHOWN_MS
+    } else {
+        SLOW_MS
+    };
+    if TIMER_MS.load(Ordering::Relaxed) == want {
+        return;
+    }
+    let id = unsafe { SetTimer(None, TIMER_ID.load(Ordering::Relaxed), want, Some(on_timer)) };
+    if id == 0 {
+        eprintln!("[desktop] SetTimer failed; Win+D protection limited to the foreground hook");
+        return;
+    }
+    TIMER_ID.store(id, Ordering::Relaxed);
+    TIMER_MS.store(want, Ordering::Relaxed);
+}
+
+unsafe extern "system" fn on_event(
     _hook: HWINEVENTHOOK,
     event: u32,
     hwnd: HWND,
@@ -234,38 +287,37 @@ unsafe extern "system" fn on_foreground(
     _thread: u32,
     _time: u32,
 ) {
-    if event == EVENT_SYSTEM_FOREGROUND && !hwnd.0.is_null() {
+    let relevant = matches!(event, EVENT_SYSTEM_FOREGROUND | EVENT_SYSTEM_MINIMIZESTART | EVENT_SYSTEM_MINIMIZEEND);
+    if relevant && !hwnd.0.is_null() {
+        FAST_UNTIL_MS.fetch_max(now_ms() + FAST_AFTER_EVENT_MS, Ordering::Relaxed);
         check();
+        schedule_poll();
     }
 }
 
 unsafe extern "system" fn on_timer(_hwnd: HWND, _msg: u32, _id: usize, _time: u32) {
     check();
+    schedule_poll();
 }
 
-/// Install the sentinel, the hook and the fallback timer. Must run on the main (message-pumping) thread:
+/// Install the sentinel, the hook and the poll timer. Must run on the main (message-pumping) thread:
 /// the sentinel window belongs to that thread and WINEVENT_OUTOFCONTEXT callbacks arrive through its loop.
 pub fn install(app: &AppHandle) {
     if APP.set(app.clone()).is_err() {
         return;
     }
+    // Start fast: Explorer may still be settling right after login.
+    FAST_UNTIL_MS.store(now_ms() + FAST_AFTER_EVENT_MS, Ordering::Relaxed);
     create_sentinel();
-    let hook = unsafe {
-        SetWinEventHook(
-            EVENT_SYSTEM_FOREGROUND,
-            EVENT_SYSTEM_FOREGROUND,
-            None,
-            Some(on_foreground),
-            0,
-            0,
-            WINEVENT_OUTOFCONTEXT,
-        )
-    };
-    if hook.0.is_null() {
-        eprintln!("[desktop] SetWinEventHook failed; relying on the timer only");
+    // Foreground changes cover almost every "Show desktop"; minimize/restore covers Win+D pressed while the
+    // desktop itself already had the focus (no foreground change then).
+    let hook = |from: u32, to: u32| unsafe { SetWinEventHook(from, to, None, Some(on_event), 0, 0, WINEVENT_OUTOFCONTEXT) };
+    let foreground = hook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND);
+    let minimize = hook(EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MINIMIZEEND);
+    if foreground.0.is_null() || minimize.0.is_null() {
+        eprintln!("[desktop] SetWinEventHook failed; relying on a fast timer");
+        // Without the hooks only the poll notices "Show desktop": keep it fast.
+        FAST_UNTIL_MS.store(u64::MAX, Ordering::Relaxed);
     }
-    let timer = unsafe { SetTimer(None, 0, POLL_MS, Some(on_timer)) };
-    if timer == 0 {
-        eprintln!("[desktop] SetTimer failed; Win+D protection limited to the foreground hook");
-    }
+    schedule_poll();
 }

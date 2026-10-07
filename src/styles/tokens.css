@@ -1,4 +1,4 @@
-/* AITU Desk — design tokens.
+/* AITU Desk: design tokens.
    Palettes:  :root (dark) · [data-theme=light|gray|darker|black]
    Styles:    [data-style=fluent] (default) · [data-style=aqua] · [data-style=rice]
    Accent:    --accent / --on-accent / --accent-soft are written at runtime by src/lib/theme.ts. */
@@ -29,7 +29,8 @@
   /* ---- Grid ---- */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
   --r2: 2px; --r4: 4px; --r6: 6px; --r8: 8px;
-  /* Style-dependent radii */
+  /* Style-dependent radii. --r-tile stays 8px in every style: the acrylic is clipped by the window's own
+     Windows 11 corner (8px), and a larger CSS radius would leave a wedge of bare glass in each corner. */
   --r-tile: 8px;
   --r-ctl: 6px;
   --r-sm: 4px;
@@ -50,6 +51,8 @@
   --tile-border: rgba(255, 255, 255, .10);
   --tile-edge: rgba(255, 255, 255, .16);
   --surface: #202128;                   /* settings window fallback */
+  --surface-raised: #2A2B33;            /* dialogs and menus above the page */
+  --scrim: rgba(0, 0, 0, .5);
   --surface-2: rgba(255, 255, 255, .04); /* cards / sidebar */
   --surface-3: rgba(255, 255, 255, .07);
 
@@ -75,7 +78,6 @@
   --divider: rgba(255, 255, 255, .08);
   --focus-ring: #FFFFFF;
   --tooltip-fill: #2C2C2C;
-  --scrollbar: rgba(255, 255, 255, .25);
 
   --map-room-fill: rgba(255, 255, 255, .08);
   --map-room-stroke: rgba(255, 255, 255, .22);
@@ -92,6 +94,7 @@
   --tile-border: rgba(255, 255, 255, .09);
   --tile-edge: rgba(255, 255, 255, .12);
   --surface: #15161B;
+  --surface-raised: #1F2026;
   --tooltip-fill: #202228;
   --map-void: rgba(0, 0, 0, .45);
 }
@@ -103,6 +106,8 @@
   --tile-border: rgba(255, 255, 255, .14);
   --tile-edge: rgba(255, 255, 255, .10);
   --surface: #000000;
+  --surface-raised: #161616;
+  --scrim: rgba(0, 0, 0, .6);
   --surface-2: rgba(255, 255, 255, .05);
   --surface-3: rgba(255, 255, 255, .09);
   --ctl-fill: rgba(255, 255, 255, .08);
@@ -123,12 +128,15 @@
   --tile-border: rgba(0, 0, 0, .08);
   --tile-edge: rgba(255, 255, 255, .60);
   --surface: #F3F3F6;
+  --surface-raised: #FBFBFD;
+  --scrim: rgba(0, 0, 0, .28);
   --surface-2: rgba(0, 0, 0, .03);
   --surface-3: rgba(0, 0, 0, .05);
 
   --text: rgba(0, 0, 0, .90);
-  --text-2: rgba(0, 0, 0, .60);
-  --text-3: rgba(0, 0, 0, .45);
+  --text-2: rgba(0, 0, 0, .62);
+  /* Small hints need 4.5:1 on the light and gray cards. */
+  --text-3: rgba(0, 0, 0, .58);
   --text-disabled: rgba(0, 0, 0, .36);
 
   --accent: #005FB8;
@@ -148,7 +156,6 @@
   --divider: rgba(0, 0, 0, .08);
   --focus-ring: #000000;
   --tooltip-fill: #F2F2F2;
-  --scrollbar: rgba(0, 0, 0, .25);
 
   --map-room-fill: rgba(0, 0, 0, .06);
   --map-room-stroke: rgba(0, 0, 0, .25);
@@ -165,6 +172,7 @@
   --tile-border: rgba(0, 0, 0, .10);
   --tile-edge: rgba(255, 255, 255, .55);
   --surface: #E4E5EA;
+  --surface-raised: #F3F3F6;
   --ctl-fill: rgba(255, 255, 255, .55);
   --ctl-fill-hover: rgba(255, 255, 255, .80);
   --ctl-fill-pressed: rgba(255, 255, 255, .35);
@@ -176,7 +184,6 @@
   --font-text: var(--font-inter);
   --font-display: var(--font-inter);
   --font-num: var(--font-inter);
-  --r-tile: 18px;
   --r-ctl: 9px;
   --r-sm: 6px;
   --r-card: 14px;
@@ -203,7 +210,6 @@
   --font-display: var(--font-inter);
   --font-num: var(--font-jetbrains);
   --font-mono: var(--font-jetbrains);
-  --r-tile: 12px;
   --r-ctl: 8px;
   --r-sm: 6px;
   --r-card: 12px;

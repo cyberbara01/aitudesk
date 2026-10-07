@@ -1,6 +1,7 @@
-// Room search field (§3 text field, width 200, Cascadia Mono because it holds a room code). Esc clears it.
+// Room search field (SPEC §3 text field, width 200, mono because it holds a room code). Esc clears it.
 import type { KeyboardEvent } from "react";
 import { ru } from "../i18n/ru";
+import { extra } from "../i18n/ru.extra.map";
 
 interface Props {
   value: string;
@@ -12,9 +13,14 @@ interface Props {
 
 export function MapSearch({ value, onChange, onClear, className }: Props) {
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Escape") {
+    if (e.key !== "Escape") return;
+    if (value) {
+      // This Esc only clears the search: paint mode (it checks defaultPrevented) stays on.
       e.preventDefault();
       onClear();
+    } else {
+      // Nothing to clear: leave the field, and the Esc goes on to end paint mode if it is active.
+      e.currentTarget.blur();
     }
   };
 
@@ -25,6 +31,7 @@ export function MapSearch({ value, onChange, onClear, className }: Props) {
       type="text"
       value={value}
       placeholder={ru.map.searchPlaceholder}
+      aria-label={extra.searchLabel}
       spellCheck={false}
       autoComplete="off"
       autoCorrect="off"

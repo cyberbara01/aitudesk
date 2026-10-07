@@ -74,7 +74,7 @@ interface SampleRow {
 
 export function PreviewSystem({ s }: { s: Settings }) {
   const sy = s.system;
-  const rows: SampleRow[] = [{ icon: "battery_7", label: ru.system.battery, value: "72 %" }];
+  const rows: SampleRow[] = [{ icon: "battery_7", label: ru.system.battery, value: extra.appearance.sampleBattery }];
   if (sy.showWifi) rows.push({ icon: "wifi_1", label: ru.system.wifi, value: sy.hideNames ? ru.system.connected : extra.appearance.sampleWifi });
   if (sy.showBluetooth) rows.push({ icon: "bluetooth_connected", label: ru.system.bluetooth, value: sy.hideNames ? ru.system.devices(1) : extra.appearance.sampleDevice });
   return (

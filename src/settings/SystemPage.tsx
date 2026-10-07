@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../components/Icon";
+import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
-import { Segmented, type SegmentedOption } from "../components/Segmented";
+import { Select, type SelectOption } from "../components/Select";
 import { Switch } from "../components/Switch";
 import { TextField } from "../components/TextField";
 import { ru } from "../i18n/ru";
@@ -20,18 +21,30 @@ const COMMIT_DELAY = 400;
 const T = ru.settings.system;
 const X = extra.settings.system;
 
-const MODE_OPTIONS: readonly SegmentedOption<LabelMode>[] = [
+const MODE_OPTIONS: readonly SelectOption<LabelMode>[] = [
   { value: "default", label: T.labelDefault },
   { value: "user", label: T.labelUser },
   { value: "custom", label: T.labelCustom },
 ];
 
-/** Settings → «Система»: live preview, rows, privacy, first-row label, tile background. */
+/** Settings → «Система»: live preview, rows, privacy, first-row label, tile background, section reset. */
 export function SystemPage() {
   const s = useSettings();
   const sys = s.system;
-  const info = useSystemInfo();
-  const userName = useUserName(sys.labelMode === "user");
+
+  // The preview polls (through the window's shared poller) only while it is on screen.
+  const deskRef = useRef<HTMLDivElement>(null);
+  const [previewOnScreen, setPreviewOnScreen] = useState(true);
+  useLayoutEffect(() => {
+    const desk = deskRef.current;
+    if (!desk) return;
+    const io = new IntersectionObserver(([entry]) => setPreviewOnScreen(entry.isIntersecting));
+    io.observe(desk);
+    return () => io.disconnect();
+  }, []);
+  const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: previewOnScreen });
+  // Asked up front (once per window), so choosing «Имя учётной записи» shows the name right away.
+  const userName = useUserName(true);
 
   // The custom label is edited locally and committed with a short delay so every keystroke does not hit the disk.
   const [draft, setDraft] = useState(sys.customLabel);
@@ -72,39 +85,43 @@ export function SystemPage() {
 
   return (
     <Page title={ru.settings.nav.system} description={X.pageDesc}>
-      <div className="sys-preview">
-        <div className="sys-stage">
-          <div className={sys.background ? "tile tile-system" : "tile tile-system no-bg"} role="img" aria-label={ru.common.preview}>
+      <div className="sys-stage">
+        <div className="sys-stage-head">
+          <span className="body-strong">{ru.common.preview}</span>
+        </div>
+        <div ref={deskRef} className="sys-desk">
+          <div className={sys.background ? "tile tile-system" : "tile tile-system no-bg"}>
             <SystemRows info={info} settings={preview} />
           </div>
         </div>
-        <p className="hint sys-preview-hint">{X.previewHint}</p>
+        <p className="hint sys-stage-hint">{X.previewHint}</p>
       </div>
 
       <Section title={T.rows} description={X.rowsHint}>
         <Row label={T.showWifi} hint={X.showWifiHint}>
-          <Switch checked={sys.showWifi} onChange={(v) => update({ showWifi: v })} />
+          <Switch checked={sys.showWifi} onChange={(v) => update({ showWifi: v })} ariaLabel={T.showWifi} />
         </Row>
         <Row label={T.showBluetooth} hint={X.showBluetoothHint}>
-          <Switch checked={sys.showBluetooth} onChange={(v) => update({ showBluetooth: v })} />
+          <Switch checked={sys.showBluetooth} onChange={(v) => update({ showBluetooth: v })} ariaLabel={T.showBluetooth} />
         </Row>
       </Section>
 
       <Section title={T.privacy}>
         <Row label={T.hideNames} hint={T.hideNamesHint}>
-          <Switch checked={sys.hideNames} onChange={(v) => update({ hideNames: v })} />
+          <Switch checked={sys.hideNames} onChange={(v) => update({ hideNames: v })} ariaLabel={T.hideNames} />
         </Row>
       </Section>
 
       <Section title={T.label} description={X.labelHint}>
-        <Row label={X.labelMode} stack>
-          <Segmented fill options={MODE_OPTIONS} value={sys.labelMode} onChange={(m) => update({ labelMode: m })} ariaLabel={T.label} />
+        <Row label={X.labelMode}>
+          <Select options={MODE_OPTIONS} value={sys.labelMode} onChange={(m) => update({ labelMode: m })} ariaLabel={X.labelMode} />
         </Row>
         {sys.labelMode === "custom" && (
-          <Row label={T.labelCustom} hint={draft.trim() ? undefined : X.customEmptyHint} stack>
+          <div className="row stack sys-custom-row">
             <TextField
-              className="sys-field"
-              inputClassName="sys-label-input"
+              className="sys-custom-field"
+              inputClassName="sys-custom-input"
+              label={T.labelCustom}
               value={draft}
               onChange={onDraft}
               placeholder={T.labelPlaceholder}
@@ -115,13 +132,15 @@ export function SystemPage() {
                 if (e.key === "Enter") commit();
               }}
             />
-          </Row>
+            {/* One hint for both states, so the field never jumps while typing. */}
+            <span className="row-hint">{X.customEmptyHint}</span>
+          </div>
         )}
         {sys.labelMode === "user" && (
           <Row label={T.labelUser} hint={userName === "" ? X.userNameUnavailable : X.userNameHint}>
             <span className="sys-user">
               <Icon name="person" />
-              <span className="ellipsis">{userName === null ? "…" : userName || ru.system.desktopPc}</span>
+              <span className="ellipsis">{userName === "" ? ru.system.desktopPc : userName}</span>
             </span>
           </Row>
         )}
@@ -129,9 +148,11 @@ export function SystemPage() {
 
       <Section title={X.look}>
         <Row label={T.background} hint={X.backgroundHint}>
-          <Switch checked={sys.background} onChange={(v) => update({ background: v })} />
+          <Switch checked={sys.background} onChange={(v) => update({ background: v })} ariaLabel={T.background} />
         </Row>
       </Section>
+
+      <ResetSection section="system" />
     </Page>
   );
 }

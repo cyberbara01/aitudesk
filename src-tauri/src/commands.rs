@@ -51,7 +51,7 @@ pub fn set_window_theme(window: WebviewWindow, dark: bool, material: Option<Stri
 #[tauri::command]
 pub fn window_ready(app: AppHandle, window: WebviewWindow) {
     if crate::TILES.contains(&window.label()) {
-        layout::reveal(&app, window.label());
+        layout::mark_ready(&app, window.label());
     } else if window.label() == crate::settings_window::LABEL {
         if !matches!(window.is_visible(), Ok(true)) {
             let _ = window.show();

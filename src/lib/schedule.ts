@@ -1,11 +1,13 @@
-// Schedule model shared by the «Расписание» tile and its settings page: day filtering, lesson state
-// (past / now / next / later), "ЧЧ:ММ" parsing, validation and CRUD on settings.schedule.
+// Schedule model shared by the «Расписание» tile and its settings page: which days the tile shows, lesson
+// state (past / now / next / later), timer helpers, "ЧЧ:ММ" input, validation, lesson colours and the
+// list edits on settings.schedule.
+import type { CSSProperties } from "react";
 import { ru } from "../i18n/ru";
-import { formatTime, isoWeekday, parseTime } from "./design";
+import { extra } from "../i18n/ru.extra.schedule";
+import { formatTime, isoWeekday, luminance, parseTime, shade } from "./design";
 import { settings, type Lesson, type Weekday } from "./settings";
 
 export const ALL_DAYS: readonly Weekday[] = [1, 2, 3, 4, 5, 6, 7];
-export const WORK_DAYS: readonly Weekday[] = [1, 2, 3, 4, 5];
 
 /** A typical pair is 80 minutes with a 10-minute break; used only to pre-fill the editor. */
 export const LESSON_MINUTES = 80;
@@ -15,19 +17,48 @@ const LAST_MINUTE = 23 * 60 + 59;
 
 export type LessonState = "past" | "now" | "next" | "later";
 
-/**
- * Days shown in the tile's weekday row: Mon–Fri always; Sat / Sun when «Показывать выходные» is on,
- * and otherwise only those weekend days that actually have lessons (so entered data is never unreachable).
- */
-export function visibleDays(showWeekend: boolean, lessons: readonly Lesson[] = []): readonly Weekday[] {
-  if (showWeekend) return ALL_DAYS;
-  const extra = ([6, 7] as const).filter((d) => lessons.some((l) => l.day === d));
-  return extra.length ? [...WORK_DAYS, ...extra] : WORK_DAYS;
+// ---------------------------------------------------------------------------------------------
+// Days
+// ---------------------------------------------------------------------------------------------
+
+/** True when at least one lesson falls on `day`. */
+export function hasLessonsOn(lessons: readonly Lesson[], day: Weekday): boolean {
+  return lessons.some((l) => l.day === day);
 }
 
-/** `today` when it is among `days`, otherwise the first visible day (Monday on a hidden weekend). */
-export function fallbackDay(today: Weekday, days: readonly Weekday[]): Weekday {
-  return days.includes(today) ? today : days[0];
+/**
+ * Days in the tile's weekday row.
+ * - «Показывать дни без пар» on: Mon to Fri, plus Sat and Sun when «Показывать выходные» is on; a weekend day
+ *   that has lessons is always shown, so entered lessons can never become unreachable.
+ * - Off: only the days that have lessons (weekend days included); empty when there are no lessons at all.
+ */
+export function visibleDays(lessons: readonly Lesson[], showWeekend: boolean, showEmptyDays: boolean): readonly Weekday[] {
+  if (!showEmptyDays) return ALL_DAYS.filter((d) => hasLessonsOn(lessons, d));
+  return ALL_DAYS.filter((d) => d <= 5 || showWeekend || hasLessonsOn(lessons, d));
+}
+
+/** `day` shifted by `offset` days around the week (7 + 1 = 1). */
+function addDays(day: Weekday, offset: number): Weekday {
+  return ((((day - 1 + offset) % 7) + 7) % 7 + 1) as Weekday;
+}
+
+/** `today` when it is among `days`, otherwise the nearest following day of `days` (wrapping into next week). */
+export function nearestDay(today: Weekday, days: readonly Weekday[]): Weekday {
+  for (let i = 0; i < 7; i += 1) {
+    const d = addDays(today, i);
+    if (days.includes(d)) return d;
+  }
+  return today;
+}
+
+/** The first lesson of the nearest day after `today` that has lessons, or null. */
+export function nextLessonAfter(lessons: readonly Lesson[], today: Weekday): { day: Weekday; lesson: Lesson; tomorrow: boolean } | null {
+  for (let i = 1; i < 7; i += 1) {
+    const day = addDays(today, i);
+    const list = lessonsForDay(lessons, day);
+    if (list.length) return { day, lesson: list[0], tomorrow: i === 1 };
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -84,9 +115,15 @@ export function minutesUntil(lesson: Lesson, now: Date): number {
   return Math.max(1, Math.ceil(s - minutesOfDay(now)));
 }
 
-/** "08:00 - 09:20" */
+/** Between the two times of a range: a plain hyphen (the author's rule for ranges). */
+export const TIME_SEP = " - ";
+
+/**
+ * "08:00 - 09:20" as text (overlap hint). Where the range is drawn, the two times are separate `.num` spans
+ * around TIME_SEP in the text font, so a monospace number font (Rice) does not widen the spaces.
+ */
 export function timeRange(l: Pick<Lesson, "start" | "end">): string {
-  return `${l.start} - ${l.end}`;
+  return `${l.start}${TIME_SEP}${l.end}`;
 }
 
 /** Lesson count per weekday, index 0 = Monday. */
@@ -96,7 +133,7 @@ export function weekCounts(lessons: readonly Lesson[]): number[] {
   return counts;
 }
 
-/** Time window (minutes) covering every lesson, at least 08:00–20:00, snapped to whole hours. */
+/** Time window (minutes) covering every lesson, at least 08:00 to 20:00, snapped to whole hours. */
 export function weekRange(lessons: readonly Lesson[]): { from: number; to: number } {
   let from = 8 * 60;
   let to = 20 * 60;
@@ -109,28 +146,71 @@ export function weekRange(lessons: readonly Lesson[]): { from: number; to: numbe
   return { from, to: Math.max(to, from + 60) };
 }
 
+// ---------------------------------------------------------------------------------------------
+// Timers
+// ---------------------------------------------------------------------------------------------
+
+/** True while today still has a lesson that has not ended: then the tile's badges change every minute. */
+export function hasLessonsAhead(lessons: readonly Lesson[], now: Date): boolean {
+  const today = isoWeekday(now);
+  const m = minutesOfDay(now);
+  return lessons.some((l) => {
+    if (l.day !== today) return false;
+    const e = parseTime(l.end);
+    return e !== null && e > m;
+  });
+}
+
+/** Milliseconds until the next wall-clock minute (never 0). */
+export function msToNextMinute(now: Date): number {
+  return Math.max(1, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
+}
+
 /** Milliseconds until the next local midnight. */
 export function msUntilMidnight(now: Date): number {
   const next = new Date(now);
   next.setHours(24, 0, 0, 0);
-  return Math.max(0, next.getTime() - now.getTime());
+  return Math.max(1, next.getTime() - now.getTime());
+}
+
+export function sameDate(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+/** Minute of the day as an integer (what the tile can show changes at most this often). */
+export function minuteKey(d: Date): number {
+  return d.getHours() * 60 + d.getMinutes();
 }
 
 // ---------------------------------------------------------------------------------------------
 // Time input
 // ---------------------------------------------------------------------------------------------
 
-/** "8:5" → "08:05"; null when the text is not a valid time. */
+/**
+ * Minutes since midnight of what the user typed, or null. Besides "8:30" / "08:30" a bare hour is
+ * accepted as a whole hour: "8", "08", "8:" and "14:" all mean HH:00.
+ */
+export function timeMinutes(text: string): number | null {
+  const t = text.trim();
+  const hour = /^(\d{1,2}):?$/.exec(t);
+  if (hour) {
+    const h = Number(hour[1]);
+    return h <= 23 ? h * 60 : null;
+  }
+  return parseTime(t);
+}
+
+/** "8:5" is invalid, "8:05" → "08:05", "14:" → "14:00"; null when the text is not a time. */
 export function normalizeTime(text: string): string | null {
-  const m = parseTime(text);
+  const m = timeMinutes(text);
   return m === null ? null : formatTime(m);
 }
 
 /**
- * Input mask for "ЧЧ:ММ": keeps digits and one colon, inserts the colon while typing forward and
- * never fights a deletion. Two digits that can be an hour get the colon after them ("08" → "08:",
- * then "08:30"); two digits that cannot are split ("83" → "8:3", then "8:30" — normalised to "08:30"
- * on blur). Three and four digits (pasted) are split the same way ("830" → "8:30", "0830" → "08:30").
+ * Input mask for "ЧЧ:ММ": keeps digits and one colon, inserts the colon while typing forward and never
+ * fights a deletion. Two digits that can be an hour get the colon after them ("08" → "08:", then
+ * "08:30"); two digits that cannot are split ("83" → "8:3", then "8:30", shown as "08:30" on blur).
+ * Three and four digits (pasted) are split the same way ("830" → "8:30", "250" → "2:50", "0830" → "08:30").
  */
 export function maskTime(prev: string, next: string): string {
   const v = next.replace(/[^\d:]/g, "");
@@ -149,7 +229,7 @@ export function maskTime(prev: string, next: string): string {
 
 /** `time` shifted by `delta` minutes, or null when the result leaves the day. */
 export function addMinutes(time: string, delta: number): string | null {
-  const m = parseTime(time);
+  const m = timeMinutes(time);
   if (m === null) return null;
   const r = m + delta;
   return r < 0 || r > LAST_MINUTE ? null : formatTime(r);
@@ -183,13 +263,14 @@ export interface LessonErrors {
   title?: string;
 }
 
+/** Checks what the user typed, read the same lenient way as on blur and on save. */
 export function validateLesson(d: LessonDraft): LessonErrors {
   const errors: LessonErrors = {};
-  const s = parseTime(d.start);
-  const e = parseTime(d.end);
+  const s = timeMinutes(d.start);
+  const e = timeMinutes(d.end);
   if (s === null) errors.start = ru.schedule.invalidTime;
   if (e === null) errors.end = ru.schedule.invalidTime;
-  else if (s !== null && e <= s) errors.end = ru.schedule.endBeforeStart;
+  else if (s !== null && e <= s) errors.end = extra.endAfterStart;
   if (!d.title.trim()) errors.title = ru.common.required;
   return errors;
 }
@@ -200,8 +281,8 @@ export function hasErrors(e: LessonErrors): boolean {
 
 /** First lesson of `day` whose interval intersects [start, end), excluding `excludeId`. */
 export function findOverlap(lessons: readonly Lesson[], day: Weekday, start: string, end: string, excludeId?: string): Lesson | null {
-  const s = parseTime(start);
-  const e = parseTime(end);
+  const s = timeMinutes(start);
+  const e = timeMinutes(end);
   if (s === null || e === null || e <= s) return null;
   for (const l of lessonsForDay(lessons, day)) {
     if (l.id === excludeId) continue;
@@ -214,7 +295,57 @@ export function findOverlap(lessons: readonly Lesson[], day: Weekday, start: str
 }
 
 // ---------------------------------------------------------------------------------------------
-// Mutations (settings.schedule.lessons)
+// Lesson colour
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Reference surfaces for the contrast check: the lightest dark tile fill and the darkest light one
+ * (the «Светло-серая» palette), so the result reads on every palette of its kind.
+ */
+const INK_SURFACE_DARK = "#2A2C34";
+const INK_SURFACE_LIGHT = "#E4E5EA";
+/** WCAG AA for small text: the ink also colours the «Сейчас» caption. */
+const INK_CONTRAST = 4.5;
+const INK_STEPS = 50;
+
+function contrast(a: string, b: string): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/** `hex` moved towards white (dark surface) or black (light surface) just far enough to read on `surface`. */
+function readableOn(hex: string, surface: string): string {
+  const dir = luminance(surface) > 0.5 ? -1 : 1;
+  for (let k = 0; k <= INK_STEPS; k += 1) {
+    const c = shade(hex, (dir * k) / INK_STEPS);
+    if (contrast(c, surface) >= INK_CONTRAST) return c;
+  }
+  return dir < 0 ? "#000000" : "#FFFFFF";
+}
+
+/** Small: a few lesson colours in use, plus whatever the editor's picker passes through while dragged. */
+const inkCache = new Map<string, CSSProperties>();
+const INK_CACHE_MAX = 64;
+
+/**
+ * Inline style for an element drawn in a lesson's own colour: `--ink-dark` / `--ink-light` hold the colour
+ * as is where it already reads, otherwise lightened (dark palettes) or deepened (light palettes) like the
+ * two tones of an accent preset. schedule.css picks one by `data-scheme`. Undefined for accent lessons.
+ */
+export function lessonInkStyle(color: string | undefined): CSSProperties | undefined {
+  if (!color) return undefined;
+  let style = inkCache.get(color);
+  if (!style) {
+    style = { "--ink-dark": readableOn(color, INK_SURFACE_DARK), "--ink-light": readableOn(color, INK_SURFACE_LIGHT) } as CSSProperties;
+    if (inkCache.size >= INK_CACHE_MAX) inkCache.clear();
+    inkCache.set(color, style);
+  }
+  return style;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Edits of settings.schedule.lessons (functional updates: quick successive edits never undo each other)
 // ---------------------------------------------------------------------------------------------
 
 export function newId(): string {
@@ -222,24 +353,20 @@ export function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function addLesson(lesson: Lesson): Promise<void> {
-  return settings.updateSchedule({ lessons: [...settings.get().schedule.lessons, lesson] });
-}
-
-export function updateLesson(lesson: Lesson): Promise<void> {
-  const lessons = settings.get().schedule.lessons.map((l) => (l.id === lesson.id ? lesson : l));
-  return settings.updateSchedule({ lessons });
-}
-
 /** Replace the lesson with the same id, or append it. */
 export function upsertLesson(lesson: Lesson): Promise<void> {
-  return settings.get().schedule.lessons.some((l) => l.id === lesson.id) ? updateLesson(lesson) : addLesson(lesson);
+  return settings.update((s) => {
+    const list = s.schedule.lessons;
+    const exists = list.some((l) => l.id === lesson.id);
+    const lessons = exists ? list.map((l) => (l.id === lesson.id ? lesson : l)) : [...list, lesson];
+    return { schedule: { ...s.schedule, lessons } };
+  });
 }
 
 export function removeLesson(id: string): Promise<void> {
-  return settings.updateSchedule({ lessons: settings.get().schedule.lessons.filter((l) => l.id !== id) });
+  return settings.update((s) => ({ schedule: { ...s.schedule, lessons: s.schedule.lessons.filter((l) => l.id !== id) } }));
 }
 
 export function clearLessons(): Promise<void> {
-  return settings.updateSchedule({ lessons: [] });
+  return settings.update((s) => ({ schedule: { ...s.schedule, lessons: [] } }));
 }

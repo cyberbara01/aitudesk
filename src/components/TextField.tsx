@@ -4,6 +4,8 @@ interface TextFieldProps {
   value: string;
   onChange: (value: string) => void;
   label?: string;
+  /** Accessible name when there is no visible label. */
+  ariaLabel?: string;
   placeholder?: string;
   error?: string;
   /** Cascadia / JetBrains Mono (URLs, room codes). */
@@ -28,6 +30,7 @@ export function TextField({
   value,
   onChange,
   label,
+  ariaLabel,
   placeholder,
   error,
   mono,
@@ -72,6 +75,7 @@ export function TextField({
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           onKeyDown={onKeyDown}
+          aria-label={label ? undefined : ariaLabel}
           aria-invalid={Boolean(error)}
         />
         {suffix && <span className="textfield-suffix caption">{suffix}</span>}

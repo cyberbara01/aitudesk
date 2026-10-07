@@ -122,7 +122,7 @@ export function ColorPicker({ value, onChange, swatches = SWATCHES, allowCustom 
               max={360}
               step={1}
               value={Math.round(hsv.h)}
-              aria-label="Hue"
+              aria-label={ru.common.hue}
               onChange={(e) => emit({ ...hsv, h: Number(e.target.value) })}
             />
           </div>

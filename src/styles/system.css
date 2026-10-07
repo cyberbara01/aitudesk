@@ -1,8 +1,8 @@
 /* =====================================================================================
-   System tile — «Система» (SPEC §3 «Плитка „Система“», V2-BRIEF §3.2)
-   Rows of 36 px: icon 20 · label · value. The group is centred with even gaps when the
-   tile is taller than the rows and starts at the top when it is not (auto margins:
-   positive free space is shared by n+1 equal gaps, negative free space collapses them).
+   System tile «Система» (SPEC §3 «Плитка „Система“», V2-BRIEF §3.2)
+   Rows of 36 px: icon · label · value. With spare height the rows are centred with even gaps
+   (auto margins: n + 1 equal gaps); with too little they squeeze down to --sys-row-min instead of
+   overflowing. The tile's minimum size and the grow-to-fit in System.tsx keep it from going further.
    ===================================================================================== */
 .tile-system {
   display: flex;
@@ -10,9 +10,11 @@
 }
 
 .sys-rows {
+  --sys-icon-w: 20px;
+  --sys-row-min: 24px;
+  container: sys-rows / inline-size;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
@@ -20,33 +22,45 @@
 
 .sys-row {
   display: grid;
-  grid-template-columns: var(--sys-icon-w, 20px) minmax(0, max-content) minmax(28px, 1fr);
+  /* Wi-Fi and Bluetooth: the label is one short word and stays whole; the names take the rest and ellipsize. */
+  grid-template-columns: var(--sys-icon-w) auto minmax(0, 1fr);
   column-gap: var(--s2);
   align-items: center;
-  flex: 0 0 36px;
-  height: 36px;
+  flex: 0 1 36px;           /* = ROW_H in System.tsx */
+  min-height: var(--sys-row-min);
   min-width: 0;
   margin-top: auto;
 }
 .sys-row:last-child { margin-bottom: auto; }
+/* First row: the value («72 %», «от сети») is short and stays whole; a long PC label gives way first. */
+.sys-row[data-row="power"] { grid-template-columns: var(--sys-icon-w) minmax(0, 1fr) auto; }
 
-/* Icon slot: 20 px in Fluent and Rice; Aqua wraps it in a soft 28 px chip tinted by the row's tone. */
+/* Icon. Fluent: the glyph alone, coloured by state. */
 .sys-icon-wrap {
   display: grid;
   place-items: center;
-  width: var(--sys-icon-w, 20px);
-  height: var(--sys-icon-w, 20px);
-  border-radius: var(--r-sm);
+  width: var(--sys-icon-w);
+  height: var(--sys-icon-w);
+  border-radius: 50%;
   color: var(--text);
-  transition: color var(--t-base) var(--ease-in), background-color var(--t-base) var(--ease-in);
 }
-.sys-icon-wrap.tone-text-3 { color: var(--text-3); }
+.sys-icon { color: inherit; }
+.sys-icon-wrap.tone-off { color: var(--text-3); }
 .sys-icon-wrap.tone-caution { color: var(--caution); }
 .sys-icon-wrap.tone-critical { color: var(--critical); }
-.sys-icon { color: inherit; }
 
-:root[data-style="aqua"] .sys-row { --sys-icon-w: 28px; }
-:root[data-style="aqua"] .sys-icon-wrap { background: color-mix(in srgb, currentColor 12%, transparent); }
+/* Aqua: round 28 px chips like Control Center; a live connection is a filled accent chip. */
+:root[data-style="aqua"] .sys-rows { --sys-icon-w: 28px; --sys-row-min: 28px; }
+:root[data-style="aqua"] .sys-icon-wrap { background: color-mix(in srgb, var(--text) 10%, transparent); }
+:root[data-style="aqua"] .sys-icon { width: 16px; height: 16px; flex-basis: 16px; }
+:root[data-style="aqua"] .sys-icon-wrap.tone-on { background: var(--accent); color: var(--on-accent); }
+:root[data-style="aqua"] .sys-icon-wrap.tone-off { background: color-mix(in srgb, var(--text) 6%, transparent); }
+:root[data-style="aqua"] .sys-icon-wrap.tone-caution { background: color-mix(in srgb, var(--caution) 20%, transparent); }
+:root[data-style="aqua"] .sys-icon-wrap.tone-critical { background: color-mix(in srgb, var(--critical) 20%, transparent); }
+
+/* Rice: status-bar look, working glyphs in the accent, numbers in JetBrains Mono (.num). */
+:root[data-style="rice"] .sys-icon-wrap.tone-on,
+:root[data-style="rice"] .sys-icon-wrap.tone-neutral { color: var(--accent-text); }
 
 .sys-label {
   min-width: 0;
@@ -56,64 +70,81 @@
   text-overflow: ellipsis;
 }
 
+/* Value: right-aligned; only the text part ellipsizes, the number and «+N» stay whole. */
 .sys-value {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
   min-width: 0;
-  text-align: right;
   color: var(--text-2);
-  font-family: var(--font-num);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: var(--num-features);
   white-space: nowrap;
+}
+.sys-fixed { flex: none; }
+.sys-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* Tooltip: wrapping and clamping inside a small window (visuals come from .tooltip in base.css).
-   The tooltip is a child of the hovered value cell, so undo its inherited alignment and number styling.
-   4 px (--s1) on each side matches GAP in Tooltip.tsx. */
-.tooltip.tooltip-pop {
-  max-width: calc(100vw - 2 * var(--s1));
-  white-space: normal;
-  text-align: left;
-  font-family: var(--font-text);
-  font-variant-numeric: normal;
-  font-feature-settings: normal;
+/* «100 % · заряжается» needs about 209 / 227 / 237 px of row (Fluent / Rice / Aqua). In a narrower tile the
+   words step aside, visually only: the charge icon says the same and screen readers still get the text. */
+@container sys-rows (max-width: 213px) {
+  .sys-more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}
+@container sys-rows (max-width: 231px) {
+  :root[data-style="rice"] .sys-more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}
+@container sys-rows (max-width: 241px) {
+  :root[data-style="aqua"] .sys-more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 
 /* =====================================================================================
    Settings → «Система»
    ===================================================================================== */
 
-/* Live preview: the real tile material on a quiet stage, sized like the default tile (280×144). */
-.sys-preview {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s2);
-}
+/* Stage: the live preview on a desk that stands in for the wallpaper (the accent mixed into the palette's
+   base, so the glass always has something to sit on). Same anatomy as the Clock page stage. */
 .sys-stage {
   display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  border-radius: var(--r-card);
+  background: var(--surface-2);
+  border: var(--ctl-border-w) solid var(--divider);
+}
+.sys-stage-head {
+  display: flex;
+  align-items: center;
+  min-height: var(--ctl-h);
+}
+.sys-desk {
+  display: flex;
+  align-items: center;
   justify-content: center;
   padding: var(--s6);
-  border-radius: var(--r-card);
-  background: var(--surface-3);
-  border: 1px solid var(--divider);
+  border-radius: var(--r-ctl);
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-base));
   user-select: none;
   -webkit-user-select: none;
 }
-.sys-stage .tile {
+:root[data-scheme="light"] .sys-desk { background: color-mix(in srgb, var(--accent) 16%, var(--surface-base)); }
+/* The real tile material at the default tile size (280×144); .tile fills the window in a tile window, not here. */
+.sys-desk > .tile {
   flex: 0 0 auto;
-  width: min(100%, 300px);
+  width: min(100%, 280px);
   height: 144px;
 }
-.sys-stage .tile.no-bg { border-color: transparent; }
-.sys-preview-hint {
-  margin: 0;
-  text-align: center;
-}
+.sys-stage-hint { margin: 0; }
 
-/* Custom label field: the live counter sits inside the input, so leave it room. */
-.sys-field { flex: 1 1 auto; }
-.sys-label-input { padding-right: 56px; }
+/* Custom label: the field carries its own label (accessible name), set like a row label; hint under it. */
+.row.sys-custom-row { gap: var(--s1); }
+.sys-custom-field .textfield-label {
+  margin-bottom: var(--s1);
+  color: var(--text);
+  font-size: var(--body-size);
+  line-height: var(--body-lh);
+}
+.sys-custom-input { padding-right: 56px; }   /* room for the live counter */
 
 /* Resolved account name. */
 .sys-user {

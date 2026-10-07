@@ -1,19 +1,26 @@
 /* =====================================================================================
-   Карта AITU — tile layout
-   The .tile root gives the padding; .map-root fills its content box and anchors the overlays.
-   The canvas host bleeds under the padding, so the zoomed plan runs to the tile edge (the tile's
-   overflow clip rounds the corners); the fitted 1× view is sized to the content box, so the plan
-   keeps the tile padding around it when it is not zoomed.
+   Карта AITU: tile layout
+   The .tile root gives the padding; .map-root fills its content box and anchors the overlays. The canvas host
+   bleeds under the padding, so the zoomed plan runs to the tile edge (the tile's overflow clip rounds the
+   corners); the fitted 1× view is sized to the content box, so the plan keeps the tile padding around it.
    ===================================================================================== */
-.map-root { position: relative; width: 100%; height: 100%; }
+.map-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* A size container for the low-tile rule below. Its layout containment also makes .map-root the containing
+     block of position: fixed descendants, so nothing fixed may live inside (Tile renders the context menu outside). */
+  container: map / size;
+}
 .map-host {
   position: absolute;
   inset: calc(-1 * var(--tile-pad));
   overflow: hidden;
   touch-action: none;
 }
-/* Sized and translated by MapCanvas (real width/height = fit × zoom, translate only). --map-t is the
-   transition duration it picks: 0 for wheel/drag/resize, --t-base for the buttons, --t-slow for «Вписать». */
+/* Sized and translated by MapCanvas: real width/height = fit × zoom, translate only (never a CSS scale), so every
+   zoom step is rasterised afresh. The inline transition-duration is 0 for wheel, drag and resize, --t-base for
+   the buttons and --t-slow for «Вписать». */
 .map-svg {
   position: absolute;
   top: 0;
@@ -21,50 +28,57 @@
   display: block;
   overflow: visible;
   will-change: transform;
-  transition:
-    transform var(--map-t, 0ms) var(--ease-move),
-    width var(--map-t, 0ms) var(--ease-move),
-    height var(--map-t, 0ms) var(--ease-move);
+  shape-rendering: geometricPrecision;
+  transition-property: transform, width, height;
+  transition-duration: 0ms;
+  transition-timing-function: var(--ease-move);
 }
 
-/* ---- Overlays: floor switch and zoom column on the switch side, search field on the other ---- */
-.map-root > .map-overlay-search,
-.map-root > .map-overlay-floors,
-.map-root > .map-zoom { position: absolute; z-index: 1; }
-.map-root > .map-overlay-floors { top: 0; right: 0; }
-.map-root > .map-overlay-search { top: 0; left: 0; }
+/* ---- Overlays: floor switch and zoom column on the switch side; search field and paint dock on the other ---- */
+.map-root > :is(.map-search, .floor-switch, .map-zoom, .map-paint-dock) { position: absolute; z-index: 1; }
+.map-root > .floor-switch { top: 0; right: 0; }
+.map-root > .map-search { top: 0; left: 0; }
 .map-root > .map-zoom { right: 0; bottom: 0; display: flex; flex-direction: column; gap: var(--s2); }
-.map-root[data-switch="left"] > .map-overlay-floors { right: auto; left: 0; }
-.map-root[data-switch="left"] > .map-overlay-search { left: auto; right: 0; }
+.map-root > .map-paint-dock { left: 0; bottom: 0; max-width: 100%; }
+.map-root[data-switch="left"] > .floor-switch { right: auto; left: 0; }
+.map-root[data-switch="left"] > .map-search { left: auto; right: 0; }
 .map-root[data-switch="left"] > .map-zoom { right: auto; left: 0; }
+.map-root[data-switch="left"] > .map-paint-dock { left: auto; right: 0; flex-direction: row-reverse; }
+/* The palette never runs under the zoom column at the other bottom corner (it wraps instead). */
+.map-root[data-zoom="on"] > .map-paint-dock { max-width: calc(100% - var(--ctl-h) - var(--s2)); }
 
-/* Search field and zoom buttons rest at opacity 0 and appear on hover / focus (167 ms); the switch is always visible. */
-.map-overlay-search,
-.map-zoom { opacity: 0; transition: opacity var(--t-base) var(--ease-in); }
-.tile-map:hover .map-overlay-search,
-.tile-map:focus-within .map-overlay-search,
-.tile-map:hover .map-zoom,
-.tile-map:focus-within .map-zoom { opacity: 1; }
-
-/* The window is the tile: in a low tile the switch (96) and the zoom column (112) would overlap at the
-   same edge, and the column — transparent at rest but clickable — would steal the lowest item's clicks.
-   Below 254 px the column moves inwards by the switch width plus one gap. */
-@media (max-height: 253px) {
-  .map-root > .map-zoom { right: 44px; }
-  .map-root[data-switch="left"] > .map-zoom { right: auto; left: 44px; }
+/* A low tile: the floor switch (98) and the zoom column (112) would meet at the same edge, and the column
+   (invisible at rest but clickable) would take the lowest floor's clicks. Below 218 px of content the column
+   moves inwards by the switch width plus one gap. */
+@container map (height < 218px) {
+  .map-root > .map-zoom { right: calc(36px + var(--s2)); }
+  .map-root[data-switch="left"] > .map-zoom { right: auto; left: calc(36px + var(--s2)); }
+  .map-root[data-zoom="on"] > .map-paint-dock { max-width: calc(100% - 36px - var(--ctl-h) - 2 * var(--s2)); }
 }
+
+/* Search field, zoom column and the brush rest at opacity 0 and appear while the pointer is over the tile or a
+   control has keyboard focus (167 ms). The floor switch does the same in «При наведении» mode. The paint dock
+   stays visible while painting. */
+.map-root > :is(.map-search, .map-zoom, .map-paint-dock),
+.map-root[data-switch-mode="hover"] > .floor-switch {
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease-in);
+}
+.tile-map:hover .map-root > :is(.map-search, .map-zoom, .map-paint-dock, .floor-switch),
+.map-root:has(:focus-visible) > :is(.map-search, .map-zoom, .map-paint-dock, .floor-switch),
+.map-root > .map-search:focus,
+.map-root > .map-paint-dock.painting { opacity: 1; }
 
 /* =====================================================================================
    Search field: the kit text field (tokens + per-style variants) at width 200, mono (it holds a room code)
    ===================================================================================== */
-.map-root .map-search {
+.map-root > .map-search {
   width: 200px;
   height: var(--ctl-h);
   padding: 0 var(--s3);
   border-radius: var(--r-ctl);
   border: var(--ctl-border-w) solid var(--ctl-stroke);
   border-bottom-color: var(--ctl-stroke-strong);
-  background: var(--ctl-fill);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--body-size);
@@ -74,21 +88,21 @@
   user-select: text;
   -webkit-user-select: text;
   transition:
+    opacity var(--t-base) var(--ease-in),
     background-color var(--t-fast) var(--ease-in),
     border-color var(--t-fast) var(--ease-in),
     box-shadow var(--t-fast) var(--ease-in);
 }
-.map-root .map-search::placeholder { color: var(--text-3); }
-.map-root .map-search:hover { background: var(--ctl-fill-hover); }
-.map-root .map-search:focus { border-bottom-color: var(--accent); box-shadow: inset 0 -1px 0 var(--accent); }
-:root[data-style="aqua"] .map-root .map-search { box-shadow: 0 1px 0 rgba(0, 0, 0, .05); }
-:root[data-style="aqua"] .map-root .map-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-:root[data-style="rice"] .map-root .map-search { border-color: var(--accent-soft); }
-:root[data-style="rice"] .map-root .map-search:focus { border-color: var(--accent); box-shadow: none; }
+.map-root > .map-search::placeholder { color: var(--text-3); }
+.map-root > .map-search:focus { border-bottom-color: var(--accent); box-shadow: inset 0 -1px 0 var(--accent); }
+:root[data-style="aqua"] .map-root > .map-search { box-shadow: 0 1px 0 rgba(0, 0, 0, .05); }
+:root[data-style="aqua"] .map-root > .map-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+:root[data-style="rice"] .map-root > .map-search { border-color: var(--accent-soft); }
+:root[data-style="rice"] .map-root > .map-search:focus { border-color: var(--accent); box-shadow: none; }
 
 /* =====================================================================================
    Floor switch: three 36×32 items («3» on top) on a shared control fill with a sliding indicator (167 ms,
-   --ease-move). Fluent — 3×16 accent bar at the left edge; Aqua — solid pill thumb; Rice — accent outline.
+   --ease-move). Fluent: 3×16 accent bar at the left edge; Aqua: solid pill thumb; Rice: accent outline.
    ===================================================================================== */
 .floor-switch {
   position: relative;
@@ -96,7 +110,6 @@
   flex-direction: column;
   width: 36px;
   border-radius: var(--r-ctl);
-  background: var(--ctl-fill);
   border: var(--ctl-border-w) solid var(--ctl-stroke);
   overflow: hidden;
 }
@@ -129,6 +142,8 @@
 }
 :root[data-style="aqua"] .floor-switch { border-radius: 999px; }
 :root[data-style="aqua"] .floor-item.selected { background: transparent; }
+/* Aqua thumb, raised like macOS: lighter than the track on dark palettes (a light veil with a 1 px top highlight),
+   white on a light grey track on light palettes. */
 :root[data-style="aqua"] .floor-indicator {
   top: 2px;
   left: 2px;
@@ -136,8 +151,18 @@
   width: calc(100% - 4px);
   height: 28px;
   border-radius: 999px;
-  background: var(--surface-base);
+  background: color-mix(in srgb, var(--text) 24%, transparent);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, .2),
+    0 0 0 .5px rgba(0, 0, 0, .05),
+    inset 0 1px 0 color-mix(in srgb, var(--text) 14%, transparent);
+}
+:root[data-style="aqua"][data-scheme="light"] .floor-indicator {
+  background: #FFFFFF;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .2), 0 0 0 .5px rgba(0, 0, 0, .05);
+}
+:root[data-style="aqua"][data-scheme="light"] .map-root > .floor-switch {
+  background: color-mix(in srgb, color-mix(in srgb, var(--surface-base) 94%, black) 88%, transparent);
 }
 :root[data-style="rice"] .floor-item.selected { background: transparent; color: var(--accent-text); }
 :root[data-style="rice"] .floor-indicator {
@@ -151,13 +176,76 @@
   border: 1.5px solid var(--accent);
 }
 
-/* Without the glass the controls lie on the wallpaper: give them a solid-ish backdrop. */
-.tile.no-bg .floor-switch,
-.tile.no-bg .map-root .map-search,
-.tile.no-bg .map-zoom .icon-btn { background: color-mix(in srgb, var(--surface-base) 85%, transparent); }
-.tile.no-bg .map-root .map-search:hover,
-.tile.no-bg .map-zoom .icon-btn:hover { background: color-mix(in srgb, var(--surface-base) 95%, transparent); }
-.tile.no-bg .map-zoom .icon-btn:active { background: color-mix(in srgb, var(--surface-base) 75%, transparent); }
+/* =====================================================================================
+   Paint mode: the brush in the bottom corner opposite the zoom column; while painting, the palette next to it
+   (a control group like the floor switch: control fill, kit swatches, the eraser, «Готово»), and above it the
+   «Свой цвет» popover with the kit colour picker in a compact layout (no preset row, no R/G/B fields).
+   ===================================================================================== */
+.map-paint-dock { display: flex; align-items: flex-end; gap: var(--s2); }
+.map-paint {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+  min-width: 0;
+  padding: var(--s1) var(--s2);
+  border-radius: var(--r-ctl);
+  border: var(--ctl-border-w) solid var(--ctl-stroke);
+  animation: map-paint-in var(--t-base) var(--ease-in);
+}
+@keyframes map-paint-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.map-paint-colors { display: flex; align-items: center; gap: var(--s2); padding: var(--s1) 0; }
+/* Kit swatches without the hover zoom: nothing in a tile changes scale (SPEC §3). */
+.map-paint .cp-swatch { flex: 0 0 auto; }
+.map-paint .cp-swatch:hover { transform: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25), 0 0 0 1px var(--ctl-stroke-strong); }
+.map-paint .cp-swatch.custom { display: grid; place-items: center; }
+.map-paint-custom-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--r2);
+  background: var(--sw);
+  box-shadow: 0 0 0 2px var(--surface-base);
+}
+:root[data-style="aqua"] .map-paint-custom-dot { border-radius: 50%; }
+.map-paint-pop.popover {
+  top: auto;
+  bottom: calc(100% + var(--s2));
+  left: 0;
+  width: 296px;
+  min-width: 0;
+  max-width: calc(100vw - 2 * var(--s2));
+  max-height: none;
+  padding: var(--s3);
+  overflow: visible;
+}
+.map-paint-pop.popover.over { bottom: 0; }
+.map-root[data-switch="left"] .map-paint-pop.popover { left: auto; right: 0; }
+.map-paint-pop .cp-swatches { display: none; }
+.map-paint-pop .cp-custom { grid-template-columns: 1fr 112px; }
+.map-paint-pop .cp-fields > .textfield:not(.hex) { display: none; }
+
+/* The overlays float over the plan once it is zoomed (and, without the glass, over the wallpaper): the thin kit
+   control fill would let room colours through, so each overlay has a solid-ish surface of its own, with the same
+   rest / hover / pressed steps. Items inside them (floor items, the eraser) keep the kit fills on top. */
+.map-root {
+  --map-ctl: color-mix(in srgb, var(--surface-base) 86%, transparent);
+  --map-ctl-hover: color-mix(in srgb, color-mix(in srgb, var(--surface-base) 92%, var(--text)) 90%, transparent);
+  --map-ctl-pressed: color-mix(in srgb, var(--surface-base) 76%, transparent);
+}
+.map-root > :is(.floor-switch, .map-search),
+.map-zoom > .icon-btn,
+.map-paint-dock > .icon-btn,
+.map-paint { background: var(--map-ctl); }
+.map-root > .map-search:hover,
+.map-zoom > .icon-btn:hover,
+.map-paint-dock > .icon-btn:hover { background: var(--map-ctl-hover); }
+.map-zoom > .icon-btn:active,
+.map-paint-dock > .icon-btn:active { background: var(--map-ctl-pressed); }
+.map-paint-dock > .icon-btn.selected { background: color-mix(in srgb, var(--accent) 22%, var(--surface-base)); }
 
 /* =====================================================================================
    Floor change (SPEC §3): the old floor slides 12 px and fades out, the new one arrives from the opposite
@@ -175,14 +263,38 @@
 }
 
 /* =====================================================================================
-   Colour schemes — variables on [data-map-scheme] (the tile's .map-root and the legend in settings).
-   Defaults = «Стекло» (the v1 monochrome). Scheme colours are data: mixed with the palette's surface so
-   they sit right on dark, darker and black; light palettes get their own tones below.
-     -p / -k / -l / -o   rooms by data-name suffix (P, K, L, none)
-     -x                  named areas: library, dining hall, assembly hall, gym, coworking, Mediker
-     -wc / -exit / -tech toilets, escape routes, technical rooms
+   Colour schemes: variables on [data-map-scheme] (the tile's .map-root and the legends in settings). Hues are
+   data. A light hue that is darkened by a dark background turns olive or brown (sand, peach), so on dark palettes
+   the coloured schemes keep their fills luminous: the hues at high alpha over the glass with dark codes, never
+   mixed with the dark surface. Light palettes get light tints. Rooms without a letter, the most common kind,
+   take the calm cream so the typed rooms (P, K, L) carry the colour.
+     --mp-fill-p / -k / -l / -o   rooms by the data-name suffix (P, K, L, none)
+     --mp-fill-x                  gym, coworking and the named areas (library, dining and assembly hall, Mediker)
+     --mp-fill-wc / -exit / -tech toilets, escape routes, technical rooms (subdued)
+     --mp-stroke / -wall / -outline   room edges (1 px), walls (1.25 px), building outline (1.5 px)
+     --mp-label / -label-free / -block   room codes, free lettering, the block names C1.1 / C1.2 / C1.3
+     --mp-pict-* / --mp-glyph-*   pictogram plate and glyph per kind (toilet, exit, stairs)
    ===================================================================================== */
 [data-map-scheme] {
+  /* «Пастель» hues */
+  --hue-p: 125 211 252;    /* sky #7DD3FC */
+  --hue-k: 134 239 172;    /* mint #86EFAC */
+  --hue-l: 196 181 253;    /* lavender #C4B5FD */
+  --hue-o: 253 230 138;    /* sand #FDE68A */
+  --hue-x: 253 186 116;    /* gym, coworking #FDBA74 */
+  --hue-wc: 103 232 249;   /* toilets #67E8F9 */
+  --hue-exit: 252 165 165; /* exits #FCA5A5 */
+  --hue-tech: 203 213 225; /* technical #CBD5E1 */
+  /* «Яркая»: the saturated members of the same families */
+  --viv-p: 56 189 248;     /* #38BDF8 */
+  --viv-k: 74 222 128;     /* #4ADE80 */
+  --viv-l: 167 139 250;    /* #A78BFA */
+  --viv-x: 251 146 60;     /* #FB923C */
+  --viv-wc: 34 211 238;    /* #22D3EE */
+  --viv-exit: 248 113 113; /* #F87171 */
+  --viv-tech: 148 163 184; /* #94A3B8 */
+
+  /* «Стекло»: the v1 monochrome plan (tokens.css --map-*). */
   --mp-fill-p: var(--map-room-fill);
   --mp-fill-k: var(--map-room-fill);
   --mp-fill-l: var(--map-room-fill);
@@ -192,97 +304,124 @@
   --mp-fill-exit: var(--map-room-fill);
   --mp-fill-tech: var(--map-room-fill);
   --mp-stroke: var(--map-room-stroke);
-  --mp-stroke-w: .6;
   --mp-wall: var(--map-room-stroke);
+  --mp-outline: color-mix(in srgb, var(--text) 30%, transparent);
   --mp-stairs: var(--map-void);
   --mp-void: var(--map-void);
   --mp-label: var(--map-label);
+  --mp-label-free: var(--text-2);
+  --mp-block: var(--text-3);
   --mp-pict-wc: var(--text-3);
   --mp-pict-exit: var(--text-3);
-  --mp-pict-tech: var(--text-3);
   --mp-pict-stairs: var(--text-3);
-  --mp-pict-glyph: var(--surface-base);
+  --mp-glyph-wc: var(--surface-base);
+  --mp-glyph-exit: var(--surface-base);
+  --mp-glyph-stairs: var(--surface-base);
   --mp-bg-fill: none;
-  --mp-bg-stroke: var(--map-room-stroke);
+  /* Halos when the plan lies on the wallpaper (no glass): free lettering always; room codes only where they sit
+     on a see-through fill (transparent when the fills are opaque enough to carry them). */
+  --mp-halo: color-mix(in srgb, var(--surface-base) 72%, transparent);
+  --mp-label-halo: var(--mp-halo);
 }
 
-/* «Пастель»: soft tones by type — P sky blue, K green, L lavender, no letter sand; services muted; labels contrast. */
+/* «Стекло», light palettes: stairwells and the atrium void as soft wells instead of the dark v1 blocks. */
+:root[data-scheme="light"] [data-map-scheme="glass"] {
+  --mp-stairs: color-mix(in srgb, var(--text) 14%, transparent);
+  --mp-void: color-mix(in srgb, var(--text) 20%, transparent);
+}
+
+/* «Пастель», dark palettes: luminous pastels over the glass, cream for rooms without a letter, dark codes,
+   dark seams; pictograms as dark plates with the glyph in its colour. */
 [data-map-scheme="pastel"] {
-  --mp-fill-p: color-mix(in srgb, #60CDFF 30%, var(--surface-base));
-  --mp-fill-k: color-mix(in srgb, #8CE0B0 30%, var(--surface-base));
-  --mp-fill-l: color-mix(in srgb, #C7B6FF 34%, var(--surface-base));
-  --mp-fill-o: color-mix(in srgb, #FFD66B 26%, var(--surface-base));
-  --mp-fill-x: color-mix(in srgb, #FFB6A8 22%, var(--surface-base));
-  --mp-fill-wc: color-mix(in srgb, #88C0D0 16%, var(--surface-base));
-  --mp-fill-exit: color-mix(in srgb, #FF9B8E 18%, var(--surface-base));
-  --mp-fill-tech: color-mix(in srgb, var(--text) 7%, var(--surface-base));
-  --mp-stroke: color-mix(in srgb, var(--text) 20%, transparent);
+  --mp-fill-p: rgb(var(--hue-p) / .86);
+  --mp-fill-k: rgb(var(--hue-k) / .80);
+  --mp-fill-l: rgb(var(--hue-l) / .86);
+  --mp-fill-o: color-mix(in srgb, color-mix(in srgb, rgb(var(--hue-o)) 60%, white) 90%, transparent);
+  --mp-fill-x: color-mix(in srgb, color-mix(in srgb, rgb(var(--hue-x)) 85%, white) 86%, transparent);
+  --mp-fill-wc: rgb(var(--hue-wc) / .78);
+  --mp-fill-exit: rgb(var(--hue-exit) / .86);
+  --mp-fill-tech: rgb(var(--hue-tech) / .22);
+  --mp-stroke: rgb(0 0 0 / .32);
   --mp-wall: color-mix(in srgb, var(--text) 30%, transparent);
-  --mp-stairs: color-mix(in srgb, var(--text) 10%, transparent);
-  --mp-label: color-mix(in srgb, var(--text) 92%, transparent);
-  --mp-pict-wc: color-mix(in srgb, #5EB1E6 80%, var(--surface-base));
-  --mp-pict-exit: color-mix(in srgb, #FF7B6B 80%, var(--surface-base));
+  --mp-outline: color-mix(in srgb, var(--text) 40%, transparent);
+  --mp-stairs: color-mix(in srgb, var(--text) 14%, transparent);
+  --mp-label: rgb(0 0 0 / .78);
+  --mp-pict-wc: color-mix(in srgb, var(--surface-base) 88%, transparent);
+  --mp-pict-exit: color-mix(in srgb, var(--surface-base) 88%, transparent);
+  --mp-pict-stairs: color-mix(in srgb, var(--surface-base) 88%, transparent);
+  --mp-glyph-wc: rgb(var(--hue-wc));
+  --mp-glyph-exit: rgb(var(--hue-exit));
+  --mp-glyph-stairs: var(--text);
   --mp-bg-fill: color-mix(in srgb, var(--text) 3%, transparent);
-  --mp-bg-stroke: color-mix(in srgb, var(--text) 14%, transparent);
+  --mp-label-halo: transparent;
 }
+/* «Пастель», light palettes: light tints of the same hues, dark codes; pictograms as deep plates, light glyphs. */
 :root[data-scheme="light"] [data-map-scheme="pastel"] {
-  --mp-fill-p: color-mix(in srgb, #3B82F6 20%, var(--surface-base));
-  --mp-fill-k: color-mix(in srgb, #10B981 22%, var(--surface-base));
-  --mp-fill-l: color-mix(in srgb, #8B5CF6 18%, var(--surface-base));
-  --mp-fill-o: color-mix(in srgb, #F59E0B 22%, var(--surface-base));
-  --mp-fill-x: color-mix(in srgb, #F97316 14%, var(--surface-base));
-  --mp-fill-wc: color-mix(in srgb, #0EA5E9 10%, var(--surface-base));
-  --mp-fill-exit: color-mix(in srgb, #EF4444 12%, var(--surface-base));
-  --mp-fill-tech: color-mix(in srgb, var(--text) 6%, var(--surface-base));
+  --mp-fill-p: color-mix(in srgb, rgb(var(--hue-p)) 55%, white);
+  --mp-fill-k: color-mix(in srgb, rgb(var(--hue-k)) 55%, white);
+  --mp-fill-l: color-mix(in srgb, rgb(var(--hue-l)) 55%, white);
+  --mp-fill-o: color-mix(in srgb, rgb(var(--hue-o)) 48%, white);
+  --mp-fill-x: color-mix(in srgb, rgb(var(--hue-x)) 55%, white);
+  --mp-fill-wc: color-mix(in srgb, rgb(var(--hue-wc)) 45%, white);
+  --mp-fill-exit: color-mix(in srgb, rgb(var(--hue-exit)) 55%, white);
+  --mp-fill-tech: color-mix(in srgb, rgb(var(--hue-tech)) 45%, white);
   --mp-stroke: color-mix(in srgb, var(--text) 22%, transparent);
-  --mp-wall: color-mix(in srgb, var(--text) 35%, transparent);
-  --mp-label: var(--text);
-  --mp-pict-wc: color-mix(in srgb, #0369A1 85%, var(--surface-base));
-  --mp-pict-exit: color-mix(in srgb, #C2410C 85%, var(--surface-base));
-  --mp-pict-tech: var(--text-2);
+  --mp-wall: color-mix(in srgb, var(--text) 30%, transparent);
+  --mp-outline: color-mix(in srgb, var(--text) 42%, transparent);
+  --mp-stairs: color-mix(in srgb, var(--text) 9%, transparent);
+  --mp-void: color-mix(in srgb, var(--text) 11%, transparent);
+  --mp-pict-wc: #0E7490;
+  --mp-pict-exit: #B91C1C;
   --mp-pict-stairs: var(--text-2);
-  --mp-bg-stroke: color-mix(in srgb, var(--text) 16%, transparent);
+  --mp-glyph-wc: var(--surface-base);
+  --mp-glyph-exit: var(--surface-base);
+  --mp-glyph-stairs: var(--surface-base);
+  --mp-bg-fill: color-mix(in srgb, var(--text) 2%, transparent);
 }
 
-/* «Яркая»: saturated fills, white labels on dark palettes, light fills with dark labels on light ones. */
+/* «Яркая», dark palettes: saturated opaque fills (sand stays the calm base), dark codes, dark seams. */
 [data-map-scheme="vivid"] {
-  --mp-fill-p: #2F7FE0;
-  --mp-fill-k: #1F9D6A;
-  --mp-fill-l: #8A62E6;
-  --mp-fill-o: #C98A1E;
-  --mp-fill-x: #C75A4A;
-  --mp-fill-wc: #3A8FB7;
-  --mp-fill-exit: #D64545;
-  --mp-fill-tech: #5E6670;
-  --mp-stroke: color-mix(in srgb, var(--surface-base) 70%, transparent);
-  --mp-stroke-w: .8;
-  --mp-wall: color-mix(in srgb, var(--text) 45%, transparent);
-  --mp-stairs: color-mix(in srgb, var(--text) 16%, transparent);
-  --mp-label: var(--text);
-  --mp-pict-wc: #7FD1FF;
-  --mp-pict-exit: #FF8A80;
-  --mp-pict-tech: #C8CCD6;
-  --mp-pict-stairs: #C8CCD6;
+  --mp-fill-p: rgb(var(--viv-p));
+  --mp-fill-k: rgb(var(--viv-k));
+  --mp-fill-l: rgb(var(--viv-l));
+  --mp-fill-o: rgb(var(--hue-o));
+  --mp-fill-x: rgb(var(--viv-x));
+  --mp-fill-wc: rgb(var(--viv-wc));
+  --mp-fill-exit: rgb(var(--viv-exit));
+  --mp-fill-tech: rgb(var(--viv-tech) / .50);
+  --mp-stroke: rgb(0 0 0 / .45);
+  --mp-wall: color-mix(in srgb, var(--text) 50%, transparent);
+  --mp-outline: color-mix(in srgb, var(--text) 60%, transparent);
+  --mp-stairs: color-mix(in srgb, var(--text) 22%, transparent);
+  --mp-label: rgb(0 0 0 / .85);
+  --mp-label-free: var(--text);
+  --mp-block: var(--text-2);
+  --mp-pict-wc: color-mix(in srgb, var(--surface-base) 88%, transparent);
+  --mp-pict-exit: color-mix(in srgb, var(--surface-base) 88%, transparent);
+  --mp-pict-stairs: color-mix(in srgb, var(--surface-base) 88%, transparent);
+  --mp-glyph-wc: rgb(var(--viv-wc));
+  --mp-glyph-exit: rgb(var(--viv-exit));
+  --mp-glyph-stairs: var(--text);
   --mp-bg-fill: color-mix(in srgb, var(--text) 4%, transparent);
-  --mp-bg-stroke: color-mix(in srgb, var(--text) 18%, transparent);
+  --mp-label-halo: transparent;
 }
+/* «Яркая», light palettes: the same saturated fills, strong edges, deep pictogram plates. */
 :root[data-scheme="light"] [data-map-scheme="vivid"] {
-  --mp-fill-p: #8CC4FF;
-  --mp-fill-k: #6FD39A;
-  --mp-fill-l: #C4A8FF;
-  --mp-fill-o: #FFC75A;
-  --mp-fill-x: #FFA089;
-  --mp-fill-wc: #9ED4F5;
-  --mp-fill-exit: #FFB0A8;
-  --mp-fill-tech: #CBD0D8;
-  --mp-stroke: color-mix(in srgb, var(--text) 35%, transparent);
-  --mp-pict-wc: #0369A1;
-  --mp-pict-exit: #B83225;
-  --mp-pict-tech: #4A4F5A;
-  --mp-pict-stairs: #4A4F5A;
+  --mp-fill-tech: color-mix(in srgb, rgb(var(--viv-tech)) 60%, white);
+  --mp-stroke: color-mix(in srgb, var(--text) 40%, transparent);
+  --mp-wall: color-mix(in srgb, var(--text) 45%, transparent);
+  --mp-outline: color-mix(in srgb, var(--text) 60%, transparent);
+  --mp-stairs: color-mix(in srgb, var(--text) 14%, transparent);
+  --mp-void: color-mix(in srgb, var(--text) 14%, transparent);
+  --mp-pict-wc: #0E7490;
+  --mp-pict-exit: #B91C1C;
+  --mp-pict-stairs: var(--text);
+  --mp-glyph-wc: var(--surface-base);
+  --mp-glyph-exit: var(--surface-base);
+  --mp-glyph-stairs: var(--surface-base);
 }
 
-/* «Контур»: lines and labels only, transparent fills. */
+/* «Контур»: lines and labels only; every fill is empty, pictograms in the secondary text colour. */
 [data-map-scheme="outline"] {
   --mp-fill-p: none;
   --mp-fill-k: none;
@@ -292,39 +431,42 @@
   --mp-fill-wc: none;
   --mp-fill-exit: none;
   --mp-fill-tech: none;
-  --mp-stroke: color-mix(in srgb, var(--text) 45%, transparent);
-  --mp-stroke-w: .8;
-  --mp-wall: color-mix(in srgb, var(--text) 45%, transparent);
-  --mp-stairs: color-mix(in srgb, var(--text) 12%, transparent);
-  --mp-void: color-mix(in srgb, var(--text) 6%, transparent);
+  --mp-stroke: color-mix(in srgb, var(--text) 55%, transparent);
+  --mp-wall: color-mix(in srgb, var(--text) 38%, transparent);
+  --mp-outline: color-mix(in srgb, var(--text) 55%, transparent);
+  --mp-stairs: none;
+  --mp-void: none;
   --mp-label: var(--text-2);
   --mp-pict-wc: var(--text-2);
   --mp-pict-exit: var(--text-2);
-  --mp-pict-tech: var(--text-2);
   --mp-pict-stairs: var(--text-2);
-  --mp-bg-stroke: color-mix(in srgb, var(--text) 30%, transparent);
 }
 
-/* Without the glass only the building silhouette carries the plan: a 35 % surface fill reads on any wallpaper. */
-.tile.no-bg .map-root[data-map-scheme] {
-  --mp-bg-fill: color-mix(in srgb, var(--surface-base) 35%, transparent);
-  --mp-bg-stroke: color-mix(in srgb, var(--text) 28%, transparent);
-}
+/* Without the glass: the silhouette (on by default) is a 35 % surface fill under the building outline, so the
+   plan reads on any wallpaper; without it only the plan itself remains. */
+.tile.no-bg .map-root[data-silhouette="on"] { --mp-bg-fill: color-mix(in srgb, var(--surface-base) 35%, transparent); }
+.tile.no-bg .map-root[data-silhouette="off"] { --mp-bg-fill: none; }
 
 /* =====================================================================================
-   The drawing (geometry from aitumap; every colour comes from the scheme variables above)
+   The drawing (geometry from aitumap; every colour comes from the scheme variables above). Strokes do not
+   scale: 1 px room edges, 1.25 px walls, 1.5 px building outline at any zoom.
    ===================================================================================== */
-.map-svg .bg { fill: var(--mp-bg-fill); stroke: var(--mp-bg-stroke); stroke-width: .6; }
-.map-svg .label-huge { fill: var(--text-3); stroke: none; pointer-events: none; }
+.map-svg .bg {
+  fill: var(--mp-bg-fill);
+  stroke: var(--mp-outline);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.map-svg .label-huge { fill: var(--mp-block); stroke: none; pointer-events: none; }
 
-/* Rooms and room-like areas. `pointer-events: visible` keeps the interior right-clickable in «Контур» (fill none). */
+/* Rooms and room-like areas. `pointer-events: visible` keeps the interior clickable in «Контур» (fill none). */
 .map-svg g[data-name] { transition: opacity var(--t-base) var(--ease-in); }
-.map-svg .map-groups-rooms :is(polygon, polyline, line, rect),
-.map-svg .map-groups-rooms-vk :is(polygon, polyline, line, rect),
+.map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) :is(polygon, polyline, line, rect),
 .map-svg g[data-name] > :is(polygon, polyline, line, rect) {
   fill: var(--mp-fill-o);
   stroke: var(--mp-stroke);
-  stroke-width: var(--mp-stroke-w);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
   pointer-events: visible;
   transition: fill var(--t-base) var(--ease-in), stroke var(--t-base) var(--ease-in);
 }
@@ -337,52 +479,113 @@
 .map-svg .map-groups-coworking-atameken :is(polygon, polyline, line, rect) {
   fill: var(--mp-fill-x);
   stroke: var(--mp-stroke);
-  stroke-width: var(--mp-stroke-w);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 /* Services. */
-.map-svg .map-groups-wcs :is(polygon, polyline, line, rect) { fill: var(--mp-fill-wc); stroke: var(--mp-stroke); stroke-width: var(--mp-stroke-w); }
-.map-svg .map-groups-escapes :is(polygon, polyline, line, rect) { fill: var(--mp-fill-exit); stroke: var(--mp-stroke); stroke-width: var(--mp-stroke-w); }
-.map-svg .map-groups-techs :is(polygon, polyline, line, rect) { fill: var(--mp-fill-tech); stroke: var(--mp-stroke); stroke-width: var(--mp-stroke-w); }
-/* Walls, gym decorations and the coworking curves: stroke only. */
-.map-svg .map-groups-walls :is(path, polygon, polyline, line, rect),
+.map-svg :is(.map-groups-wcs, .map-groups-escapes, .map-groups-techs) :is(polygon, polyline, line, rect) {
+  stroke: var(--mp-stroke);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.map-svg .map-groups-wcs :is(polygon, polyline, line, rect) { fill: var(--mp-fill-wc); }
+.map-svg .map-groups-escapes :is(polygon, polyline, line, rect) { fill: var(--mp-fill-exit); }
+.map-svg .map-groups-techs :is(polygon, polyline, line, rect) { fill: var(--mp-fill-tech); }
+/* Walls, gym markings and the coworking curves: lines only, quiet. */
+.map-svg .map-groups-walls :is(polygon, polyline, line, rect, path:not(.label)),
 .map-svg .map-groups-gym-pole :is(path, polygon, polyline, line, rect),
 .map-svg g.map-groups-coworking-atameken > path {
   fill: none;
   stroke: var(--mp-wall);
-  stroke-width: var(--mp-stroke-w);
+  stroke-width: 1.25;
+  vector-effect: non-scaling-stroke;
   transition: stroke var(--t-base) var(--ease-in);
 }
+.map-svg .map-groups-gym-pole :is(path, polygon, polyline, line, rect),
+.map-svg g.map-groups-coworking-atameken > path { stroke-width: 1; }
 /* Stairs and voids. */
-.map-svg .map-groups-stairs :is(polygon, polyline),
-.map-svg .map-groups-stairs-fill :is(polygon, polyline) { fill: var(--mp-stairs); stroke: var(--mp-stroke); stroke-width: var(--mp-stroke-w); }
-.map-svg .map-groups-void :is(path, polygon, polyline, line, rect) { fill: var(--mp-void); stroke: var(--mp-stroke); stroke-width: var(--mp-stroke-w); }
+.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) > :is(polygon, polyline) {
+  fill: var(--mp-stairs);
+  stroke: var(--mp-stroke);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.map-svg .map-groups-void :is(path, polygon, polyline, line, rect) {
+  fill: var(--mp-void);
+  stroke: var(--mp-stroke);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
 
-/* Room code glyphs: contrast colour of the scheme, no stroke, never a pointer target.
-   (The coworking group holds open curves and the Mediker group its logo — those are not labels.) */
-.map-svg .map-groups-rooms path,
-.map-svg .map-groups-rooms-vk path,
+/* Room codes: the scheme's label colour, no stroke, never a pointer target. (The coworking group holds open
+   curves and the Mediker group its logo: those are not labels.) */
+.map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) path,
 .map-svg g[data-name]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path {
   fill: var(--mp-label);
   stroke: none;
   pointer-events: none;
-  transition: fill var(--t-base) var(--ease-in);
 }
-/* Free labels (gym, open space): secondary text in every scheme. Declared after the walls rule it overrides. */
+/* Lettering outside the rooms (atrium, coworking, the hall, open space): it lies on the glass, not on a fill. */
 .map-svg path.label,
-.map-svg g.label path { fill: var(--text-2); stroke: none; pointer-events: none; }
+.map-svg g.label path,
+.map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) > g:not([data-name]) > path { fill: var(--mp-label-free); stroke: none; pointer-events: none; }
 
-/* Pictograms: a rounded square (first path) with the glyph cut out of it (second path). */
-.map-svg :is(.map-groups-wcs-icon, .map-groups-escapes-icon, .map-groups-techs-icon) path,
+/* Floor 1, «COWORKING»: the drawing sets it 112 units wide in an 81-unit band between the coworking curves and
+   the first coworking room, so its last letters sat on that room. Scaled to .66 about its own centre and moved
+   20 units left it fits the band. A CSS transform replaces the element's transform attribute, so the drawing's
+   own translate(-50.14 -158.86) is restated first. lod.ts reads this scale when it measures the lettering. */
+.map-svg g:has(> .map-groups-coworking-atameken) > path.label {
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: translate(-50.14px, -158.86px) translate(-20.35px, 0) scale(.66);
+}
+
+/* Pictograms: a rounded plate (first path) with the glyph cut out of it (second path). */
+.map-svg :is(.map-groups-wcs-icon, .map-groups-escapes-icon) path,
 .map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path,
-.map-svg g[data-name^="MEDIKER"] > path { stroke: none; pointer-events: none; transition: fill var(--t-base) var(--ease-in); }
+.map-svg g[data-name^="MEDIKER"] > path { stroke: none; pointer-events: none; }
 .map-svg .map-groups-wcs-icon path:nth-child(1) { fill: var(--mp-pict-wc); }
-.map-svg .map-groups-escapes-icon path:nth-child(1) { fill: var(--mp-pict-exit); }
-.map-svg .map-groups-techs-icon path:nth-child(1) { fill: var(--mp-pict-tech); }
-.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path:nth-child(1) { fill: var(--mp-pict-stairs); }
+.map-svg .map-groups-wcs-icon path:nth-child(2) { fill: var(--mp-glyph-wc); }
+.map-svg .map-groups-escapes-icon path:nth-child(1),
 .map-svg g[data-name^="MEDIKER"] > path:nth-of-type(1) { fill: var(--mp-pict-exit); }
-.map-svg :is(.map-groups-wcs-icon, .map-groups-escapes-icon, .map-groups-techs-icon) path:nth-child(2),
-.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path:nth-child(2),
-.map-svg g[data-name^="MEDIKER"] > path:nth-of-type(2) { fill: var(--mp-pict-glyph); }
+.map-svg .map-groups-escapes-icon path:nth-child(2),
+.map-svg g[data-name^="MEDIKER"] > path:nth-of-type(2) { fill: var(--mp-glyph-exit); }
+.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path:nth-child(1) { fill: var(--mp-pict-stairs); }
+.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path:nth-child(2) { fill: var(--mp-glyph-stairs); }
+
+/* Lettering on the wallpaper (no glass): a halo under the glyphs, 2.5 screen px. */
+.tile.no-bg .map-svg .label-huge,
+.tile.no-bg .map-svg :is(path.label, g.label path),
+.tile.no-bg .map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) > g:not([data-name]) > path,
+.tile.no-bg .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path {
+  paint-order: stroke fill;
+  stroke: var(--mp-halo);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.tile.no-bg .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path {
+  stroke: var(--mp-label-halo);
+}
+
+/* =====================================================================================
+   Level of detail (src/map/lod.ts): codes under 6.5 px and pictograms under 9 px on screen get .lod-off
+   (on the room group for its code, on the element itself otherwise). They fade out in 83 ms and back in 167 ms;
+   visibility keeps hidden ones out of painting.
+   ===================================================================================== */
+.map-svg g[data-name]:not(.map-groups-coworking-atameken) > path,
+.map-svg :is(.label, .map-groups-wcs-icon, .map-groups-escapes-icon),
+.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) > g,
+.map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) > g:not([data-name]),
+.map-svg g[data-name] > g:not([data-name]) {
+  transition: fill var(--t-base) var(--ease-in), opacity var(--t-base) var(--ease-in), visibility 0s;
+}
+.map-svg g[data-name].lod-off > path,
+.map-svg .lod-off:not(g[data-name]) {
+  opacity: 0;
+  visibility: hidden;
+  transition: fill var(--t-base) var(--ease-in), opacity var(--t-fast) var(--ease-in), visibility 0s linear var(--t-fast);
+}
 
 /* ---- Toggles: «Номера кабинетов» and «Пиктограммы» ---- */
 .map-root[data-labels="off"] .map-svg :is(
@@ -395,13 +598,13 @@
 .map-root[data-icons="off"] .map-svg :is(
   .map-groups-wcs-icon,
   .map-groups-escapes-icon,
-  .map-groups-techs-icon,
-  .map-groups-stairs g,
-  .map-groups-stairs-fill g,
-  g[data-name^="MEDIKER"] > path
+  .map-groups-stairs > g,
+  .map-groups-stairs-fill > g,
+  g[data-name^="MEDIKER"] > path,
+  g[data-name] > g:not([data-name])
 ) { display: none; }
 
-/* ---- Favourites: the room keeps its own colour over any scheme; the label takes the colour that reads on it ---- */
+/* ---- Marked rooms: the room keeps its own colour over any scheme; the code takes the colour that reads on it ---- */
 .map-svg g[data-name][data-fav] > :is(polygon, polyline, line, rect) {
   fill: var(--fav);
   stroke: color-mix(in srgb, var(--fav) 55%, var(--text));
@@ -411,12 +614,12 @@
 .map-svg g[data-name^="MEDIKER"][data-fav] > path:nth-of-type(1) { fill: var(--fav-on); }
 .map-svg g[data-name^="MEDIKER"][data-fav] > path:nth-of-type(2) { fill: var(--fav); }
 
-/* ---- Search (SPEC §3): found room — accent fill .9, label in on-accent, 2 px accent stroke; the rest at .35 ---- */
+/* ---- Search (SPEC §3): found room = accent fill .9, code in on-accent, 2 px accent edge; the rest at .35 ---- */
 .map-svg g[data-name].room-found > :is(polygon, polyline, line, rect) {
   fill: var(--accent);
   fill-opacity: .9;
   stroke: var(--accent);
-  stroke-width: calc(2 * var(--map-px, 1px));
+  stroke-width: 2;
 }
 .map-svg g[data-name].room-found:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path { fill: var(--on-accent); }
 .map-svg g.map-groups-coworking-atameken[data-name].room-found > path { stroke: var(--accent); }
@@ -425,8 +628,14 @@
 /* Room groups can nest (1.352K inside C1.1.353P): an unmatched parent of a found room must not dim it. */
 .map-svg.searching g[data-name]:not(.room-found):not(:has(.room-found)) { opacity: .35; }
 
+/* ---- Paint mode: a 2 px outline in the text colour on the room under the pointer ---- */
+.map-svg g[data-name].paint-hover > :is(polygon, polyline, line, rect) {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
 /* =====================================================================================
-   Settings → «Карта»: scheme legend in the option cards, favourites list
+   Settings → «Карта»: scheme legends in the option cards, the list of marked rooms
    ===================================================================================== */
 .map-scheme-grid { width: 100%; }
 .map-legend {
@@ -440,10 +649,10 @@
 .map-legend-sw {
   display: grid;
   place-items: center;
-  aspect-ratio: 1 / 1;
+  height: 22px;
   border-radius: var(--r2);
   background: var(--mp-fill-o);
-  border: 1px solid var(--mp-stroke);
+  box-shadow: inset 0 0 0 1px var(--mp-stroke);
   color: var(--mp-label);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -453,6 +662,9 @@
 .map-legend-sw[data-type="p"] { background: var(--mp-fill-p); }
 .map-legend-sw[data-type="k"] { background: var(--mp-fill-k); }
 .map-legend-sw[data-type="l"] { background: var(--mp-fill-l); }
+.map-legend-sw[data-type="x"] { grid-column: span 2; background: var(--mp-fill-x); }
+.map-legend-sw[data-type="wc"] { background: var(--mp-fill-wc); }
+.map-legend-sw[data-type="exit"] { background: var(--mp-fill-exit); }
 
 .map-fav-row { flex-direction: column; align-items: stretch; gap: var(--s3); }
 .map-fav-main { display: flex; align-items: center; gap: var(--s3); min-width: 0; }
@@ -462,22 +674,24 @@
   flex: 0 0 20px;
   border-radius: 50%;
   background: var(--fav);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 18%, transparent);
   outline: 2px solid transparent;
   outline-offset: 2px;
-  transition: outline-color var(--t-fast) var(--ease-in), transform var(--t-fast) var(--ease-in);
+  transition: outline-color var(--t-fast) var(--ease-in), box-shadow var(--t-fast) var(--ease-in);
 }
-.map-fav-dot:hover { transform: scale(1.08); }
+.map-fav-dot:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 18%, transparent), 0 0 0 4px var(--ctl-fill-hover); }
 .map-fav-dot.open { outline-color: var(--text); }
 .map-fav-dot:focus-visible { outline-color: var(--focus-ring); }
+:root[data-style="rice"] .map-fav-dot { border-radius: var(--r-sm); }
 .map-fav-text { flex: 0 1 auto; min-width: 96px; max-width: 40%; }
 .map-fav-note { flex: 1 1 160px; min-width: 120px; }
 .map-fav-picker { padding-left: calc(20px + var(--s3)); }
-.map-fav-empty {
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-  padding: var(--s5);
-  color: var(--text-3);
-}
-.map-fav-empty .icon { color: var(--text-3); }
+
+/* «Этаж при запуске» has no effect while the last floor is remembered: its fieldset disables the segmented control
+   (the kit Segmented has no disabled state of its own), which greys out together with the row label. */
+.map-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.row-control .map-fieldset:disabled .seg-item,
+.row-control .map-fieldset:disabled .seg-item:hover { color: var(--text-disabled); background: transparent; }
+.row-control .map-fieldset:disabled .seg-indicator { background: var(--ctl-fill-hover); border-color: var(--text-disabled); box-shadow: none; }
+.row-control .map-fieldset:disabled .seg-indicator::after { background: var(--text-disabled); }
+.row:has(.map-fieldset:disabled) .row-label { color: var(--text-disabled); }
