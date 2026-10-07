@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "../components/Button";
-import { ColorPicker } from "../components/ColorPicker";
 import { EmptyState } from "../components/EmptyState";
 import { hasIcon } from "../components/Icon";
 import { ResetSection } from "../components/ResetSection";
@@ -11,76 +10,55 @@ import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.launchers";
 import {
   BUILT_IN,
+  builtInItem,
   cacheIconSvgs,
+  customItem,
   hostOf,
   isBuiltInKey,
+  isBuiltInOriginal,
   moveCustom,
   removeCustom,
   setBuiltIn,
-  setBuiltInColor,
   siteIconMissing,
   visibleLaunchers,
+  type LauncherItem,
 } from "../lib/launchers";
-import { settings, type BuiltInLauncher, type CustomLauncher } from "../lib/settings";
+import { settings } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { iconSvgFor, trustedIconSvg } from "./launchers/iconCache";
 import { LauncherEditor } from "./launchers/LauncherEditor";
-import { LauncherIcon, type LauncherLook } from "./launchers/LauncherIcon";
+import { LauncherIcon } from "./launchers/LauncherIcon";
 import { LaunchersGrid } from "./launchers/LaunchersGrid";
 
 interface Props {
-  /** From ?edit= / settings-navigate: a custom id opens its editor, a built-in key opens its colour. */
+  /** From ?edit= / settings-navigate: a custom launcher id or a built-in key opens its editor. */
   editId?: string | null;
 }
 
-/** Dragging in the colour picker emits on every pointer move; the store is written this long after the last one. */
-const COLOR_COMMIT_MS = 120;
-
-type DraftColors = Partial<Record<BuiltInLauncher, string>>;
-
-const itemDomId = (key: BuiltInLauncher) => `ln-item-${key}`;
-
 /**
- * «Ярлыки»: live preview, built-in launchers (switch + colour), custom launchers (editor dialog), display
- * options, reset of the section.
+ * «Ярлыки»: live preview, built-in launchers (editor + switch), custom launchers (editor, order, delete),
+ * display options, reset of the section. Built-in and custom launchers share one editor; a built-in one is
+ * switched off instead of deleted.
  */
 export function LaunchersPage({ editId }: Props) {
   const s = useSettings();
   const loaded = useSettingsLoaded();
   const ln = s.launchers;
-  const [editor, setEditor] = useState<{ item: CustomLauncher | null } | null>(null);
-  const [colorOpen, setColorOpen] = useState<BuiltInLauncher | null>(null);
-  const [draftColors, setDraftColors] = useState<DraftColors>({});
+  /** The open editor: item null = a new launcher. */
+  const [editor, setEditor] = useState<{ item: LauncherItem | null } | null>(null);
   /** Launchers the preview hides behind «+N»: the hint then explains how to make the tile bigger. */
   const [previewHidden, setPreviewHidden] = useState(0);
-  const pending = useRef<{ key: BuiltInLauncher; hex: string; timer: number } | null>(null);
   const handledEdit = useRef<string | null>(null);
-  /** Set by the deep link: once the colour popover is open, move focus into it (a mouse toggle keeps focus on the dot). */
-  const focusPopover = useRef(false);
 
   // Deep link from the tile's context menu.
   useEffect(() => {
     if (!loaded || !editId || handledEdit.current === editId) return;
     handledEdit.current = editId;
-    const custom = settings.get().launchers.custom.find((c) => c.id === editId);
-    if (custom) setEditor({ item: custom });
-    else if (isBuiltInKey(editId)) {
-      focusPopover.current = true;
-      setColorOpen(editId);
-    }
+    const now = settings.get().launchers;
+    const custom = now.custom.find((c) => c.id === editId);
+    if (custom) setEditor({ item: customItem(custom) });
+    else if (isBuiltInKey(editId)) setEditor({ item: builtInItem(now, editId) });
   }, [loaded, editId]);
-
-  // The opened colour popover sits below the preview and the section heads: bring it into view, and after a
-  // deep link put focus on its current swatch so «Цвет…» on the tile lands on something visibly changed.
-  useEffect(() => {
-    if (!colorOpen) return;
-    const item = document.getElementById(itemDomId(colorOpen));
-    item?.scrollIntoView({ block: "nearest" });
-    if (!focusPopover.current) return;
-    focusPopover.current = false;
-    const pop = item?.querySelector<HTMLElement>(".ln-color-pop");
-    (pop?.querySelector<HTMLElement>('.cp-swatch[aria-checked="true"]') ?? pop?.querySelector<HTMLElement>(".cp-swatch"))?.focus();
-  }, [colorOpen]);
 
   // Launchers saved before the icon cache existed: store their icon markup once, so the desktop tile draws
   // them without loading the full icon set. The page shows these icons anyway, so this costs no extra load.
@@ -102,46 +80,15 @@ export function LaunchersPage({ editId }: Props) {
     };
   }, [loaded]);
 
-  // ---- Built-in colours: instant draft, debounced persistence ----
-  const commitColor = useCallback((key: BuiltInLauncher, hex: string) => {
-    const done = () =>
-      setDraftColors((d) => {
-        if (d[key] !== hex) return d; // a newer draft exists, keep it
-        const next = { ...d };
-        delete next[key];
-        return next;
-      });
-    setBuiltInColor(key, hex).then(done, done);
-  }, []);
-  const flushColor = useCallback(() => {
-    const p = pending.current;
-    if (!p) return;
-    window.clearTimeout(p.timer);
-    pending.current = null;
-    commitColor(p.key, p.hex);
-  }, [commitColor]);
-  const changeBuiltInColor = (key: BuiltInLauncher, hex: string) => {
-    setDraftColors((d) => ({ ...d, [key]: hex }));
-    if (pending.current) window.clearTimeout(pending.current.timer);
-    const timer = window.setTimeout(() => {
-      pending.current = null;
-      commitColor(key, hex);
-    }, COLOR_COMMIT_MS);
-    pending.current = { key, hex, timer };
-  };
-  useEffect(() => () => flushColor(), [flushColor]);
-  const toggleColor = (key: BuiltInLauncher) => {
-    flushColor();
-    setColorOpen((cur) => (cur === key ? null : key));
-  };
-
-  const items = useMemo(
+  const items = useMemo(() => visibleLaunchers(s), [s]);
+  /** Every built-in as it shows now (edits applied, switched off or not), and whether it differs from the original. */
+  const builtIns = useMemo(
     () =>
-      visibleLaunchers(s).map((it) => {
-        const draft = isBuiltInKey(it.id) ? draftColors[it.id] : undefined;
-        return draft ? { ...it, color: draft } : it;
+      BUILT_IN.map((b) => {
+        const item = builtInItem(ln, b.id);
+        return { key: b.id, item, changed: !isBuiltInOriginal(b.id, item) };
       }),
-    [s, draftColors],
+    [ln],
   );
 
   const openNew = () => setEditor({ item: null });
@@ -162,36 +109,26 @@ export function LaunchersPage({ editId }: Props) {
       </div>
 
       <Section title={ru.settings.launchers.builtIn} description={extra.builtInHint}>
-        {BUILT_IN.map((b) => {
-          const on = ln.builtIn[b.id];
-          const color = draftColors[b.id] ?? ln.builtInColors[b.id];
-          const open = colorOpen === b.id;
-          const look: LauncherLook = { name: b.name, url: b.url, icon: { kind: "fluent", name: b.icon }, color };
+        {builtIns.map(({ key, item, changed }) => {
+          const on = ln.builtIn[key];
           return (
-            <div key={b.id} id={itemDomId(b.id)} className={on ? "ln-item" : "ln-item off"}>
-              <div className="row ln-row">
-                <LauncherIcon look={look} />
-                <div className="row-text">
-                  <span className="row-label ellipsis">{b.name}</span>
-                  <span className="row-hint mono ellipsis">{hostOf(b.url)}</span>
-                </div>
-                <div className="row-control">
-                  <button
-                    type="button"
-                    className={open ? "cp-swatch ln-dot selected" : "cp-swatch ln-dot"}
-                    style={{ background: color }}
-                    aria-label={extra.colorOf(b.name)}
-                    aria-expanded={open}
-                    onClick={() => toggleColor(b.id)}
-                  />
-                  <Switch checked={on} ariaLabel={b.name} onChange={(v) => void setBuiltIn(b.id, v)} />
-                </div>
+            <div key={key} className={on ? "row ln-row" : "row ln-row off"}>
+              <LauncherIcon look={item} />
+              {/* Host only (the full URL is in the editor), then a word when it differs from the original. */}
+              <div className="row-text">
+                <span className="row-label ellipsis">{item.name}</span>
+                <span className="row-hint ellipsis">
+                  <span className="mono">{hostOf(item.url)}</span>
+                  {changed && ` · ${extra.changed}`}
+                </span>
+                {siteIconMissing(item.icon) && <span className="row-hint ln-warn">{ru.settings.launchers.iconFailed}</span>}
               </div>
-              {open && (
-                <div className="ln-color-pop">
-                  <ColorPicker value={color} onChange={(hex) => changeBuiltInColor(b.id, hex)} />
-                </div>
-              )}
+              <div className="row-control">
+                <Tooltip text={ru.common.edit}>
+                  <IconButton icon="edit" label={ru.common.edit} variant="subtle" onClick={() => setEditor({ item })} />
+                </Tooltip>
+                <Switch checked={on} ariaLabel={item.name} onChange={(v) => void setBuiltIn(key, v)} />
+              </div>
             </div>
           );
         })}
@@ -227,7 +164,7 @@ export function LaunchersPage({ editId }: Props) {
                       <IconButton icon="arrow_down" label={extra.moveDown} variant="subtle" disabled={last} onClick={() => void moveCustom(c.id, 1)} />
                     </Tooltip>
                     <Tooltip text={ru.common.edit}>
-                      <IconButton icon="edit" label={ru.common.edit} variant="subtle" onClick={() => setEditor({ item: c })} />
+                      <IconButton icon="edit" label={ru.common.edit} variant="subtle" onClick={() => setEditor({ item: customItem(c) })} />
                     </Tooltip>
                     <Tooltip text={ru.common.remove}>
                       <IconButton icon="delete" label={ru.common.remove} variant="danger" onClick={() => void removeCustom(c.id)} />

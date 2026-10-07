@@ -1,0 +1,59 @@
+/* «Напоминания» page of the settings window: timing lists with «Свой вариант» phrases, the live example for
+   deadlines, quiet hours. Kit sections, rows and controls; tokens only, so every style and palette applies. */
+
+/* The lists open downwards over the rows and cards that follow, so these cards do not clip their content
+   (nothing in them paints into the rounded corners). */
+.section.rem-section { overflow: visible; }
+
+/* One width for every list, so the column of choices lines up. */
+.rem-select .select-btn { min-width: 208px; }
+
+/* A choice that does not apply now (its switch is off): the fieldset disables what is inside. */
+.rem-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.rem-fieldset:disabled .select-btn,
+.rem-fieldset:disabled .select-btn:hover { color: var(--text-disabled); background: var(--ctl-fill); }
+.rem-fieldset:disabled .select-btn .icon,
+.rem-fieldset:disabled .rem-word { color: var(--text-disabled); }
+.rem-fieldset:disabled .textfield-input,
+.rem-fieldset:disabled .textfield-input:hover { background: var(--ctl-fill); cursor: default; }
+.rem-fieldset:disabled .seg-item,
+.rem-fieldset:disabled .seg-item:hover { color: var(--text-disabled); background: transparent; }
+.rem-fieldset:disabled .seg-indicator { background: var(--ctl-fill-hover); border-color: var(--text-disabled); box-shadow: none; }
+.rem-fieldset:disabled .seg-indicator::after { background: var(--text-disabled); }
+.row:has(.rem-fieldset:disabled) .row-label,
+.row.rem-sub:has(.rem-fieldset:disabled) .row-hint { color: var(--text-disabled); }
+
+/* «Свой вариант» and the quiet hours: a phrase under the row it belongs to, without a divider between them
+   («За [2] [дня] до дедлайна», «С [23:00] до [08:00]»), then one line of hint or error. */
+.section .row.rem-sub {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--s1);
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: var(--s3);
+  border-top: 0;
+}
+.rem-phrase { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.rem-word { color: var(--text-2); }
+.rem-number { width: 72px; }
+.rem-time { width: 80px; }
+.rem-caution { color: var(--caution); }
+
+/* What the deadline settings give for a sample deadline. */
+.section .row.rem-example { padding-top: var(--s3); padding-bottom: var(--s3); }
+.rem-example-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-ctl);
+  background: var(--surface-3);
+}
+.rem-example-text { color: var(--text); }
+.rem-example-count { color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); }
+/* Rice: outlined, no fill, as its other panels. */
+:root[data-style="rice"] .rem-example-box { background: transparent; border: var(--ctl-border-w) solid var(--accent-soft); }

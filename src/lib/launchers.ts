@@ -4,7 +4,9 @@ import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.launchers";
 import { SWATCHES, hexToRgb, isHex, luminance, rgbToHex, shade } from "./design";
 import {
+  DEFAULT_LAUNCHERS,
   settings,
+  type BuiltInEdit,
   type BuiltInLauncher,
   type CustomLauncher,
   type LauncherIcon,
@@ -12,19 +14,21 @@ import {
   type Settings,
 } from "./settings";
 
-export interface LauncherItem {
-  /** Built-in key ("du" | "moodle" | "learn") or the custom launcher id. */
-  id: string;
-  kind: "builtin" | "custom";
+/** What the launcher editor sets, for custom and built-in launchers alike. */
+export interface LauncherDraft {
   /** Full name: settings rows, accessible name, tooltip. */
   name: string;
-  /** Caption under the icon on the tile: a short name for built-ins, the name for custom launchers. */
-  caption: string;
   url: string;
   icon: LauncherIcon;
   /** #RRGGBB tint. */
   color: string;
 }
+
+/** A launcher as the tile shows it: a built-in one (key, the user's edits applied) or a custom one (its id). */
+export type LauncherItem = LauncherDraft & {
+  /** Caption under the icon on the tile: a built-in keeps its short name until it is renamed. */
+  caption: string;
+} & ({ kind: "builtin"; id: BuiltInLauncher } | { kind: "custom"; id: string });
 
 export interface BuiltInDef {
   id: BuiltInLauncher;
@@ -59,25 +63,54 @@ export function builtInDef(id: BuiltInLauncher): BuiltInDef {
   return BUILT_IN.find((b) => b.id === id) ?? BUILT_IN[0];
 }
 
+/** True for the built-in's own Fluent icon, cached markup or not (it is in the eager set and never stored). */
+const isOriginalIcon = (def: BuiltInDef, icon: LauncherIcon): boolean => icon.kind === "fluent" && icon.name === def.icon;
+
+/** A built-in launcher as it shows now: the user's edits over the original, with its colour. */
+export function builtInItem(ln: LaunchersSettings, key: BuiltInLauncher): LauncherItem {
+  const def = builtInDef(key);
+  const edit = ln.builtInEdits[key];
+  return {
+    id: key,
+    kind: "builtin",
+    name: edit?.name ?? def.name,
+    caption: edit?.name ?? def.short,
+    url: edit?.url ?? def.url,
+    icon: edit?.icon ?? { kind: "fluent", name: def.icon },
+    color: ln.builtInColors[key],
+  };
+}
+
+/** The untouched built-in launcher: original name, address and icon, default colour. */
+export const builtInOriginal = (key: BuiltInLauncher): LauncherItem => builtInItem(DEFAULT_LAUNCHERS, key);
+
+/** True when `look` is the untouched built-in `key` (a cached copy of the icon markup aside). */
+export function isBuiltInOriginal(key: BuiltInLauncher, look: LauncherDraft): boolean {
+  const def = builtInDef(key);
+  return (
+    look.name.trim() === def.name &&
+    look.url.trim() === def.url &&
+    isOriginalIcon(def, look.icon) &&
+    look.color.toUpperCase() === DEFAULT_LAUNCHERS.builtInColors[key].toUpperCase()
+  );
+}
+
+/** A custom launcher as the tile shows it: the caption is its name. */
+export const customItem = (c: CustomLauncher): LauncherItem => ({
+  id: c.id,
+  kind: "custom",
+  name: c.name,
+  caption: c.name,
+  url: c.url,
+  icon: c.icon,
+  color: c.color,
+});
+
 /** Enabled built-ins first (fixed order), then custom launchers in stored order. */
 export function visibleLaunchers(s: Settings): LauncherItem[] {
-  const out: LauncherItem[] = [];
-  for (const b of BUILT_IN) {
-    if (s.launchers.builtIn[b.id]) {
-      out.push({
-        id: b.id,
-        kind: "builtin",
-        name: b.name,
-        caption: b.short,
-        url: b.url,
-        icon: { kind: "fluent", name: b.icon },
-        color: s.launchers.builtInColors[b.id],
-      });
-    }
-  }
-  for (const c of s.launchers.custom) {
-    out.push({ id: c.id, kind: "custom", name: c.name, caption: c.name, url: c.url, icon: c.icon, color: c.color });
-  }
+  const ln = s.launchers;
+  const out = BUILT_IN.filter((b) => ln.builtIn[b.id]).map((b) => builtInItem(ln, b.id));
+  for (const c of ln.custom) out.push(customItem(c));
   return out;
 }
 
@@ -221,10 +254,12 @@ export function contentBox(el: HTMLElement): { w: number; h: number } {
  * A launcher URL must start with http:// or https:// and name a host: `http://localhost:8080` or
  * `http://intranet/` are fine (the opener and the favicon fetch accept them), `https://` alone is not.
  * The prefix is checked on the text itself, because the URL parser would also accept `http:example.com`.
+ * No spaces inside (hasSpaces): the URL parser would accept them in a path, the settings file does not and
+ * would drop the launcher.
  */
 export function isValidUrl(url: string): boolean {
   const text = url.trim();
-  if (!/^https?:\/\//i.test(text)) return false;
+  if (!/^https?:\/\//i.test(text) || hasSpaces(text)) return false;
   try {
     const u = new URL(text);
     return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.length > 0;
@@ -232,6 +267,9 @@ export function isValidUrl(url: string): boolean {
     return false;
   }
 }
+
+/** Whitespace inside the trimmed text (the editor names this mistake on its own). */
+export const hasSpaces = (url: string): boolean => /\s/.test(url.trim());
 
 export function hostOf(url: string): string {
   try {
@@ -258,7 +296,7 @@ export function nextLauncherColor(s: Settings): string {
   return TINT_ORDER[0];
 }
 
-/** Open the settings window on the launchers tab; `edit` = custom id (editor) or built-in key (its colour). */
+/** Open the settings window on the launchers tab; `edit` = a custom id or a built-in key opens its editor. */
 export function openLaunchersSettings(edit?: string): Promise<void> {
   const args: { tab: string; edit?: string } = { tab: "launchers" };
   if (edit) args.edit = edit;
@@ -270,7 +308,7 @@ export function openLaunchersSettings(edit?: string): Promise<void> {
 
 // Every write below uses the functional form of settings.update, so the patch is computed against the
 // state at apply time (the store awaits its promise first) and two writes in one tick cannot overwrite
-// each other's `custom` array or `builtIn` map.
+// each other's `custom` array or built-in maps (`builtIn`, `builtInColors`, `builtInEdits`).
 
 /** Nested patch of the launchers section computed from the current state. */
 const patchLaunchers = (fn: (ln: LaunchersSettings) => Partial<LaunchersSettings>): Promise<void> =>
@@ -284,8 +322,25 @@ export function setBuiltIn(key: BuiltInLauncher, enabled: boolean): Promise<void
   return patchLaunchers((ln) => ({ builtIn: { ...ln.builtIn, [key]: enabled } }));
 }
 
-export function setBuiltInColor(key: BuiltInLauncher, color: string): Promise<void> {
-  return patchLaunchers((ln) => ({ builtInColors: { ...ln.builtInColors, [key]: color } }));
+/**
+ * Save the editor's values of a built-in launcher: only the fields that differ from the original go into
+ * builtInEdits (none left = the entry is dropped, the launcher is the original again), the colour goes into
+ * builtInColors.
+ */
+export function saveBuiltIn(key: BuiltInLauncher, look: LauncherDraft): Promise<void> {
+  const def = builtInDef(key);
+  const edit: BuiltInEdit = {};
+  const name = look.name.trim();
+  const url = look.url.trim();
+  if (name !== def.name) edit.name = name;
+  if (url !== def.url) edit.url = url;
+  if (!isOriginalIcon(def, look.icon)) edit.icon = look.icon;
+  return patchLaunchers((ln) => {
+    const builtInEdits = { ...ln.builtInEdits };
+    if (Object.keys(edit).length > 0) builtInEdits[key] = edit;
+    else delete builtInEdits[key];
+    return { builtInEdits, builtInColors: { ...ln.builtInColors, [key]: look.color } };
+  });
 }
 
 /** Insert (no id match) or replace a custom launcher, keeping list order. */

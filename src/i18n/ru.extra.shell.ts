@@ -6,6 +6,12 @@ export const extra = {
   },
   general: {
     desc: "Какие плитки лежат на рабочем столе и как они себя ведут",
+    allTiles: "Все плитки",
+    allTilesShown: "Показаны на рабочем столе",
+    allTilesHidden: "Скрыты. Их настройки и расположение сохранены",
+    hideAllTiles: "Скрыть все плитки",
+    showAllTiles: "Показать все плитки",
+    tilesWhileHidden: (show: string) => `Включённые здесь плитки появятся, когда вы нажмёте «${show}»`,
     tileHints: {
       clock: "Время и дата",
       system: "Батарея, Wi-Fi и Bluetooth",
@@ -17,7 +23,6 @@ export const extra = {
     tileSettings: (name: string) => `Настройки плитки «${name}»`,
     desktop: "Рабочий стол",
     startup: "Запуск",
-    showAllHint: "Выключите, чтобы на время убрать все плитки с рабочего стола",
     autostartFailed: "Не удалось изменить автозапуск. Попробуйте ещё раз",
     reset: "Сброс",
     layoutLabel: "Раскладка плиток",
@@ -53,6 +58,9 @@ export const extra = {
     mapRepoLabel: "Репозиторий",
     show: "Показать",
     hide: "Скрыть",
+    dataFolder: "Папка с настройками",
+    dataFolderHint: "Обычный файл settings.json, его можно открыть в Блокноте",
+    openFolder: "Открыть папку",
   },
   welcome: {
     title: "Добро пожаловать в AITU Desk",
@@ -69,6 +77,9 @@ export const extra = {
     lookTitle: "Дизайн и тема",
     lookText: (appearance: string, a: string, b: string, c: string) =>
       `В разделе «${appearance}» выбираются дизайн (${a}, ${b} или ${c}), тема и акцентный цвет. Плитки и это окно меняются сразу.`,
+    startTitle: "Запуск и напоминания",
+    startText: (reminders: string) =>
+      `Включите автозапуск, чтобы плитки были на месте после перезагрузки. О парах и дедлайнах приложение напомнит уведомлением Windows, время и частоту можно выбрать в разделе «${reminders}».`,
     footer: (help: string) =>
       `Это окно можно закрыть: плитки останутся на месте. Настройки снова откроются из ярлыка AITU Desk или его значка в трее, а эти подсказки из пункта «${help}» внизу боковой панели.`,
     start: "Начать",

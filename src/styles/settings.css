@@ -56,6 +56,37 @@
 .status-text.fail { color: var(--critical); }
 
 /* =====================================================================================
+   «Общие»: «Все плитки», the card at the top of the page. A kit card laid out as one row: the mark (lit while
+   the tiles are shown, out while they are hidden), title and state, one button. While the tiles are hidden the
+   card takes a touch of the accent and «Показать все плитки» is the accent button.
+   ===================================================================================== */
+.all-tiles { flex-direction: row; align-items: center; gap: var(--s4); padding: var(--s4) var(--s5); }
+.all-tiles-mark {
+  display: grid; place-items: center; flex: none;
+  width: 40px; height: 40px;
+  border-radius: var(--r-card);
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: inset 0 1px 0 var(--tile-edge);
+}
+.all-tiles-mark .icon { color: inherit; }
+.all-tiles-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.all-tiles-title { font-weight: 600; }
+.all-tiles-state { color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); }
+.all-tiles .btn { flex: none; }
+.all-tiles.off {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+}
+.all-tiles.off .all-tiles-mark { background: var(--surface-3); color: var(--text-2); box-shadow: none; }
+/* Until the native side answers only the title shows: no wrong state for a frame, and nothing moves after. */
+.all-tiles.pending :is(.all-tiles-mark, .all-tiles-state, .btn) { visibility: hidden; }
+/* Rice: outlines instead of fills, as everywhere in that style. */
+:root[data-style="rice"] .all-tiles-mark { background: var(--accent-soft); color: var(--accent-text); border: var(--ctl-border-w) solid var(--accent); box-shadow: none; }
+:root[data-style="rice"] .all-tiles.off { border-color: var(--accent); }
+:root[data-style="rice"] .all-tiles.off .all-tiles-mark { background: transparent; color: var(--text-3); border-color: var(--ctl-stroke-strong); }
+
+/* =====================================================================================
    «Оформление»: option cards (text block, selected check, horizontal and wide variants)
    ===================================================================================== */
 /* Text starts on the preview's left edge, as in the kit's own cards. */
@@ -229,7 +260,8 @@
 :root[data-style="rice"] .ob-num { border-radius: var(--r-sm); }
 .ob-step-title { margin: 0; font-size: var(--body-size); line-height: var(--s6); font-weight: 600; }
 .ob-p { margin: 0; color: var(--text-2); }
-.ob-actions { padding-top: var(--s2); }
+/* A switch and a button side by side (step 5) need more air than two buttons. */
+.ob-actions { padding-top: var(--s2); gap: var(--s3) var(--s5); }
 /* Pictures are 224 px wide, so the text keeps about 250 px beside them at the default window size. */
 .ob-picture { flex: 0 0 auto; align-self: center; display: grid; place-items: center; width: 224px; max-width: 100%; margin-left: auto; }
 
@@ -302,6 +334,9 @@
 .mark-link { cursor: default; }
 .mark-link .icon { display: grid; place-items: center; }
 .mark-link .icon svg { width: 18px; height: 18px; }
+/* «Автор»: the marks follow the caption on its line, like a byline, instead of sitting at the far edge. */
+.row.about-author { justify-content: flex-start; gap: var(--s3); }
+.about-links { display: flex; align-items: center; gap: var(--s1); }
 .about-p { margin: 0; color: var(--text-2); }
 .inline.between { justify-content: space-between; }
 .licence-box {

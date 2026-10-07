@@ -103,7 +103,7 @@ pub fn set_tile_glass(window: WebviewWindow, on: bool) {
     }
 }
 
-/// "Показывать виджеты" master switch from the settings window.
+/// «Все плитки» in «Общие»: hide or show every tile (the choice survives a restart).
 #[tauri::command]
 pub fn set_tiles_hidden(app: AppHandle, hidden: bool) {
     layout::set_hidden(&app, hidden);
@@ -118,4 +118,51 @@ pub fn get_tiles_hidden(app: AppHandle) -> bool {
 #[tauri::command]
 pub fn reset_layout(app: AppHandle) -> Result<(), String> {
     layout::reset(&app)
+}
+
+/// «Проверить уведомление» on the reminders page.
+#[tauri::command]
+pub async fn test_reminder(app: AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || crate::reminders::test(&app))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Tile positions and sizes for a settings file (with the screen they were made on).
+#[tauri::command]
+pub fn get_layout(app: AppHandle) -> Option<layout::LayoutFile> {
+    layout::export(&app)
+}
+
+/// Tile positions and sizes from a settings file, adapted to this screen; the tiles move there.
+#[tauri::command]
+pub fn set_layout(app: AppHandle, layout: layout::LayoutFile) -> Result<(), String> {
+    layout::import(&app, layout)
+}
+
+fn owner_of(window: &WebviewWindow) -> isize {
+    window.hwnd().map(|h| h.0 as isize).unwrap_or(0)
+}
+
+/// «Сохранить в файл»: the standard Windows save dialog over the calling window. `None` = cancelled.
+#[tauri::command]
+pub async fn save_config_file(
+    window: WebviewWindow,
+    title: String,
+    file_name: String,
+    contents: String,
+) -> Result<Option<String>, String> {
+    let owner = owner_of(&window);
+    tauri::async_runtime::spawn_blocking(move || crate::files::save(owner, title, file_name, contents))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// «Загрузить из файла»: the standard Windows open dialog; returns the file's text. `None` = cancelled.
+#[tauri::command]
+pub async fn open_config_file(window: WebviewWindow, title: String) -> Result<Option<crate::files::OpenedFile>, String> {
+    let owner = owner_of(&window);
+    tauri::async_runtime::spawn_blocking(move || crate::files::open(owner, title))
+        .await
+        .map_err(|e| e.to_string())?
 }

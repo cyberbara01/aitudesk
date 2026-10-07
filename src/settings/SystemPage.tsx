@@ -17,6 +17,8 @@ type LabelMode = SystemSettings["labelMode"];
 const LABEL_MAX = 40;
 /** Typing in the custom label is written to disk after this pause (and on blur / Enter / leaving the page). */
 const COMMIT_DELAY = 400;
+/** A name revealed in the preview hides again this long after the pointer left it (as on the tile, Masked.tsx). */
+const REVEAL_GRACE = 1500;
 
 const T = ru.settings.system;
 const X = extra.settings.system;
@@ -45,6 +47,18 @@ export function SystemPage() {
   const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: previewOnScreen });
   // Asked up front (once per window), so choosing «Имя учётной записи» shows the name right away.
   const userName = useUserName(true);
+
+  // Hidden names: the eye works in the preview too. The tile hides a revealed name again once the pointer has
+  // left its window for a moment; the preview is no window of its own, so here leaving the preview tile does it:
+  // the rows are mounted afresh, every name back to dots.
+  const [maskEpoch, setMaskEpoch] = useState(0);
+  const revealTimer = useRef(0);
+  useEffect(() => () => window.clearTimeout(revealTimer.current), []);
+  const onPreviewEnter = () => window.clearTimeout(revealTimer.current);
+  const onPreviewLeave = () => {
+    window.clearTimeout(revealTimer.current);
+    if (sys.hideNames) revealTimer.current = window.setTimeout(() => setMaskEpoch((n) => n + 1), REVEAL_GRACE);
+  };
 
   // The custom label is edited locally and committed with a short delay so every keystroke does not hit the disk.
   const [draft, setDraft] = useState(sys.customLabel);
@@ -90,8 +104,12 @@ export function SystemPage() {
           <span className="body-strong">{ru.common.preview}</span>
         </div>
         <div ref={deskRef} className="sys-desk">
-          <div className={sys.background ? "tile tile-system" : "tile tile-system no-bg"}>
-            <SystemRows info={info} settings={preview} />
+          <div
+            className={sys.background ? "tile tile-system" : "tile tile-system no-bg"}
+            onPointerEnter={onPreviewEnter}
+            onPointerLeave={onPreviewLeave}
+          >
+            <SystemRows key={maskEpoch} info={info} settings={preview} />
           </div>
         </div>
         <p className="hint sys-stage-hint">{X.previewHint}</p>

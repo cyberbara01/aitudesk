@@ -1,11 +1,15 @@
 // Welcome page: shown instead of «Общие» the first time the settings window opens, and later from
-// «Как пользоваться». Four calm steps, each beside a small picture drawn with the real kit (tokens, the tile
+// «Как пользоваться». Five calm steps, each beside a small picture drawn with the real kit (tokens, the tile
 // menu's own classes, the style cards) or beside real shortcuts to the pages it mentions, then «Начать»,
-// which marks the page as seen and opens «Общие».
-import type { CSSProperties, ReactNode } from "react";
+// which marks the page as seen and opens «Общие». The last step switches autostart on right here: right after
+// installing, that is the one setting that decides whether the tiles are still there after a restart.
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { Page } from "../../components/Section";
+import { Switch } from "../../components/Switch";
+import { autostartChanged } from "../../lib/autostart";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.shell";
 import { STYLES, THEMES } from "../../lib/design";
@@ -113,6 +117,29 @@ function StylesPicture({ desk }: { desk: CSSProperties }) {
   );
 }
 
+/** «Запускать вместе с Windows», the same switch as in «Общие» (the Run key written by the autostart plugin). */
+function AutostartSwitch() {
+  const [on, setOn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    isEnabled().then(
+      (v) => alive && setOn(v),
+      () => alive && setOn(false),
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const toggle = (v: boolean) => {
+    setOn(v);
+    (v ? enable() : disable()).then(
+      () => autostartChanged(v),
+      () => setOn(!v),
+    );
+  };
+  return <Switch checked={on ?? false} disabled={on === null} onChange={toggle} label={ru.settings.general.autostart} />;
+}
+
 export function WelcomePage() {
   const navigate = useNavigate();
   const { onboarded } = useSettings();
@@ -152,6 +179,19 @@ export function WelcomePage() {
             <Button icon="paint_brush" onClick={() => navigate("appearance")}>
               {nav.appearance}
             </Button>
+          }
+        />
+        <Step
+          n={5}
+          title={w.startTitle}
+          text={w.startText(nav.reminders)}
+          actions={
+            <>
+              <AutostartSwitch />
+              <Button icon="alert" onClick={() => navigate("reminders")}>
+                {nav.reminders}
+              </Button>
+            </>
           }
         />
       </ol>

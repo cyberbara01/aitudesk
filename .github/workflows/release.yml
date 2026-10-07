@@ -30,6 +30,7 @@ jobs:
       - run: npm ci
 
       - name: Build and publish the installer
+        id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -37,7 +38,26 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "AITU Desk ${{ github.ref_name }}"
           releaseBody: |
-            Установка: скачайте `AITU Desk_*_x64-setup.exe` и запустите. Установщик не требует прав администратора.
-            SmartScreen может предупредить о неизвестном издателе: приложение не подписано сертификатом, код открыт в этом репозитории.
+            Установка: скачайте `AITU Desk_*_x64-setup.exe` и запустите. Права администратора не нужны, приложение ставится только для вашей учётной записи.
+
+            SmartScreen может предупредить о неизвестном издателе: приложение не подписано платным сертификатом. Нажмите «Подробнее», затем «Выполнить в любом случае». Установщик собран GitHub Actions из исходников этого тега, код открыт в этом репозитории.
+
+            Проверка файла: контрольные суммы лежат в `SHA256SUMS.txt`. В PowerShell: `Get-FileHash ".\AITU Desk_<версия>_x64-setup.exe" -Algorithm SHA256`, значение должно совпасть.
+
+            Что делает установщик, где хранятся настройки и как удалить приложение: раздел «Что делает установщик» в README.
           releaseDraft: true
           prerelease: false
+
+      # SHA256 of every published file, so anyone can check the download matches this build.
+      - name: Publish checksums
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $files = '${{ steps.tauri.outputs.artifactPaths }}' | ConvertFrom-Json | Where-Object { Test-Path $_ -PathType Leaf }
+          $lines = foreach ($f in $files) {
+            "{0}  {1}" -f (Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path $f -Leaf)
+          }
+          [IO.File]::WriteAllLines("$PWD\SHA256SUMS.txt", [string[]]$lines)
+          Get-Content SHA256SUMS.txt
+          gh release upload "${{ github.ref_name }}" SHA256SUMS.txt --clobber

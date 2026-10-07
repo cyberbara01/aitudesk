@@ -1,12 +1,13 @@
 // «Сбросить настройки раздела»: a quiet button at the end of a settings page with a confirmation dialog.
-// Resets only the look of that page (src/lib/settings.ts resetSection); user data stays.
+// Resets only the look of that page (src/lib/settings.ts resetSection); user data stays. A page whose settings
+// are not a look (reminders) says in `text` what the reset brings back.
 import { useCallback, useState } from "react";
 import { ru } from "../i18n/ru";
 import { settings, type ResetSection as Section } from "../lib/settings";
 import { Button } from "./Button";
 import { Dialog } from "./Dialog";
 
-export function ResetSection({ section }: { section: Section }) {
+export function ResetSection({ section, text = ru.common.resetSectionText }: { section: Section; text?: string }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const confirm = () => {
@@ -32,7 +33,7 @@ export function ResetSection({ section }: { section: Section }) {
           </>
         }
       >
-        <p className="reset-text">{ru.common.resetSectionText}</p>
+        <p className="reset-text">{text}</p>
       </Dialog>
     </div>
   );

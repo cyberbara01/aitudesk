@@ -1,6 +1,7 @@
-// Fluent icon markup cached inside a custom launcher (icon.svg). The desktop tile draws the cached copy
-// directly, so it never has to load the full icon set (a 3 MB chunk); the settings window fills the cache
-// when a launcher is saved, and once for launchers saved before the cache existed.
+// Fluent icon markup cached inside a launcher (icon.svg of a custom launcher or of a built-in's edit). The
+// desktop tile draws the cached copy directly, so it never has to load the full icon set (a 3 MB chunk); the
+// settings window fills the cache when a launcher is saved, and once for launchers saved before the cache
+// existed.
 import { hasIcon, loadIcon } from "../../components/Icon";
 import { isIconMarkup } from "../../lib/launchers";
 import type { LauncherIcon } from "../../lib/settings";

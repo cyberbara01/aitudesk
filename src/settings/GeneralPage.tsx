@@ -1,11 +1,13 @@
-// «Общие»: tiles on the desktop, desktop behaviour (show all, lock layout), autostart, and the resets
-// (tile layout, the whole customization).
-import { useCallback, useEffect, useState } from "react";
+// «Общие»: «Все плитки» (every tile off the desktop and back with one button), the tiles one by one, desktop
+// behaviour (lock layout), autostart, and the resets (tile layout, the whole customization).
+import { useCallback, useEffect, useId, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { onAutostartChange } from "../lib/autostart";
 import { Button, IconButton } from "../components/Button";
 import { Dialog } from "../components/Dialog";
+import { Icon } from "../components/Icon";
 import { Page, Row, Section } from "../components/Section";
 import { Switch } from "../components/Switch";
 import { ru } from "../i18n/ru";
@@ -20,7 +22,7 @@ const g = ru.settings.general;
 const x = extra.general;
 
 // ---------------------------------------------------------------------------------------------
-// «Показывать виджеты» and autostart live outside the settings file. Both are read once when the settings
+// «Все плитки» and autostart live outside the settings file. Both are read once when the settings
 // window loads its code, so even the first visit to this page usually paints the real state in its first
 // frame, and read again on every visit. A local change bumps `version`, so an older read cannot undo it.
 // ---------------------------------------------------------------------------------------------
@@ -49,6 +51,11 @@ function external(read: () => Promise<boolean>): External {
 
 const tilesVisible = external(() => invoke<boolean>("get_tiles_hidden").then((hidden) => !hidden, () => true));
 const autostartOn = external(() => isEnabled().catch(() => false));
+// Switched on the welcome page or on «Напоминания»: the first frame here shows that already.
+onAutostartChange((on) => {
+  autostartOn.version += 1;
+  autostartOn.value = on;
+});
 
 /** Component state mirroring an External value: the last known value first, refreshed on mount. */
 function useExternal(e: External): [boolean | null, (v: boolean) => void] {
@@ -87,10 +94,47 @@ function ResultText({ outcome, done, failed }: { outcome: Outcome; done: string;
   );
 }
 
+interface AllTilesProps {
+  /** null until the native side has answered. */
+  visible: boolean | null;
+  /** False keeps transitions off while the first answer lands. */
+  settled: boolean;
+  onChange: (visible: boolean) => void;
+}
+
+/**
+ * «Все плитки», first on the page: hidden tiles stay hidden after a restart, and the app then opens right here.
+ * The state reads at a glance (the mark lit or out, one line of state) and there is one button; showing the
+ * tiles again is the accent action. Nothing that depends on the state is drawn before it is known.
+ */
+function AllTiles({ visible, settled, onChange }: AllTilesProps) {
+  const titleId = useId();
+  const hidden = visible === false;
+  const cls = ["section all-tiles", hidden ? "off" : "", visible === null ? "pending" : "", settled ? "" : "settling"].filter(Boolean).join(" ");
+  return (
+    <section className={cls} aria-labelledby={titleId}>
+      <span className="all-tiles-mark" aria-hidden="true">
+        <Icon name={hidden ? "eye_off" : "eye"} />
+      </span>
+      <div className="all-tiles-text">
+        <span id={titleId} className="all-tiles-title">
+          {x.allTiles}
+        </span>
+        <span className="all-tiles-state" role="status">
+          {visible === null ? "" : hidden ? x.allTilesHidden : x.allTilesShown}
+        </span>
+      </div>
+      <Button variant={hidden ? "accent" : "default"} disabled={visible === null} onClick={() => onChange(hidden)}>
+        {hidden ? x.showAllTiles : x.hideAllTiles}
+      </Button>
+    </section>
+  );
+}
+
 export function GeneralPage() {
   const s = useSettings();
   const [visible, setVisible] = useExternal(tilesVisible);
-  // The app can show the tiles again on its own (launching it a second time): follow it.
+  // The tiles' state as the app reports it after every change («tiles-hidden»), so this card always tells the truth.
   useEffect(() => {
     let off: (() => void) | undefined;
     let alive = true;
@@ -148,8 +192,11 @@ export function GeneralPage() {
 
   return (
     <Page title={ru.settings.nav.general} description={x.desc}>
-      {/* Each tile: what it shows, on or off, and a way into its own settings (switch plus chevron, as in Windows). */}
-      <Section title={g.tiles} description={g.tilesHint}>
+      <AllTiles visible={visible} settled={visibleSettled} onChange={toggleVisible} />
+
+      {/* Each tile: what it shows, on or off, and a way into its own settings (switch plus chevron, as in Windows).
+          While every tile is hidden the switches still work; the hint says when they take effect. */}
+      <Section title={g.tiles} description={visible === false ? x.tilesWhileHidden(x.showAllTiles) : g.tilesHint}>
         {TILE_IDS.map((id) => (
           <IconRow key={id} icon={TILE_ICONS[id]} label={ru.tiles[id]} hint={x.tileHints[id]}>
             <Switch checked={s.tiles[id]} onChange={(on) => toggleTile(id, on)} ariaLabel={ru.tiles[id]} />
@@ -159,11 +206,6 @@ export function GeneralPage() {
       </Section>
 
       <Section title={x.desktop} description={g.arrangeHint}>
-        <Row label={g.showAll} hint={x.showAllHint}>
-          <span className={visibleSettled ? undefined : "settling"}>
-            <Switch checked={visible ?? false} disabled={visible === null} onChange={toggleVisible} ariaLabel={g.showAll} />
-          </span>
-        </Row>
         <Row label={g.lockLayout} hint={g.lockLayoutHint}>
           <Switch checked={s.lockLayout} onChange={(on) => void settings.update({ lockLayout: on })} ariaLabel={g.lockLayout} />
         </Row>

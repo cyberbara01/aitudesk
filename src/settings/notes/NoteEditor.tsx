@@ -1,7 +1,7 @@
 // Dialog for a new or an existing note: text (grows from 3 to 8 rows, 2000 characters at most, a counter near
-// the limit), «Дедлайн» with a date from the calendar and a time with the «ЧЧ:ММ» mask plus quick choices, and
-// an optional colour. Save stays disabled while the form is invalid; Ctrl+Enter in the text or Enter in the
-// time field saves.
+// the limit), «Дедлайн» with a date from the calendar and a time with the «ЧЧ:ММ» mask plus quick choices and
+// «Напоминать о дедлайне», and an optional colour. Save stays disabled while the form is invalid; Ctrl+Enter
+// in the text or Enter in the time field saves.
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "../../components/Button";
 import { ColorPicker } from "../../components/ColorPicker";
@@ -13,6 +13,7 @@ import { TextArea } from "../../components/TextArea";
 import { TextField } from "../../components/TextField";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.notes";
+import { deadlinePlan } from "../../i18n/ru.extra.reminders";
 import { FAVORITE_COLORS } from "../../lib/design";
 import {
   MAX_TEXT,
@@ -22,13 +23,15 @@ import {
   joinDeadline,
   maskTime,
   normalizeTime,
+  repeatsHappen,
   saveNote,
   splitDeadline,
   tomorrowMorning,
   tonight,
   type DeadlineParts,
 } from "../../lib/notes";
-import type { Note } from "../../lib/settings";
+import type { Note, ReminderSettings } from "../../lib/settings";
+import { useSettings } from "../../lib/useSettings";
 import { NoteChip } from "./NoteChip";
 
 type ColorMode = "none" | "custom";
@@ -45,14 +48,25 @@ export interface NoteEditorProps {
   onClose: () => void;
 }
 
+/** Under «Напоминать о дедлайне»: what the «Напоминания» page will deliver for this note, or why nothing. */
+function remindHint(on: boolean, r: ReminderSettings): string {
+  const section = ru.settings.nav.reminders;
+  if (!on) return E.remindOff;
+  if (!r.deadlines) return E.remindGlobalOff(section);
+  const plan = deadlinePlan(r.deadlineFirst, repeatsHappen(r) ? r.deadlineRepeat : 0, r.atDeadline);
+  return plan ? E.remindPlan(plan, section) : E.remindNothing(section);
+}
+
 /** Mount a fresh instance (via `key`) for every open: the form state is initialised from the props once. */
 export function NoteEditor({ note, onClose }: NoteEditorProps) {
   const editing = note !== null;
+  const reminderSettings = useSettings().reminders;
   const initial = useMemo(() => splitDeadline(note?.deadline), [note]);
   const [text, setText] = useState(note?.text ?? "");
   const [hasDeadline, setHasDeadline] = useState(initial !== null);
   const [parts, setParts] = useState<DeadlineParts>(() => initial ?? tonight(new Date()));
   const [timeTouched, setTimeTouched] = useState(false);
+  const [remind, setRemind] = useState(note?.remind !== false);
   const [colorMode, setColorMode] = useState<ColorMode>(note?.color ? "custom" : "none");
   const [color, setColor] = useState(note?.color ?? FAVORITE_COLORS[0]);
   /** The date / time were chosen by the user (switching the deadline on again keeps them). */
@@ -96,6 +110,7 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
       text: trimmed,
       deadline,
       color: colorMode === "custom" ? color : null,
+      remind,
     });
     onClose();
   };
@@ -194,6 +209,13 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
                   {preview.tone === "overdue" && <span className="note-due-past caption">{E.past}</span>}
                 </div>
               )}
+              <div className="note-field-head note-remind">
+                <div className="note-field-text">
+                  <span className="body">{E.remind}</span>
+                  <span className="hint">{remindHint(remind, reminderSettings)}</span>
+                </div>
+                <Switch checked={remind} onChange={setRemind} ariaLabel={E.remind} />
+              </div>
             </div>
           )}
         </div>

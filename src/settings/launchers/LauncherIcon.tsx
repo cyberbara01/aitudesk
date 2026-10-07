@@ -30,8 +30,8 @@ function SiteImage({ data, fallback }: { data: string; fallback: ReactNode }) {
 
 /**
  * Fluent glyph, cheapest source first: the markup cached in the launcher (no icon-set load at all), then the
- * icon set by name (launchers saved before the cache, and the built-ins, which are in the eager set), then
- * the letter for a name that is not in the set.
+ * icon set by name (launchers saved before the cache, and the built-ins' own icons, which are in the eager
+ * set), then the letter for a name that is not in the set.
  */
 function FluentGlyph({ name, svg, fallback }: { name: string; svg?: string; fallback: ReactNode }) {
   const cached = useMemo(() => trustedIconSvg({ kind: "fluent", name, svg }), [name, svg]);

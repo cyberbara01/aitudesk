@@ -2,6 +2,7 @@
 // selected style / theme / accent automatically; the clock additionally honours the clock settings.
 import type { CSSProperties } from "react";
 import { Icon } from "../../components/Icon";
+import { DOTS } from "../../components/Masked";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.shell";
 import { clockFont } from "../../lib/design";
@@ -70,13 +71,16 @@ interface SampleRow {
   icon: string;
   label: string;
   value: string;
+  /** The value is a name hidden behind dots (settings.system.hideNames), as on the tile. */
+  masked?: boolean;
 }
 
 export function PreviewSystem({ s }: { s: Settings }) {
   const sy = s.system;
   const rows: SampleRow[] = [{ icon: "battery_7", label: ru.system.battery, value: extra.appearance.sampleBattery }];
-  if (sy.showWifi) rows.push({ icon: "wifi_1", label: ru.system.wifi, value: sy.hideNames ? ru.system.connected : extra.appearance.sampleWifi });
-  if (sy.showBluetooth) rows.push({ icon: "bluetooth_connected", label: ru.system.bluetooth, value: sy.hideNames ? ru.system.devices(1) : extra.appearance.sampleDevice });
+  const name = (value: string) => (sy.hideNames ? { value: DOTS, masked: true } : { value });
+  if (sy.showWifi) rows.push({ icon: "wifi_1", label: ru.system.wifi, ...name(extra.appearance.sampleWifi) });
+  if (sy.showBluetooth) rows.push({ icon: "bluetooth_connected", label: ru.system.bluetooth, ...name(extra.appearance.sampleDevice) });
   return (
     <div className={sy.background ? "pv-tile" : "pv-tile no-bg"} aria-hidden="true">
       <div className="pv-sys">
@@ -84,7 +88,7 @@ export function PreviewSystem({ s }: { s: Settings }) {
           <div key={r.icon} className="pv-row">
             <Icon name={r.icon} size={16} />
             <span className="pv-row-label">{r.label}</span>
-            <span className="pv-row-value">{r.value}</span>
+            <span className={r.masked ? "pv-row-value masked-dots" : "pv-row-value"}>{r.value}</span>
           </div>
         ))}
       </div>

@@ -1,8 +1,10 @@
-// «О программе»: app header, help and feedback, credits, privacy, licences. Below the header everything is
-// kit sections with one alignment rule: label and hint on the left edge of the card, actions on the right.
+// «О программе»: app header, help and the author, credits, privacy, licences. Below the header everything is
+// kit sections with one alignment rule: label and hint on the left edge of the card, actions on the right. The
+// one exception is «Автор»: the author's GitHub and Telegram follow the caption on its line, like a byline.
 // The only marks are the ones that are links: GitHub and Telegram.
 import { useId, useState, type MouseEvent, type ReactNode } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { appDataDir, join } from "@tauri-apps/api/path";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
 import { Page, Row, Section } from "../components/Section";
@@ -16,6 +18,13 @@ const ab = ru.settings.about;
 const x = extra.about;
 
 const open = (url: string) => void openUrl(url).catch(() => undefined);
+
+/** Explorer on the folder with the settings file, the file selected: everything the app keeps is there. */
+const openDataFolder = () =>
+  void appDataDir()
+    .then((dir) => join(dir, "settings.json"))
+    .then((file) => revealItemInDir(file))
+    .catch(() => undefined);
 
 /** The licence file is hard-wrapped at 80 columns; reflowed into paragraphs it wraps cleanly at any width. */
 const licenceParagraphs = licence
@@ -94,14 +103,17 @@ export function AboutPage() {
         <Row label={extra.shell.help} hint={x.helpHint}>
           <Button onClick={() => navigate("welcome")}>{x.open}</Button>
         </Row>
-        <Row label={ab.feedback}>
-          <MarkLink href={ab.author1Github} name={`${ab.github}: ${ab.author1}`}>
-            <GitHubMark />
-          </MarkLink>
-          <MarkLink href={ab.telegramUrl} name={`${ab.telegram}: @${ab.author1Telegram}`}>
-            <TelegramMark />
-          </MarkLink>
-        </Row>
+        <div className="row about-author">
+          <span className="row-label">{ab.author}</span>
+          <span className="about-links">
+            <MarkLink href={ab.author1Github} name={`${ab.github}: ${ab.author1}`}>
+              <GitHubMark />
+            </MarkLink>
+            <MarkLink href={ab.telegramUrl} name={`${ab.telegram}: @${ab.author1Telegram}`}>
+              <TelegramMark />
+            </MarkLink>
+          </span>
+        </div>
       </Section>
 
       <Section title={ab.credits}>
@@ -115,6 +127,15 @@ export function AboutPage() {
 
       <Section title={ab.privacy} padded>
         <p className="about-p">{ab.privacyText}</p>
+        <div className="inline between">
+          <span className="row-text">
+            <span className="row-label">{x.dataFolder}</span>
+            <span className="row-hint">{x.dataFolderHint}</span>
+          </span>
+          <Button icon="folder_open" onClick={openDataFolder}>
+            {x.openFolder}
+          </Button>
+        </div>
       </Section>
 
       <Section title={ab.license} padded>

@@ -1,11 +1,12 @@
 // Notes model shared by the «Заметки» tile and its settings page: deadline parsing, ordering, the countdown
-// wording, one light scheduler for the whole tile, the «ЧЧ:ММ» input mask, quick deadlines and CRUD on
-// settings.notes (always through functional updates, so edits from other windows are never lost).
+// wording, one light scheduler for the whole tile, the «ЧЧ:ММ» input mask, quick deadlines, when deadline
+// reminders come, and CRUD on settings.notes (always through functional updates, so edits from other windows
+// are never lost).
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { extra } from "../i18n/ru.extra.notes";
 import { formatTime, isoWeekday, parseTime } from "./design";
-import { settings, type Note } from "./settings";
+import { settings, type Note, type NoteSort, type ReminderSettings } from "./settings";
 
 export const SECOND = 1000;
 export const MINUTE = 60 * SECOND;
@@ -155,19 +156,51 @@ export interface DueNote {
 }
 
 /**
- * Active notes first, then done ones. Within each group: notes with a deadline by deadline (so overdue ones
- * come first, the most overdue on top, then the nearest upcoming), then notes without one, newest first.
- * The order never depends on the current time.
+ * Active notes first, then done ones; both groups follow `sort` (settings.notes.sort, the same on the tile and
+ * in the settings list):
+ * - "deadline": notes with a deadline by deadline (so overdue ones come first, the most overdue on top, then
+ *   the nearest upcoming), then notes without one, newest first;
+ * - "newest" / "oldest": by when the note was added.
+ * Ties go by id, so the order never depends on the current time or on the stored order.
  */
-export function orderNotes(notes: readonly Note[]): DueNote[] {
+export function orderNotes(notes: readonly Note[], sort: NoteSort): DueNote[] {
   return notes
     .map((note) => ({ note, due: deadlineMs(note.deadline) }))
     .sort((a, b) => {
       if (a.note.done !== b.note.done) return a.note.done ? 1 : -1;
-      if (a.due !== null && b.due !== null && a.due !== b.due) return a.due - b.due;
-      if ((a.due === null) !== (b.due === null)) return a.due === null ? 1 : -1;
-      return b.note.created - a.note.created || a.note.id.localeCompare(b.note.id);
+      if (sort === "deadline") {
+        if (a.due !== null && b.due !== null && a.due !== b.due) return a.due - b.due;
+        if ((a.due === null) !== (b.due === null)) return a.due === null ? 1 : -1;
+      }
+      const age = sort === "oldest" ? a.note.created - b.note.created : b.note.created - a.note.created;
+      return age || a.note.id.localeCompare(b.note.id);
     });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Deadline reminders (shown by src-tauri/src/reminders.rs; keep the rules in sync)
+// ---------------------------------------------------------------------------------------------
+
+export type DeadlineTiming = Pick<ReminderSettings, "deadlineFirst" | "deadlineRepeat" | "atDeadline">;
+
+/**
+ * Minutes before a deadline at which its reminders come, earliest first: the first one `deadlineFirst` before
+ * it (none at 0), then every `deadlineRepeat` minutes while the deadline is still ahead, and 0 for the one at
+ * the deadline itself. A repeat that would land on or after the deadline is not made.
+ */
+export function reminderOffsets({ deadlineFirst, deadlineRepeat, atDeadline }: DeadlineTiming): number[] {
+  const out: number[] = [];
+  if (deadlineFirst > 0) {
+    out.push(deadlineFirst);
+    if (deadlineRepeat > 0) for (let left = deadlineFirst - deadlineRepeat; left > 0; left -= deadlineRepeat) out.push(left);
+  }
+  if (atDeadline) out.push(0);
+  return out;
+}
+
+/** The repeats really happen: an interval shorter than the time from the first reminder to the deadline. */
+export function repeatsHappen({ deadlineFirst, deadlineRepeat }: DeadlineTiming): boolean {
+  return deadlineFirst > 0 && deadlineRepeat > 0 && deadlineRepeat < deadlineFirst;
 }
 
 /** Deadlines that need a ticking clock: active notes only (done notes show a static date). */
@@ -305,12 +338,16 @@ export interface NoteDraft {
   deadline: string | null;
   /** #RRGGBB or null for none. */
   color: string | null;
+  /** «Напоминать о дедлайне». Only counts with a deadline: without one the stored choice stays as it is. */
+  remind: boolean;
 }
 
 function withDraft(base: Note, draft: NoteDraft): Note {
   const note: Note = { id: base.id, text: draft.text.slice(0, MAX_TEXT), done: base.done, created: base.created };
   if (draft.deadline) note.deadline = draft.deadline;
   if (draft.color) note.color = draft.color;
+  // Stored only when off (absent = on), like normalize() keeps it.
+  if (draft.deadline ? !draft.remind : base.remind === false) note.remind = false;
   return note;
 }
 

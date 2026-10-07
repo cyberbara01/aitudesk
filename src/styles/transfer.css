@@ -1,0 +1,84 @@
+/* «Импорт и экспорт» page of the settings window: the lists of parts (one row per part, the personal one
+   tinted and badged), the warning before saving notes, the file caption and the result lines. Kit checkboxes,
+   buttons, sections and rows are used as they are. Tokens only; caution marks what is personal. */
+
+/* ---- The line above a list: the count or the file caption, and «Выбрать всё» / «Снять всё» ---- */
+.tr-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s3);
+  min-height: 28px;
+  padding: 0 var(--s5) var(--s2);
+  box-sizing: content-box;
+}
+.tr-caption { min-width: 0; color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); overflow-wrap: anywhere; }
+.tr-head .btn { flex: none; }
+
+/* ---- One row per part: the checkbox and its name, what the part holds under the name ---- */
+.tr-list { display: flex; flex-direction: column; border-top: 1px solid var(--divider); }
+.tr-part {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--s3); row-gap: 2px;
+  min-height: 48px;
+  padding: var(--s2) var(--s5);
+  transition: background-color var(--t-fast) var(--ease-in);
+}
+.tr-part + .tr-part { border-top: 1px solid var(--divider); }
+.tr-part:hover { background-color: var(--surface-2); }
+.tr-part .checkbox { min-width: 0; }
+.tr-part .checkbox .body { min-width: 0; overflow-wrap: anywhere; }
+/* Under the name: indented by the box and its gap, so the lines start where the name does. */
+.tr-part-text {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column;
+  min-width: 0;
+  padding-left: calc(20px + var(--s2));
+  font-size: var(--caption-size); line-height: var(--caption-lh);
+}
+.tr-part-summary { color: var(--text-3); overflow-wrap: anywhere; }
+.tr-part-note { color: var(--text-3); }
+/* A note says what happens to the part (it goes into the file, it replaces yours): in caution once picked. */
+.tr-part.on .tr-part-note { color: var(--caution); }
+
+/* ---- The personal part (notes): a caution tint and a lock badge, stronger once picked ---- */
+.tr-part.personal { background-color: color-mix(in srgb, var(--caution) 5%, transparent); }
+.tr-part.personal:hover { background-color: color-mix(in srgb, var(--caution) 8%, transparent); }
+.tr-part.personal.on { background-color: color-mix(in srgb, var(--caution) 11%, transparent); }
+.tr-badge {
+  display: inline-flex; align-items: center; gap: var(--s1);
+  height: 22px;
+  padding: 0 var(--s2) 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--caution) 16%, transparent);
+  color: var(--caution);
+  font-size: var(--caption-size); line-height: var(--caption-lh); font-weight: 600;
+  white-space: nowrap;
+}
+.tr-badge .icon { color: inherit; }
+:root[data-style="rice"] .tr-badge {
+  border-radius: var(--r-sm);
+  border: var(--ctl-border-w) solid color-mix(in srgb, var(--caution) 45%, transparent);
+}
+
+/* ---- Under a list: the warning, a hint and the buttons with their result ---- */
+.tr-actions {
+  display: flex; flex-direction: column; gap: var(--s3);
+  padding: var(--s3) var(--s5) var(--s4);
+  border-top: 1px solid var(--divider);
+}
+/* Right under the section head when no list is shown (choosing a file). */
+.tr-actions.first { padding-top: var(--s1); border-top: 0; }
+.tr-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); min-width: 0; }
+/* A result and its follow-up («Показать в папке», «Отменить») move to the next line together. */
+.tr-result { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s1) var(--s2); min-width: 0; }
+.tr-result .status-text { overflow-wrap: anywhere; }
+.tr-hint { margin: 0; color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); }
+/* Where the file went: the full path under «Файл сохранён», wrapping anywhere, easy to select and copy. */
+.tr-path { margin: calc(-1 * var(--s1)) 0 0; color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); overflow-wrap: anywhere; user-select: text; }
+.tr-warning {
+  display: flex; align-items: flex-start; gap: var(--s2);
+  margin: 0;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-ctl);
+  border: var(--ctl-border-w) solid color-mix(in srgb, var(--caution) 40%, transparent);
+  background: color-mix(in srgb, var(--caution) 12%, transparent);
+  color: var(--text);
+}
+.tr-warning .icon { color: var(--caution); }

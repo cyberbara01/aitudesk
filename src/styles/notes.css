@@ -180,6 +180,9 @@
 /* Kit EmptyState under the list head. */
 .notes-page-empty { border-top: 1px solid var(--divider); }
 
+/* «Сортировка» between the list head and the notes; in a narrow window the choice drops under its label. */
+.notes-sort > .row { flex-wrap: wrap; row-gap: var(--s2); border-top: 1px solid var(--divider); }
+
 .note-items { display: flex; flex-direction: column; }
 .note-item {
   display: grid;
@@ -206,6 +209,8 @@
 .note-item-due.soon,
 .note-item-due.now { color: var(--accent-text); }
 .note-item-due.overdue { color: var(--critical); }
+/* Reminders off: a muted bell after the time left, on the 16 px caption line. */
+.note-item-mute { display: inline-flex; margin-left: var(--s2); vertical-align: top; color: var(--text-3); }
 .note-item-actions { display: flex; gap: var(--s1); }
 
 /* ---- Note editor (Dialog) ---- */
@@ -229,6 +234,8 @@
 .note-quick { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .note-due { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); }
 .note-due-past { color: var(--caution); }
+/* «Напоминать о дедлайне»: a row of its own under the date, time and quick choices. */
+.note-remind { padding-top: var(--s1); }
 
 /* =====================================================================================
    Kit: TextArea (src/components/TextArea.tsx)

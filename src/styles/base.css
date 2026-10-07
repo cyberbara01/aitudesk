@@ -565,6 +565,8 @@ a { color: var(--accent-text); text-decoration: none; }
   border: var(--ctl-border-w) solid var(--divider);
   overflow: hidden;
 }
+/* An open list (Select) may reach past the card's bottom edge: it is not cut off while it is open. */
+.section:has(.popover) { overflow: visible; }
 .section-head { display: flex; flex-direction: column; gap: 2px; padding: var(--s4) var(--s5) var(--s2); }
 .section-title { font-weight: 600; }
 .section-desc { color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); }

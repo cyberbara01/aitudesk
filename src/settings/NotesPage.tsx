@@ -1,12 +1,15 @@
-// Settings → «Заметки»: every note in the tile's order (active by deadline, then without one, done last) with
-// the «выполнено» toggle, the deadline and the time left, «Изменить» / «Удалить»; «Добавить заметку»; the tile
-// options (done notes, privacy, background) and the section reset. `editId` (from the tile's context menu)
-// opens the editor on that note once; NEW_NOTE opens it on an empty note.
+// Settings → «Заметки»: every note in the tile's order («Сортировка»: by deadline, newest or oldest added
+// first; done last) with the «выполнено» toggle, the deadline and the time left (and a mark when its reminders
+// are off), «Изменить» / «Удалить»; «Добавить заметку»; the tile options (done notes, privacy, background) and
+// the section reset. `editId` (from the tile's context menu) opens the editor on that note once; NEW_NOTE opens
+// it on an empty note.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
+import { Icon } from "../components/Icon";
 import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
+import { Segmented, type SegmentedOption } from "../components/Segmented";
 import { Switch } from "../components/Switch";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
@@ -24,12 +27,14 @@ import {
   toggleNote,
   useDeadlineClock,
 } from "../lib/notes";
-import { settings, type Note, type NotesSettings } from "../lib/settings";
+import { NOTE_SORTS, settings, type Note, type NoteSort, type NotesSettings } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { NoteCheck } from "./notes/NoteCheck";
 import { NoteEditor } from "./notes/NoteEditor";
 
 const P = extra.page;
+
+const SORT_OPTIONS: readonly SegmentedOption<NoteSort>[] = NOTE_SORTS.map((value) => ({ value, label: P.sorts[value] }));
 
 interface EditorState {
   /** Changes on every open so the editor remounts with fresh form state. */
@@ -40,8 +45,8 @@ interface EditorState {
 export function NotesPage({ editId }: { editId?: string | null }) {
   const s = useSettings();
   const loaded = useSettingsLoaded();
-  const { notes, showDone, privacy, background } = s.notes;
-  const ordered = useMemo(() => orderNotes(notes), [notes]);
+  const { notes, sort, showDone, privacy, background } = s.notes;
+  const ordered = useMemo(() => orderNotes(notes, sort), [notes, sort]);
   const deadlines = useMemo(() => activeDeadlines(ordered), [ordered]);
   // Minute precision here: the list says «через 9 мин», only the tile counts seconds.
   const now = useDeadlineClock(deadlines, false);
@@ -92,44 +97,59 @@ export function NotesPage({ editId }: { editId?: string | null }) {
             action={{ label: extra.tile.add, icon: "add", onClick: openNew }}
           />
         ) : (
-          <div className="note-items" role="list">
-            {ordered.map(({ note, due }) => {
-              let meta = <>{P.noDeadline}</>;
-              if (due !== null) {
-                const d = new Date(due);
-                if (note.done) {
-                  // Static: done notes have no countdown, so nothing here may go stale at midnight.
-                  meta = <>{`${fullDate(d, nowDate, "long")}, ${timeOf(d)}`}</>;
-                } else {
-                  const c = countdown(due, now, false);
-                  meta = (
-                    <>
-                      {formatDeadline(d, nowDate, "long")}
-                      {" · "}
-                      <span className={`note-item-due ${c.tone}`}>{c.text}</span>
-                    </>
-                  );
+          <>
+            <div className="notes-sort">
+              <Row label={P.sort} hint={P.sortHint}>
+                <Segmented<NoteSort> size="sm" options={SORT_OPTIONS} value={sort} onChange={(v) => update({ sort: v })} ariaLabel={P.sort} />
+              </Row>
+            </div>
+            <div className="note-items" role="list">
+              {ordered.map(({ note, due }) => {
+                let meta = <>{P.noDeadline}</>;
+                if (due !== null) {
+                  const d = new Date(due);
+                  if (note.done) {
+                    // Static: done notes have no countdown, so nothing here may go stale at midnight.
+                    meta = <>{`${fullDate(d, nowDate, "long")}, ${timeOf(d)}`}</>;
+                  } else {
+                    const c = countdown(due, now, false);
+                    meta = (
+                      <>
+                        {formatDeadline(d, nowDate, "long")}
+                        {" · "}
+                        <span className={`note-item-due ${c.tone}`}>{c.text}</span>
+                        {/* Reminders switched off in the note's editor (they only matter for an active deadline). */}
+                        {note.remind === false && (
+                          <Tooltip text={P.noReminders} className="note-item-mute">
+                            <span role="img" aria-label={P.noReminders}>
+                              <Icon name="alert_off" size={16} />
+                            </span>
+                          </Tooltip>
+                        )}
+                      </>
+                    );
+                  }
                 }
-              }
-              return (
-                <div key={note.id} className={note.done ? "note-item done" : "note-item"} role="listitem">
-                  <NoteCheck done={note.done} color={note.color} onToggle={() => void toggleNote(note.id)} />
-                  <div className="note-item-text">
-                    <span className="note-item-title">{displayText(note.text)}</span>
-                    <span className="note-item-meta caption">{meta}</span>
+                return (
+                  <div key={note.id} className={note.done ? "note-item done" : "note-item"} role="listitem">
+                    <NoteCheck done={note.done} color={note.color} onToggle={() => void toggleNote(note.id)} />
+                    <div className="note-item-text">
+                      <span className="note-item-title">{displayText(note.text)}</span>
+                      <span className="note-item-meta caption">{meta}</span>
+                    </div>
+                    <div className="note-item-actions">
+                      <Tooltip text={ru.common.edit}>
+                        <IconButton icon="edit" label={ru.common.edit} variant="subtle" onClick={() => setEditor({ key: Date.now(), note })} />
+                      </Tooltip>
+                      <Tooltip text={ru.common.remove}>
+                        <IconButton icon="delete" label={ru.common.remove} variant="danger" onClick={() => void removeNote(note.id)} />
+                      </Tooltip>
+                    </div>
                   </div>
-                  <div className="note-item-actions">
-                    <Tooltip text={ru.common.edit}>
-                      <IconButton icon="edit" label={ru.common.edit} variant="subtle" onClick={() => setEditor({ key: Date.now(), note })} />
-                    </Tooltip>
-                    <Tooltip text={ru.common.remove}>
-                      <IconButton icon="delete" label={ru.common.remove} variant="danger" onClick={() => void removeNote(note.id)} />
-                    </Tooltip>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </Section>
 

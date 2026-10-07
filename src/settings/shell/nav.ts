@@ -2,7 +2,18 @@
 import { createContext, useContext } from "react";
 import type { TileId } from "../../lib/settings";
 
-export type TabId = "general" | "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "notes" | "about";
+export type TabId =
+  | "general"
+  | "appearance"
+  | "clock"
+  | "system"
+  | "launchers"
+  | "map"
+  | "schedule"
+  | "notes"
+  | "reminders"
+  | "transfer"
+  | "about";
 
 /** A page of the content column: a sidebar tab, or the welcome page (it has no sidebar entry). */
 export type PageId = TabId | "welcome";
@@ -23,6 +34,8 @@ export const TABS: readonly TabSpec[] = [
   { id: "map", icon: "map" },
   { id: "schedule", icon: "calendar_ltr" },
   { id: "notes", icon: "note" },
+  { id: "reminders", icon: "alert" },
+  { id: "transfer", icon: "arrow_swap" },
   { id: "about", icon: "info" },
 ];
 

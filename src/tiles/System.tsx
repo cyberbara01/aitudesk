@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow, PhysicalSize } from "@tauri-apps/api/window";
 import { Icon } from "../components/Icon";
+import { MaskedText, PrivacyScope, RevealButton, useRevealed } from "../components/Masked";
 import { Tile } from "../components/Tile";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
@@ -27,7 +28,12 @@ interface RowSpec {
   unit?: string;
   /** Text part of the value (after the number, if any); the part that ellipsizes. */
   text?: string;
-  /** «+N» after device names; never cut. */
+  /**
+   * The text is a network or device name and hideNames is on: dots in its place, and the eye at the right end
+   * of the row reveals this row only (components/Masked.tsx, as on the notes tile).
+   */
+  masked?: boolean;
+  /** «+N» after device names; never cut, and shown only while the names are. */
   count?: string;
   /** Tooltip on the value. */
   hint?: string;
@@ -79,10 +85,9 @@ function wifiRow(w: WifiInfo | null, hideNames: boolean): RowSpec {
   if (!w.connected) return { id, icon: "wifi_off", tone: "off", label, text: ru.system.notConnected };
   const icon = wifiIcon(w.bars);
   const ssid = w.ssid?.trim() ?? "";
-  // The user asked not to see names: say «подключено» and skip the «how to reveal the SSID» hint.
-  if (hideNames) return { id, icon, tone: "on", label, text: ru.system.connected };
+  // Windows keeps the name to itself (no location access): nothing to hide, «подключено» and how to see the name.
   if (w.ssidHidden || ssid === "") return { id, icon, tone: "on", label, text: ru.system.connected, hint: ru.system.ssidHint };
-  return { id, icon, tone: "on", label, text: ssid };
+  return { id, icon, tone: "on", label, text: ssid, masked: hideNames };
 }
 
 function bluetoothRow(b: BluetoothInfo | null, hideNames: boolean): RowSpec {
@@ -92,20 +97,23 @@ function bluetoothRow(b: BluetoothInfo | null, hideNames: boolean): RowSpec {
   if (!b.available) return { id, icon: "bluetooth_disabled", tone: "off", label, text: ru.system.btOff };
   const n = b.devices.length;
   if (n === 0) return { id, icon: "bluetooth", tone: "off", label, text: ru.system.noBtConnections };
-  if (hideNames) return { id, icon: "bluetooth_connected", tone: "on", label, text: ru.system.devices(n) };
   const shown = b.devices.slice(0, 2).join(", ");
   const rest = n - 2;
-  return { id, icon: "bluetooth_connected", tone: "on", label, text: shown, count: rest > 0 ? ru.system.more(rest) : undefined };
+  return { id, icon: "bluetooth_connected", tone: "on", label, text: shown, masked: hideNames, count: rest > 0 ? ru.system.more(rest) : undefined };
 }
 
 /**
- * One status row: icon (tone colour) · label · value on the right in --text-2.
+ * One status row: icon (tone colour) · label · value on the right in --text-2 · the eye, when the value is a
+ * hidden name.
  * Which side gives way in a narrow tile depends on the row (system.css, data-row): in the first row the value is
  * short and stays whole while a long PC label shortens; in the Wi-Fi and Bluetooth rows the label is one short
  * word and the network or device names shorten. Within the value only the text shortens: the number and the «+N»
  * stay whole, and «· заряжается» steps aside in a narrow tile (the charge icon says the same).
  */
-function StatusRow({ id, icon, tone, label, num, unit, text, count, hint }: RowSpec) {
+function StatusRow({ id, icon, tone, label, num, unit, text, masked, count, hint }: RowSpec) {
+  // «+N» belongs to the names: while they are dots it would count names nobody can see (and squeeze the dots in a
+  // narrow tile), so it comes back with them.
+  const namesShown = useRevealed(id);
   const value = (
     <>
       {num && (
@@ -114,12 +122,17 @@ function StatusRow({ id, icon, tone, label, num, unit, text, count, hint }: RowS
           {unit && `${NNBSP}${unit}`}
         </span>
       )}
-      {text && <span className={num ? "sys-text sys-more" : "sys-text"}>{num ? `${NBSP}· ${text}` : text}</span>}
-      {count && <span className="sys-fixed">{`${NBSP}${count}`}</span>}
+      {text &&
+        (masked ? (
+          <MaskedText id={id} text={text} className="sys-text" />
+        ) : (
+          <span className={num ? "sys-text sys-more" : "sys-text"}>{num ? `${NBSP}· ${text}` : text}</span>
+        ))}
+      {count && (!masked || namesShown) && <span className="sys-fixed">{`${NBSP}${count}`}</span>}
     </>
   );
   return (
-    <div className="sys-row" data-row={id} role="listitem">
+    <div className={masked ? "sys-row reveal-row" : "sys-row"} data-row={id} role="listitem">
       <span className={`sys-icon-wrap tone-${tone}`} aria-hidden="true">
         {icon && <Icon name={icon} className="sys-icon" />}
       </span>
@@ -131,6 +144,7 @@ function StatusRow({ id, icon, tone, label, num, unit, text, count, hint }: RowS
       ) : (
         <span className="sys-value body">{value}</span>
       )}
+      {masked && <RevealButton id={id} />}
     </div>
   );
 }
@@ -142,7 +156,8 @@ interface SystemRowsProps {
 
 /**
  * The tile's rows for a given snapshot and settings (also drives the live preview on the settings page).
- * Battery always; Wi-Fi / Bluetooth per showWifi / showBluetooth; names per hideNames; first row label per labelMode.
+ * Battery always; Wi-Fi / Bluetooth per showWifi / showBluetooth; first row label per labelMode. With hideNames
+ * the network and device names are dots, each of those rows with its own eye; the battery row is never hidden.
  * The rows are centred with even gaps when there is spare height and squeeze down when there is not (CSS).
  */
 export function SystemRows({ info, settings }: SystemRowsProps) {
@@ -151,11 +166,13 @@ export function SystemRows({ info, settings }: SystemRowsProps) {
   if (settings.showWifi) rows.push(wifiRow(info.wifi, settings.hideNames));
   if (settings.showBluetooth) rows.push(bluetoothRow(info.bluetooth, settings.hideNames));
   return (
-    <div className="sys-rows" role="list">
-      {rows.map((r) => (
-        <StatusRow key={r.id} {...r} />
-      ))}
-    </div>
+    <PrivacyScope masked={settings.hideNames}>
+      <div className="sys-rows" role="list">
+        {rows.map((r) => (
+          <StatusRow key={r.id} {...r} />
+        ))}
+      </div>
+    </PrivacyScope>
   );
 }
 
@@ -196,7 +213,10 @@ function useGrowToFit({ comfortable, tight }: RowsFit, enabled: boolean) {
   }, [comfortable, tight, enabled]);
 }
 
-/** «Система»: battery / Wi-Fi / Bluetooth, non-interactive rows on glass (or straight on the wallpaper). */
+/**
+ * «Система»: battery / Wi-Fi / Bluetooth rows on glass (or straight on the wallpaper). The only control on the
+ * tile is the eye of a hidden name.
+ */
 export function SystemTile() {
   const loaded = useSettingsLoaded();
   const s = useSettings();

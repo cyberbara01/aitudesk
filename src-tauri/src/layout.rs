@@ -12,6 +12,8 @@ use tauri_plugin_store::StoreExt;
 pub const STORE_FILE: &str = "settings.json";
 const LAYOUT_KEY: &str = "layout";
 const SETTINGS_KEY: &str = "settings";
+/// «Все плитки» switched off in «Общие»: kept across restarts.
+const HIDDEN_KEY: &str = "tilesHidden";
 /// Far enough that no monitor arrangement reaches it (Windows itself parks minimized windows at -32000).
 const PARK: i32 = -32000;
 
@@ -24,7 +26,7 @@ pub struct Rect {
 }
 
 /// Work area of the primary monitor in physical pixels.
-#[derive(Serialize, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub struct WorkArea {
     pub x: i32,
     pub y: i32,
@@ -36,7 +38,7 @@ pub struct WorkArea {
 /// Which tiles are parked off-screen and why.
 #[derive(Default)]
 pub struct Visibility {
-    /// "Показывать виджеты" switched off in settings.
+    /// «Все плитки» switched off in «Общие» (persisted as `tilesHidden`).
     pub hidden: Mutex<bool>,
     /// Tiles switched off in settings.
     pub disabled: Mutex<HashSet<String>>,
@@ -46,7 +48,13 @@ pub struct Visibility {
     pub ready: Mutex<HashSet<String>>,
     /// The wait for slow pages is over: a tile that becomes ready from now on appears at once.
     pub wait_over: AtomicBool,
+    /// Tiles whose page has drawn its first frame. A page kept out of sight since startup (tile off, all tiles
+    /// off) draws it only when shown, so showing it waits for that frame instead of a fixed delay.
+    pub drawn: Mutex<HashSet<String>>,
 }
+
+/// Safety net for a tile shown for the first time: appear even if its page never reports a frame.
+const FIRST_FRAME_MAX_MS: u64 = 2500;
 
 /// How long the first ready tile waits for the others, so that the tiles appear together. All pages share
 /// one renderer process, so they finish their first frame one after another, a few hundred ms apart.
@@ -210,6 +218,13 @@ fn park_hidden(win: &WebviewWindow) {
 /// no default look, no flicker. Tiles switched off in settings stay parked.
 pub fn restore_all(app: &AppHandle) {
     let vis = app.state::<Visibility>();
+    let hidden = app
+        .store(STORE_FILE)
+        .ok()
+        .and_then(|s| s.get(HIDDEN_KEY))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    *vis.hidden.lock().unwrap() = hidden;
     let mut disabled = vis.disabled.lock().unwrap();
     let mut pending = vis.pending.lock().unwrap();
     for label in crate::TILES {
@@ -217,10 +232,14 @@ pub fn restore_all(app: &AppHandle) {
         let rect = resolve_rect(app, &win, label);
         let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
         park(&win);
-        if tile_enabled_in_store(app, label) {
+        let enabled = tile_enabled_in_store(app, label);
+        if !enabled {
+            disabled.insert(label.to_string());
+        }
+        if enabled && !hidden {
             pending.insert(label.to_string(), rect);
         } else {
-            disabled.insert(label.to_string());
+            // Out of sight until switched on: the page loads but does not draw or run its timers.
             set_page_visible(&win, false);
         }
     }
@@ -231,6 +250,7 @@ pub fn restore_all(app: &AppHandle) {
 /// appears as soon as it is ready.
 pub fn mark_ready(app: &AppHandle, label: &str) {
     let vis = app.state::<Visibility>();
+    vis.drawn.lock().unwrap().insert(label.to_string());
     let (all_ready, first) = {
         let pending = vis.pending.lock().unwrap();
         if !pending.contains_key(label) {
@@ -299,22 +319,47 @@ pub fn save_rect(app: &AppHandle, label: &str, rect: Rect) -> Result<(), String>
 /// Only moves the window: tao flag setters (show, always-on-bottom) re-apply styles and activate the
 /// window, which flickers; a tile that is not visible yet is shown once by `window_ready`.
 fn unpark(app: &AppHandle, win: &WebviewWindow, label: &str) {
-    app.state::<Visibility>().pending.lock().unwrap().remove(label);
+    let vis = app.state::<Visibility>();
     let rect = resolve_rect(app, win, label);
+    if !vis.drawn.lock().unwrap().contains(label) {
+        // Never drawn yet: it appears from `mark_ready` once its first frame is painted (with the other tiles
+        // shown at the same time), like at startup. The size first: the layout may have changed (reset,
+        // a settings file) since startup gave the window its size, and appearing only moves it.
+        let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
+        vis.pending.lock().unwrap().insert(label.to_string(), rect);
+        set_page_visible(win, true);
+        let app = app.clone();
+        let label = label.to_string();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(FIRST_FRAME_MAX_MS));
+            reveal(&app, &label);
+        });
+        return;
+    }
+    vis.pending.lock().unwrap().remove(label);
     set_page_visible(win, true);
-    // A page that was hidden draws a fresh frame first, off-screen, then the tile moves into view.
+    // A page that was hidden draws a fresh frame first, off-screen, then the tile moves into view, unless it
+    // was hidden or switched off again meanwhile (a quick double click on «Показать все плитки»).
+    let app = app.clone();
     let win = win.clone();
     let label = label.to_string();
     std::thread::spawn(move || {
         std::thread::sleep(std::time::Duration::from_millis(150));
+        let vis = app.state::<Visibility>();
+        if *vis.hidden.lock().unwrap() || vis.disabled.lock().unwrap().contains(&label) {
+            return;
+        }
         place(&win, &label, rect);
     });
 }
 
-/// Hide = park off-screen (hide() would drop the acrylic); show = move back to the saved rect.
+/// Hide = park off-screen (hide() would drop the acrylic); show = move back to the saved rect. The choice is
+/// saved, so tiles switched off stay off after a restart until they are switched on in «Общие».
 pub fn set_hidden(app: &AppHandle, hidden: bool) {
     let vis = app.state::<Visibility>();
-    let disabled = vis.disabled.lock().unwrap();
+    // Set first: a page that reports its first frame while the tiles are being shown must find them shown.
+    *vis.hidden.lock().unwrap() = hidden;
+    let disabled = vis.disabled.lock().unwrap().clone();
     for label in crate::TILES {
         let Some(win) = app.get_webview_window(label) else { continue };
         if hidden {
@@ -323,9 +368,11 @@ pub fn set_hidden(app: &AppHandle, hidden: bool) {
             unpark(app, &win, label);
         }
     }
-    *vis.hidden.lock().unwrap() = hidden;
-    drop(disabled);
-    // The settings window shows this state («Показывать виджеты»); a second launch can change it too.
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(HIDDEN_KEY, json!(hidden));
+        let _ = store.save();
+    }
+    // The settings window shows this state («Все плитки» in «Общие»).
     let _ = app.emit("tiles-hidden", hidden);
 }
 
@@ -333,11 +380,7 @@ pub fn is_hidden(app: &AppHandle) -> bool {
     *app.state::<Visibility>().hidden.lock().unwrap()
 }
 
-pub fn show_all(app: &AppHandle) {
-    set_hidden(app, false);
-}
-
-/// Settings → "Показывать плитки": park or restore one tile.
+/// «Общие», the switch of one tile: park or restore it.
 pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
     if !crate::TILES.contains(&label) {
         return;
@@ -362,16 +405,125 @@ pub fn reset(app: &AppHandle) -> Result<(), String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     store.delete(LAYOUT_KEY);
     store.save().map_err(|e| e.to_string())?;
+    replace_shown(app);
+    Ok(())
+}
+
+/// Move every tile on screen to its saved (or default) rect after the layout changed. A tile still waiting for
+/// its first frame gets the new size now and appears at the new place; hidden and switched-off tiles take the
+/// new rect when they are shown (`unpark`).
+fn replace_shown(app: &AppHandle) {
     let vis = app.state::<Visibility>();
     let hidden = *vis.hidden.lock().unwrap();
     let disabled = vis.disabled.lock().unwrap();
+    let mut pending = vis.pending.lock().unwrap();
     for label in crate::TILES {
         let Some(win) = app.get_webview_window(label) else { continue };
         if hidden || disabled.contains(*label) {
             continue;
         }
-        let wa = work_area(&win);
-        place(&win, label, default_rect(label, &wa));
+        let rect = resolve_rect(app, &win, label);
+        if let Some(queued) = pending.get_mut(*label) {
+            *queued = rect;
+            let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
+            continue;
+        }
+        place(&win, label, rect);
     }
+}
+
+/// Positions and sizes of the tiles for a settings file, with the screen they were made on. Tiles that were
+/// never moved are listed in `defaults` instead: they keep following the default layout, which fits itself to
+/// any screen.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LayoutFile {
+    pub screen: WorkArea,
+    pub tiles: HashMap<String, Rect>,
+    #[serde(default)]
+    pub defaults: Vec<String>,
+}
+
+/// «Импорт и экспорт»: the saved rect of every tile that has one (on this screen), the rest as defaults.
+pub fn export(app: &AppHandle) -> Option<LayoutFile> {
+    let first = crate::TILES.iter().find_map(|l| app.get_webview_window(l))?;
+    let screen = work_area(&first);
+    let saved = load_layout(app);
+    let mut tiles = HashMap::new();
+    let mut defaults = Vec::new();
+    for label in crate::TILES {
+        match saved.get(*label) {
+            Some(r) if intersects(r, &screen) => {
+                tiles.insert(label.to_string(), *r);
+            }
+            _ => defaults.push(label.to_string()),
+        }
+    }
+    Some(LayoutFile { screen, tiles, defaults })
+}
+
+/// A rect from another screen on this one: the same size in logical px (smaller if the screen is), kept at
+/// the same distance from the nearer edge on each axis, so a column along the right edge stays along the
+/// right edge and the map stays at the bottom.
+fn adapt(r: &Rect, from: &WorkArea, to: &WorkArea) -> Rect {
+    if from == to {
+        return *r;
+    }
+    let (fs, ts) = (from.scale.max(0.5), to.scale.max(0.5));
+    let axis = |pos: i32, len: u32, f_origin: i32, f_len: u32, t_origin: i32, t_len: u32| -> (i32, u32) {
+        let f_total = f_len as f64 / fs;
+        let t_total = t_len as f64 / ts;
+        let start = (pos - f_origin) as f64 / fs;
+        let size = (len as f64 / fs).min(t_total);
+        let end_gap = f_total - start - size;
+        let next = if end_gap < start { t_total - end_gap - size } else { start };
+        let next = next.clamp(0.0, (t_total - size).max(0.0));
+        (t_origin + (next * ts).round() as i32, (size * ts).round() as u32)
+    };
+    let (x, w) = axis(r.x, r.w, from.x, from.w, to.x, to.w);
+    let (y, h) = axis(r.y, r.h, from.y, from.h, to.y, to.h);
+    Rect { x, y, w, h }
+}
+
+/// Smallest tile a settings file can ask for (logical px); each tile's own minimum applies in edit mode.
+const MIN_TILE_W: f64 = 120.0;
+const MIN_TILE_H: f64 = 64.0;
+
+/// `r` moved (and if need be shrunk) so it lies inside the work area: a rect from a file may hang over an edge.
+fn clamp_into(r: Rect, wa: &WorkArea) -> Rect {
+    let w = r.w.min(wa.w);
+    let h = r.h.min(wa.h);
+    let x = r.x.clamp(wa.x, wa.x + (wa.w - w) as i32);
+    let y = r.y.clamp(wa.y, wa.y + (wa.h - h) as i32);
+    Rect { x, y, w, h }
+}
+
+/// Apply the tile rects of a settings file (adapted to this screen) and move the tiles there.
+pub fn import(app: &AppHandle, file: LayoutFile) -> Result<(), String> {
+    let Some(first) = crate::TILES.iter().find_map(|l| app.get_webview_window(l)) else { return Ok(()) };
+    let screen = work_area(&first);
+    let valid = |a: &WorkArea| {
+        a.w >= 200 && a.h >= 200 && a.w <= 100_000 && a.h <= 100_000 && (0.5..=8.0).contains(&a.scale)
+    };
+    if !valid(&file.screen) {
+        return Err("invalid screen".into());
+    }
+    let mut layout = load_layout(app);
+    for label in crate::TILES {
+        if let Some(r) = file.tiles.get(*label) {
+            if (40..=20_000).contains(&r.w) && (40..=20_000).contains(&r.h) {
+                let mut next = adapt(r, &file.screen, &screen);
+                // Never smaller than a usable tile, whatever scale the file claims.
+                next.w = next.w.max((MIN_TILE_W * screen.scale).round() as u32);
+                next.h = next.h.max((MIN_TILE_H * screen.scale).round() as u32);
+                layout.insert(label.to_string(), clamp_into(next, &screen));
+            }
+        } else if file.defaults.iter().any(|d| d == label) {
+            layout.remove(*label);
+        }
+    }
+    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    store.set(LAYOUT_KEY, json!(layout));
+    store.save().map_err(|e| e.to_string())?;
+    replace_shown(app);
     Ok(())
 }

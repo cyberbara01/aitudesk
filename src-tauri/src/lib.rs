@@ -2,8 +2,11 @@ mod accent;
 mod commands;
 mod desktop_watch;
 mod favicon;
+mod files;
 mod glass;
 mod layout;
+mod notify;
+mod reminders;
 mod settings_window;
 mod sysinfo;
 mod tray;
@@ -22,12 +25,36 @@ pub const BROWSER_ARGS: &str = env!("AITUDESK_BROWSER_ARGS");
 /// Command-line flag of the login start (written into the Run key by the autostart plugin).
 const AUTOSTART_ARG: &str = "--autostart";
 
+/// settings.json is plain JSON that people may edit by hand. The store plugin reads a file it cannot parse as
+/// empty, and the first save then writes defaults over it, losing lessons and notes. So before anything opens
+/// it: a UTF-8 BOM (added by some editors) is dropped, and a file that still does not parse is moved aside as
+/// settings.broken-<unix time>.json, next to it, where the data can be recovered.
+fn protect_store_file(identifier: &str) {
+    let Some(appdata) = std::env::var_os("APPDATA") else { return };
+    let dir = std::path::PathBuf::from(appdata).join(identifier);
+    let path = dir.join(layout::STORE_FILE);
+    let Ok(bytes) = std::fs::read(&path) else { return };
+    let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF][..]).unwrap_or(&bytes);
+    if serde_json::from_slice::<serde_json::Value>(body).is_ok() {
+        if body.len() != bytes.len() {
+            let _ = std::fs::write(&path, body);
+        }
+        return;
+    }
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let _ = std::fs::rename(&path, dir.join(format!("settings.broken-{stamp}.json")));
+}
+
 pub fn run() {
+    let context = tauri::generate_context!();
+    protect_store_file(&context.config().identifier);
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            // Launching the app again (its shortcut, the Start menu) while it runs: bring the tiles back and
-            // open the settings window. Only a login start (`--autostart`) stays quiet.
-            layout::show_all(app);
+            // Launching the app again (its shortcut, the Start menu) while it runs opens the settings window on
+            // «Общие», where all tiles can be switched on again if they are off. A login start stays quiet.
             if !args.iter().any(|a| a == AUTOSTART_ARG) {
                 settings_window::open(app, "general", None);
             }
@@ -56,6 +83,11 @@ pub fn run() {
             commands::set_tiles_hidden,
             commands::get_tiles_hidden,
             commands::reset_layout,
+            commands::test_reminder,
+            commands::get_layout,
+            commands::set_layout,
+            commands::save_config_file,
+            commands::open_config_file,
             sysinfo::get_power,
             sysinfo::get_wifi,
             sysinfo::get_bluetooth,
@@ -81,6 +113,7 @@ pub fn run() {
             });
             tray::build(&handle)?;
             desktop_watch::install(&handle);
+            reminders::start(handle.clone());
             // The login entry written by older versions has no `--autostart`: rewrite it once, so a login
             // start never opens the settings window.
             {
@@ -99,6 +132,6 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running AITU Desk");
 }

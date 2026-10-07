@@ -6,8 +6,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { ru } from "../i18n/ru";
 import { Icon } from "./Icon";
 
-/** Number of dots shown instead of any text, so the length of the real text is not revealed. */
-const DOTS = "••••••••";
+/** Dots shown instead of any text, a fixed number of them, so the length of the real text is not revealed. */
+export const DOTS = "••••••••";
 
 interface PrivacyCtx {
   masked: boolean;

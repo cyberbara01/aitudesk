@@ -1,8 +1,8 @@
-// «Заметки»: notes by the nearest deadline (overdue first, the most overdue on top), then notes without one
-// (newest first), done ones last and dimmed when «Показывать выполненные» is on. Each row: a round «выполнено»
-// toggle, the text (two lines at most) and a countdown chip; on a tall tile the absolute deadline sits next to
-// the chip. One scheduler drives every countdown (see useDeadlineClock): per second only while a deadline is
-// within the hour, otherwise on the minute, and no timer at all without deadlines.
+// «Заметки»: notes in the order chosen in the settings (by the nearest deadline with overdue ones on top, or
+// newest / oldest added first), done ones last and dimmed when «Показывать выполненные» is on. Each row: a round
+// «выполнено» toggle, the text (two lines at most) and a countdown chip; on a tall tile the absolute deadline
+// sits next to the chip. One scheduler drives every countdown (see useDeadlineClock): per second only while a
+// deadline is within the hour, otherwise on the minute, and no timer at all without deadlines.
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MenuItemSpec } from "../components/ContextMenu";
 import { EmptyState } from "../components/EmptyState";
@@ -65,9 +65,9 @@ const NoteRow = memo(function NoteRow({ note, chip, tone, when }: NoteRowProps) 
 export function NotesTile() {
   const s = useSettings();
   const loaded = useSettingsLoaded();
-  const { notes, showDone, privacy, background } = s.notes;
+  const { notes, sort, showDone, privacy, background } = s.notes;
 
-  const ordered = useMemo(() => orderNotes(notes), [notes]);
+  const ordered = useMemo(() => orderNotes(notes, sort), [notes, sort]);
   const visible = useMemo(() => (showDone ? ordered : ordered.filter((it) => !it.note.done)), [ordered, showDone]);
   const deadlines = useMemo(() => activeDeadlines(visible), [visible]);
   const now = useDeadlineClock(deadlines, true);

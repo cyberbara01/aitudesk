@@ -17,7 +17,9 @@ import { LaunchersPage } from "./LaunchersPage";
 import { MapPage } from "./MapPage";
 import { SchedulePage } from "./SchedulePage";
 import { NotesPage } from "./NotesPage";
+import { RemindersPage } from "./RemindersPage";
 import { SystemPage } from "./SystemPage";
+import { TransferPage } from "./TransferPage";
 import { useRootAttribute, useSettled } from "./shell/hooks";
 import { NavigateContext, TABS, acceptsEdit, readInitialRoute, type PageId, type Route, type TabId } from "./shell/nav";
 import { useNavigateEvent } from "./shell/useNavigateEvent";
@@ -44,6 +46,10 @@ function renderPage(route: Route) {
       return <SchedulePage key={`schedule-${route.nonce}`} editId={route.edit} />;
     case "notes":
       return <NotesPage key={`notes-${route.nonce}`} editId={route.edit} />;
+    case "reminders":
+      return <RemindersPage />;
+    case "transfer":
+      return <TransferPage />;
     case "about":
       return <AboutPage />;
   }

@@ -139,26 +139,14 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
 }
 .ln-preview-hint { margin: 0; text-align: center; }
 
-/* Rows: icon square · name / host · controls. Built-ins are wrapped in .ln-item so the colour popover
-   can sit under its row and the dividers still fall between items. */
-.ln-item + .ln-item { border-top: 1px solid var(--divider); }
+/* Rows: icon square · name / host · controls. A built-in that is switched off fades its square and name. */
 .ln-row { min-height: 56px; gap: var(--s3); }
 .ln-row > .row-text { flex: 1 1 auto; }
 .ln-row .row-hint.mono { font-family: var(--font-mono); }
 .ln-row .icon-btn:disabled { color: var(--text-disabled); background: transparent; pointer-events: none; }
-.ln-item.off .ln-square { opacity: .45; }
-.ln-item.off .row-label { color: var(--text-2); }
+.ln-row.off .ln-square { opacity: .45; }
+.ln-row.off .row-label { color: var(--text-2); }
 .ln-warn { color: var(--caution); }
-
-/* Colour dot of a built-in: a swatch that opens the picker below its row (no hover scale here). */
-.ln-dot { flex: 0 0 auto; margin-right: var(--s1); }
-.ln-dot:hover { transform: none; }
-.ln-color-pop {
-  padding: var(--s3) var(--s5) var(--s4);
-  background: var(--surface-3);
-  border-top: 1px solid var(--divider);
-  animation: pop-in var(--t-base) var(--ease-in);
-}
 
 .ln-foot {
   display: flex;
@@ -194,6 +182,8 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
   transition: opacity var(--t-base) var(--ease-in);
 }
 .ln-form.ln-busy { opacity: .6; pointer-events: none; }
+/* «Вернуть как было» (built-ins) sits at the start of the footer, apart from Отмена and Сохранить. */
+.ln-restore { margin-right: auto; }
 .ln-field { display: flex; flex-direction: column; gap: var(--s2); }
 .ln-field-label { color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); }
 

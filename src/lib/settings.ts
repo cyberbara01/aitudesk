@@ -105,9 +105,22 @@ export interface CustomLauncher {
   color: string;
 }
 
+/**
+ * What the user changed on a built-in launcher. Missing fields keep the original (src/lib/launchers.ts
+ * BUILT_IN); an empty object or no entry is the original launcher. Its colour lives in `builtInColors`.
+ */
+export interface BuiltInEdit {
+  /** Shown in the settings and, instead of the short original caption, under the icon on the tile. */
+  name?: string;
+  url?: string;
+  icon?: LauncherIcon;
+}
+
 export interface LaunchersSettings {
   builtIn: Record<BuiltInLauncher, boolean>;
   builtInColors: Record<BuiltInLauncher, string>;
+  /** Name, address and icon changed by the user, per built-in launcher. */
+  builtInEdits: Partial<Record<BuiltInLauncher, BuiltInEdit>>;
   custom: CustomLauncher[];
   showLabels: boolean;
   background: boolean;
@@ -183,14 +196,49 @@ export interface Note {
   created: number;
   /** Optional #RRGGBB marker. */
   color?: string;
+  /** false = no reminders for this note's deadline (absent = reminders on, see settings.reminders). */
+  remind?: boolean;
 }
+
+/**
+ * Order of the notes on the tile and in the settings: by deadline (nearest first, notes without one after
+ * them), newest added first, or oldest added first. Done notes always go last.
+ */
+export type NoteSort = "deadline" | "newest" | "oldest";
+export const NOTE_SORTS: readonly NoteSort[] = ["deadline", "newest", "oldest"];
 
 export interface NotesSettings {
   notes: Note[];
+  sort: NoteSort;
   showDone: boolean;
   /** Mask note texts on the desktop with password dots (hover + eye reveals). */
   privacy: boolean;
   background: boolean;
+}
+
+/**
+ * Windows notifications before lessons and note deadlines, shown by the app itself
+ * (src-tauri/src/reminders.rs reads these fields; keep the names in sync).
+ */
+export interface ReminderSettings {
+  /** Remind before every lesson of the schedule. */
+  lessons: boolean;
+  /** Minutes before a lesson starts, 0..180 (0 = when it starts). */
+  lessonBefore: number;
+  /** Remind about note deadlines (notes can opt out one by one, Note.remind). */
+  deadlines: boolean;
+  /** First reminder, minutes before the deadline, 0..20160 (0 = none before the deadline). */
+  deadlineFirst: number;
+  /** After the first reminder, repeat every N minutes until the deadline, 0..10080 (0 = no repeats). */
+  deadlineRepeat: number;
+  /** One more reminder at the deadline itself. */
+  atDeadline: boolean;
+  /** No notifications between quietFrom and quietTo ("HH:MM", may wrap past midnight). */
+  quiet: boolean;
+  quietFrom: string;
+  quietTo: string;
+  /** Notification sound. */
+  sound: boolean;
 }
 
 export interface Settings {
@@ -209,6 +257,7 @@ export interface Settings {
   map: MapSettings;
   schedule: ScheduleSettings;
   notes: NotesSettings;
+  reminders: ReminderSettings;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -248,6 +297,7 @@ export const DEFAULT_SYSTEM: SystemSettings = {
 export const DEFAULT_LAUNCHERS: LaunchersSettings = {
   builtIn: { du: true, moodle: true, learn: true },
   builtInColors: { du: "#60CDFF", moodle: "#9BE3A6", learn: "#FFB6A8" },
+  builtInEdits: {},
   custom: [],
   showLabels: true,
   background: true,
@@ -281,9 +331,23 @@ export const DEFAULT_SCHEDULE: ScheduleSettings = {
 
 export const DEFAULT_NOTES: NotesSettings = {
   notes: [],
+  sort: "deadline",
   showDone: false,
   privacy: false,
   background: true,
+};
+
+export const DEFAULT_REMINDERS: ReminderSettings = {
+  lessons: true,
+  lessonBefore: 10,
+  deadlines: true,
+  deadlineFirst: 1440,
+  deadlineRepeat: 0,
+  atDeadline: true,
+  quiet: false,
+  quietFrom: "23:00",
+  quietTo: "08:00",
+  sound: true,
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -300,6 +364,7 @@ export const DEFAULT_SETTINGS: Settings = {
   map: DEFAULT_MAP,
   schedule: DEFAULT_SCHEDULE,
   notes: DEFAULT_NOTES,
+  reminders: DEFAULT_REMINDERS,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -323,24 +388,41 @@ const oneOf = <T extends string>(v: unknown, list: readonly T[], d: T): T => (li
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const hex = (v: unknown, d: string) => (typeof v === "string" && HEX.test(v) ? v.toUpperCase() : d);
 
+/** A stored launcher icon, or null when `raw` is not one. */
+function migrateIcon(raw: unknown): LauncherIcon | null {
+  if (!isObj(raw)) return null;
+  const k = raw.kind;
+  if (k === "fluent" && typeof raw.name === "string" && raw.name) {
+    const cached = raw.svg;
+    const svg = typeof cached === "string" && cached.startsWith("<svg") && cached.length < 20000 ? cached : undefined;
+    return svg ? { kind: "fluent", name: raw.name, svg } : { kind: "fluent", name: raw.name };
+  }
+  if (k === "site") return { kind: "site", data: typeof raw.data === "string" ? raw.data : undefined };
+  if (k === "letter") return { kind: "letter" };
+  return null;
+}
+
+/**
+ * A launcher address as stored: http(s) only, so a launcher from someone else's settings file can never start a
+ * program (file:, ms-settings:, ...). Spaces inside become %20: versions up to 1.0 accepted addresses like
+ * «https://site/search?q=a b», and such a launcher must survive the update. Null when it is no web address.
+ */
+function webUrl(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const url = v.trim().replace(/\s+/g, "%20");
+  return /^https?:\/\/\S+$/i.test(url) ? url : null;
+}
+
 function migrateLauncher(raw: unknown): CustomLauncher | null {
-  if (!isObj(raw) || typeof raw.id !== "string" || typeof raw.url !== "string") return null;
-  let icon: LauncherIcon = { kind: "site" };
-  if (isObj(raw.icon)) {
-    const k = raw.icon.kind;
-    if (k === "fluent" && typeof raw.icon.name === "string") {
-      const cached = raw.icon.svg;
-      const svg = typeof cached === "string" && cached.startsWith("<svg") && cached.length < 20000 ? cached : undefined;
-      icon = svg ? { kind: "fluent", name: raw.icon.name, svg } : { kind: "fluent", name: raw.icon.name };
-    }
-    else if (k === "site") icon = { kind: "site", data: typeof raw.icon.data === "string" ? raw.icon.data : undefined };
-    else if (k === "letter") icon = { kind: "letter" };
-  } else if (typeof raw.icon === "string" && raw.icon) {
+  const url = isObj(raw) ? webUrl(raw.url) : null;
+  if (!isObj(raw) || typeof raw.id !== "string" || url === null) return null;
+  let icon: LauncherIcon = migrateIcon(raw.icon) ?? { kind: "site" };
+  if (typeof raw.icon === "string" && raw.icon) {
     icon = { kind: "fluent", name: raw.icon }; // v1
   }
   let color = hex(raw.color, "");
   if (!color) color = typeof raw.tint === "number" ? (V1_TINTS[raw.tint] ?? V1_TINTS[0]) : V1_TINTS[0];
-  return { id: raw.id, name: str(raw.name, ""), url: raw.url, icon, color };
+  return { id: raw.id, name: str(raw.name, ""), url, icon, color };
 }
 
 function migrateLesson(raw: unknown): Lesson | null {
@@ -359,7 +441,20 @@ function migrateLesson(raw: unknown): Lesson | null {
   };
 }
 
+/** Changes of one built-in launcher; null when nothing valid is left. */
+function migrateBuiltInEdit(raw: unknown): BuiltInEdit | null {
+  if (!isObj(raw)) return null;
+  const edit: BuiltInEdit = {};
+  if (typeof raw.name === "string" && raw.name.trim()) edit.name = raw.name.trim().slice(0, 40);
+  const url = webUrl(raw.url);
+  if (url !== null) edit.url = url;
+  const icon = migrateIcon(raw.icon);
+  if (icon) edit.icon = icon;
+  return Object.keys(edit).length > 0 ? edit : null;
+}
+
 const DEADLINE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function migrateNote(raw: unknown): Note | null {
   if (!isObj(raw) || typeof raw.id !== "string") return null;
@@ -372,6 +467,7 @@ function migrateNote(raw: unknown): Note | null {
   if (typeof raw.deadline === "string" && DEADLINE.test(raw.deadline)) note.deadline = raw.deadline;
   const color = hex(raw.color, "");
   if (color) note.color = color;
+  if (raw.remind === false) note.remind = false;
   return note;
 }
 
@@ -437,6 +533,12 @@ export function normalize(saved: unknown): Settings {
   const builtInRaw = isObj(l.builtIn) ? l.builtIn : isObj(s.builtIn) ? s.builtIn : {};
   const colorsRaw = isObj(l.builtInColors) ? l.builtInColors : {};
   const customRaw = Array.isArray(l.custom) ? l.custom : Array.isArray(s.custom) ? s.custom : [];
+  const editsRaw = isObj(l.builtInEdits) ? l.builtInEdits : {};
+  const builtInEdits: Partial<Record<BuiltInLauncher, BuiltInEdit>> = {};
+  for (const key of ["du", "moodle", "learn"] as const) {
+    const edit = migrateBuiltInEdit(editsRaw[key]);
+    if (edit) builtInEdits[key] = edit;
+  }
   const launchers: LaunchersSettings = {
     builtIn: {
       du: bool(builtInRaw.du, true),
@@ -448,6 +550,7 @@ export function normalize(saved: unknown): Settings {
       moodle: hex(colorsRaw.moodle, d.launchers.builtInColors.moodle),
       learn: hex(colorsRaw.learn, d.launchers.builtInColors.learn),
     },
+    builtInEdits,
     custom: customRaw.map(migrateLauncher).filter((x): x is CustomLauncher => x !== null),
     showLabels: bool(l.showLabels, d.launchers.showLabels),
     background: bool(l.background, d.launchers.background),
@@ -496,9 +599,28 @@ export function normalize(saved: unknown): Settings {
   const notesRaw = Array.isArray(n.notes) ? n.notes : [];
   const notes: NotesSettings = {
     notes: notesRaw.map(migrateNote).filter((x): x is Note => x !== null),
+    sort: oneOf(n.sort, NOTE_SORTS, d.notes.sort),
     showDone: bool(n.showDone, d.notes.showDone),
     privacy: bool(n.privacy, d.notes.privacy),
     background: bool(n.background, d.notes.background),
+  };
+
+  // reminders
+  const r = isObj(s.reminders) ? s.reminders : {};
+  const dr = d.reminders;
+  const int = (v: unknown, def: number, min: number, max: number) => Math.round(num(v, def, min, max));
+  const hhmm = (v: unknown, def: string) => (typeof v === "string" && HHMM.test(v) ? v : def);
+  const reminders: ReminderSettings = {
+    lessons: bool(r.lessons, dr.lessons),
+    lessonBefore: int(r.lessonBefore, dr.lessonBefore, 0, 180),
+    deadlines: bool(r.deadlines, dr.deadlines),
+    deadlineFirst: int(r.deadlineFirst, dr.deadlineFirst, 0, 20160),
+    deadlineRepeat: int(r.deadlineRepeat, dr.deadlineRepeat, 0, 10080),
+    atDeadline: bool(r.atDeadline, dr.atDeadline),
+    quiet: bool(r.quiet, dr.quiet),
+    quietFrom: hhmm(r.quietFrom, dr.quietFrom),
+    quietTo: hhmm(r.quietTo, dr.quietTo),
+    sound: bool(r.sound, dr.sound),
   };
 
   return {
@@ -515,13 +637,15 @@ export function normalize(saved: unknown): Settings {
     map,
     schedule,
     notes,
+    reminders,
   };
 }
 
 export type SettingsPatch = Partial<Omit<Settings, "version">>;
 
 /** Pages that can be reset on their own. */
-export type ResetSection = "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "notes";
+export type ResetSection = "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "notes" | "reminders";
+/** The sections «Сбросить оформление» resets: the look of the app and the tiles (reminders are not looks). */
 export const RESET_SECTIONS: readonly ResetSection[] = ["appearance", "clock", "system", "launchers", "map", "schedule", "notes"];
 
 /**
@@ -540,14 +664,49 @@ function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
     case "system":
       return { system: { ...d.system, customLabel: s.system.customLabel, hideNames: s.system.hideNames } };
     case "launchers":
-      return { launchers: { ...d.launchers, builtIn: s.launchers.builtIn, custom: s.launchers.custom } };
+      return {
+        launchers: { ...d.launchers, builtIn: s.launchers.builtIn, builtInEdits: s.launchers.builtInEdits, custom: s.launchers.custom },
+      };
     case "map":
       return { map: { ...d.map, favorites: s.map.favorites, lastFloor: s.map.lastFloor } };
     case "schedule":
       return { schedule: { ...d.schedule, lessons: s.schedule.lessons, privacy: s.schedule.privacy } };
     case "notes":
       return { notes: { ...d.notes, notes: s.notes.notes, privacy: s.notes.privacy } };
+    case "reminders":
+      return { reminders: d.reminders };
   }
+}
+
+/**
+ * `next` with every part that equals the same part of `prev` replaced by the `prev` object itself (structural
+ * sharing). A change to the clock then leaves `s.map`, `s.notes.notes` and every unchanged note or lesson the
+ * same objects, so memoized parts of the tiles skip their work, and a value that did not change at all (the
+ * store echoing this window's own write) comes back as `prev` and is not announced again.
+ */
+function share<T>(prev: T, next: T): T {
+  if (Object.is(prev, next)) return prev;
+  if (Array.isArray(prev) && Array.isArray(next)) {
+    let same = prev.length === next.length;
+    const out = next.map((v, i) => {
+      const kept = share(prev[i], v);
+      if (kept !== prev[i]) same = false;
+      return kept;
+    });
+    return (same ? prev : out) as T;
+  }
+  if (isObj(prev) && isObj(next)) {
+    const keys = Object.keys(next);
+    let same = keys.length === Object.keys(prev).length;
+    const out: Record<string, unknown> = {};
+    for (const k of keys) {
+      const kept = share(prev[k], next[k]);
+      out[k] = kept;
+      if (kept !== prev[k] || !(k in prev)) same = false;
+    }
+    return (same ? prev : out) as T;
+  }
+  return next;
 }
 
 class SettingsStore {
@@ -570,7 +729,9 @@ class SettingsStore {
       this.emit();
       this.readyResolvers.splice(0).forEach((r) => r());
       await store.onKeyChange<unknown>(KEY, (value) => {
-        this.current = normalize(value);
+        const next = share(this.current, normalize(value));
+        if (next === this.current) return;
+        this.current = next;
         this.emit();
       });
       return store;
@@ -602,7 +763,9 @@ class SettingsStore {
   async update(patch: SettingsPatch | ((s: Settings) => SettingsPatch)): Promise<void> {
     const store = await this.store;
     const p = typeof patch === "function" ? patch(this.current) : patch;
-    const next = normalize({ ...this.current, ...p, version: 2 });
+    const next = share(this.current, normalize({ ...this.current, ...p, version: 2 }));
+    // Nothing changed (a reset of defaults, the same value again): no render, no write.
+    if (next === this.current) return;
     this.current = next;
     this.emit();
     await store.set(KEY, next);
@@ -626,6 +789,9 @@ class SettingsStore {
   }
   updateNotes(p: Partial<NotesSettings>) {
     return this.update((s) => ({ notes: { ...s.notes, ...p } }));
+  }
+  updateReminders(p: Partial<ReminderSettings>) {
+    return this.update((s) => ({ reminders: { ...s.reminders, ...p } }));
   }
 
   /** «Сбросить настройки раздела»: the look of one page back to defaults, user data kept. */

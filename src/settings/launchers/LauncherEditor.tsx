@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "../../components/Button";
 import { ColorPicker } from "../../components/ColorPicker";
@@ -10,23 +10,28 @@ import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.launchers";
 import {
   DEFAULT_FLUENT_ICON,
+  builtInOriginal,
+  hasSpaces,
+  isBuiltInOriginal,
   isIconMarkup,
   isImageDataUrl,
   isValidUrl,
   newLauncherId,
   nextLauncherColor,
+  saveBuiltIn,
   upsertCustom,
   type IconMode,
+  type LauncherItem,
 } from "../../lib/launchers";
-import { settings, type CustomLauncher, type LauncherIcon as LauncherIconSpec } from "../../lib/settings";
+import { settings, type LauncherIcon as LauncherIconSpec } from "../../lib/settings";
 import { IconPickerDialog } from "./IconPickerDialog";
 import { iconSvgFor, trustedIconSvg } from "./iconCache";
 import { LauncherCell, LauncherIcon, type LauncherLook } from "./LauncherIcon";
 import { PopularIcons } from "./PopularIcons";
 
 interface Props {
-  /** null = a new launcher. */
-  item: CustomLauncher | null;
+  /** null = a new launcher; otherwise the launcher as it shows now (a built-in one with the user's edits). */
+  item: LauncherItem | null;
   /** Mirrors settings.launchers.showLabels in the live preview. */
   showLabels: boolean;
   /** Keep it referentially stable: the Dialog re-registers in the Esc stack whenever it changes. */
@@ -39,6 +44,10 @@ interface FluentChoice {
   svg?: string;
 }
 
+/** The Fluent choice an icon stands for, or null for a site or letter icon. */
+const fluentOf = (icon: LauncherIconSpec | undefined): FluentChoice | null =>
+  icon?.kind === "fluent" ? { name: icon.name, svg: trustedIconSvg(icon) } : null;
+
 const MODE_OPTIONS = [
   { value: "site", label: ru.settings.launchers.iconSite, icon: "globe" },
   { value: "fluent", label: ru.settings.launchers.iconFluent, icon: "apps" },
@@ -49,21 +58,28 @@ const NAME_MAX = 40;
 
 /**
  * «Добавить ярлык» / «Изменить ярлык»: live cell preview, name, URL, icon mode (site, Fluent set, letter)
- * and colour.
+ * and colour, for custom and built-in launchers alike.
  * - Site: the icon is fetched once on save (fetch_site_icon, the only network use); on failure the dialog
  *   stays open with an explanation, and a second «Сохранить» keeps the letter fallback.
  * - Fluent: two rows of popular icons right here, «Смотреть все» opens the full set in its own scrollable
  *   window. Saving stores the icon's markup in the launcher (icon.svg), so the desktop tile draws it
  *   without loading the full icon set.
+ * - Built-in: saving keeps only what differs from the original (saveBuiltIn). While the form differs from
+ *   the original, «Вернуть как было» puts the original name, address, icon and colour back into the form;
+ *   «Сохранить» then stores them, «Отмена» keeps the launcher as it was.
  * Focus and Esc are the kit's job: the Dialog focuses its first form field (the name) and routes Esc to the
  * top-most dialog, so the nested icon picker closes first and the editor stays open.
  */
 export function LauncherEditor({ item, showLabels, onClose }: Props) {
+  /** The built-in launcher being edited, or null for a custom or new one. */
+  const builtIn = item?.kind === "builtin" ? item.id : null;
+  const original = useMemo(() => (builtIn ? builtInOriginal(builtIn) : null), [builtIn]);
   const [name, setName] = useState(item?.name ?? "");
   const [url, setUrl] = useState(item?.url ?? "");
   const [mode, setMode] = useState<IconMode>(item?.icon.kind ?? "site");
-  const [fluent, setFluent] = useState<FluentChoice>(() =>
-    item?.icon.kind === "fluent" ? { name: item.icon.name, svg: trustedIconSvg(item.icon) } : { name: DEFAULT_FLUENT_ICON },
+  // A built-in shown with a site or letter icon still offers its own icon first in the Fluent mode.
+  const [fluent, setFluent] = useState<FluentChoice>(
+    () => fluentOf(item?.icon) ?? fluentOf(original?.icon) ?? { name: DEFAULT_FLUENT_ICON },
   );
   const [color, setColor] = useState(() => item?.color ?? nextLauncherColor(settings.get()));
   const [touched, setTouched] = useState({ name: false, url: false });
@@ -73,9 +89,10 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
   /** False once unmounted, so a fetch that outlives the dialog does not set state or save. */
   const alive = useRef(true);
   /** One id per editor: a repeated «Сохранить» (double click, held Enter) replaces, never duplicates. */
-  const id = useRef(item?.id ?? newLauncherId());
+  const id = useRef(item?.kind === "custom" ? item.id : newLauncherId());
   /** A save in progress; further requests are ignored until it ends. */
   const busy = useRef(false);
+  const saveId = useId();
 
   useEffect(() => {
     alive.current = true;
@@ -102,10 +119,20 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
       : mode === "letter"
         ? { kind: "letter" }
         : { kind: "site", data: cachedData };
-  const look: LauncherLook = { name: trimmedName || extra.untitled, url: trimmedUrl, icon: previewIcon, color };
+  const look: LauncherLook = {
+    name: trimmedName || extra.untitled,
+    // A built-in keeps its short tile caption («DU») until it is renamed, as on the tile.
+    caption: original && trimmedName === original.name ? original.caption : undefined,
+    url: trimmedUrl,
+    icon: previewIcon,
+    color,
+  };
+  /** «Вернуть как было» is offered while the form shows a built-in that differs from its original. */
+  const changed = builtIn !== null && !isBuiltInOriginal(builtIn, { name: trimmedName, url: trimmedUrl, icon: previewIcon, color });
 
   const nameError = touched.name && !trimmedName ? ru.settings.launchers.nameRequired : undefined;
-  const urlError = touched.url && !isValidUrl(url) ? ru.settings.launchers.urlInvalid : undefined;
+  let urlError: string | undefined;
+  if (touched.url && !isValidUrl(url)) urlError = hasSpaces(url) ? extra.urlSpaces : ru.settings.launchers.urlInvalid;
   const valid = Boolean(trimmedName) && isValidUrl(url);
   const failed = failedUrl !== null && failedUrl === trimmedUrl;
 
@@ -142,11 +169,23 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
     try {
       const icon = await resolveIcon();
       if (!icon || !alive.current) return;
-      await upsertCustom({ id: id.current, name: trimmedName, url: trimmedUrl, icon, color });
+      const draft = { name: trimmedName, url: trimmedUrl, icon, color };
+      await (builtIn ? saveBuiltIn(builtIn, draft) : upsertCustom({ id: id.current, ...draft }));
       if (alive.current) onClose();
     } finally {
       busy.current = false;
     }
+  };
+
+  const restore = () => {
+    if (!original) return;
+    setName(original.name);
+    setUrl(original.url);
+    setMode(original.icon.kind);
+    setFluent((f) => fluentOf(original.icon) ?? f);
+    setColor(original.color);
+    // The button goes away with the difference: keep the keyboard on the step that follows.
+    document.getElementById(saveId)?.focus();
   };
 
   const onFieldKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -172,8 +211,13 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
         onClose={onClose}
         footer={
           <>
+            {changed && (
+              <Button variant="subtle" icon="arrow_reset" className="ln-restore" onClick={restore} disabled={loading}>
+                {extra.restore}
+              </Button>
+            )}
             <Button onClick={onClose}>{ru.common.cancel}</Button>
-            <Button variant="accent" onClick={() => void save()} disabled={loading}>
+            <Button id={saveId} variant="accent" onClick={() => void save()} disabled={loading}>
               {loading ? ru.settings.launchers.iconLoading : ru.common.save}
             </Button>
           </>

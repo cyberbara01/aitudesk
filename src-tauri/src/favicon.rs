@@ -6,7 +6,7 @@ use std::time::Duration;
 
 const MAX_ICON_BYTES: usize = 512 * 1024;
 const MAX_HTML_BYTES: usize = 768 * 1024;
-const UA: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AITU-Desk/0.2";
+const UA: &str = concat!("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AITU-Desk/", env!("CARGO_PKG_VERSION"));
 
 fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
