@@ -73,7 +73,7 @@ export const en: ShellStrings = {
       "AITU Desk is distributed under the MIT license: you can use, change and share the app freely, as long as the author's name and the license text are kept.",
     feedback: "Rate AITU Desk",
     feedbackHint: "Anonymous. A single rating from 0 to 10 is enough, ideas are optional",
-    feedbackButton: "Rate",
+    feedbackButton: "Form",
     mapRepoLabel: "Map repository",
     show: "Show",
     hide: "Hide",
@@ -105,7 +105,7 @@ export const en: ShellStrings = {
     startText: (reminders: string) =>
       `Turn on autostart so the widgets are in place after a restart. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
     footer: (help: string) =>
-      `You can close this window: the widgets stay. Open the settings again from the AITU Desk shortcut or its icon next to the clock on the taskbar, these tips from “${help}” at the bottom of the sidebar, and switch the app language with the button beside it.`,
+      `You can close this window: the widgets stay. Open the settings again from the AITU Desk shortcut or its icon next to the clock on the taskbar, these tips from “${help}” at the bottom of the sidebar, and switch the app language with the “RU | EN” button under it.`,
     start: "Get started",
   },
 };

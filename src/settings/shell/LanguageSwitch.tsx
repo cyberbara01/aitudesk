@@ -1,13 +1,13 @@
-// «Язык · Language» in the bottom-left corner of the settings window, beside «Как пользоваться»: a small square
-// button with the language glyph (its name, in both languages, is the tooltip). Its menu offers «Как в Windows»,
-// Русский and English, each name in its own language so anyone finds theirs, with a check at the one in use;
-// picking another one asks first, since the app restarts to switch.
+// «Язык · Language» in the bottom-left corner of the settings window, under «Как пользоваться»: a small button
+// that reads «RU | EN», the language in use bright. Its menu offers «Как в Windows», Русский and English, each
+// name in its own language so anyone finds theirs, drawn like the sidebar's items (the one in use looks like the
+// selected page in every design); picking another one asks first, since the app restarts to switch.
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "../../components/Button";
 import { Dialog } from "../../components/Dialog";
-import { Icon } from "../../components/Icon";
 import { Tooltip } from "../../components/Tooltip";
+import { LANG } from "../../i18n/lang";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.shell";
 import { settings, type LanguageSetting } from "../../lib/settings";
@@ -94,7 +94,9 @@ export function LanguageSwitch() {
           onClick={() => (open ? setOpen(false) : openMenu())}
           onKeyDown={onKey}
         >
-          <Icon name="local_language" />
+          <span className={LANG === "ru" ? "lang-code on" : "lang-code"}>RU</span>
+          <span className="lang-sep" aria-hidden="true" />
+          <span className={LANG === "en" ? "lang-code on" : "lang-code"}>EN</span>
         </button>
       </Tooltip>
       {open && (
@@ -106,12 +108,11 @@ export function LanguageSwitch() {
               role="menuitemradio"
               aria-checked={o.value === language}
               tabIndex={-1}
-              className={["popover-item", o.value === language ? "selected" : "", i === active ? "active" : ""].filter(Boolean).join(" ")}
+              className={["nav-item", o.value === language ? "selected" : "", i === active ? "active" : ""].filter(Boolean).join(" ")}
               onMouseEnter={() => setActive(i)}
               onClick={() => choose(o.value)}
             >
               <span className="ellipsis">{o.label}</span>
-              {o.value === language && <Icon name="checkmark" size={16} className="lang-check" />}
             </button>
           ))}
         </div>

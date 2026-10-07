@@ -735,6 +735,7 @@ a { color: var(--accent-text); text-decoration: none; }
 /* Each area keeps its own thumb hidden (an area inside another, hovered one would inherit its colour) and
    shows it while the pointer is over the area. The text area has transitions of its own: no fade there. */
 .content,
+.sidebar-nav,
 .dialog-body,
 .popover,
 .ctx-menu,
@@ -748,6 +749,7 @@ a { color: var(--accent-text); text-decoration: none; }
 }
 .textarea-input { --sb-thumb: transparent; }
 .content:hover,
+.sidebar-nav:hover,
 .dialog-body:hover,
 .popover:hover,
 .ctx-menu:hover,

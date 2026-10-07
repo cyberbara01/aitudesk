@@ -4,179 +4,177 @@
 
 # AITU Desk
 
-**Виджеты на рабочий стол Windows 11: часы, заряд и сеть, ярлыки, заметки с дедлайнами, расписание пар и карта
-Astana IT University.** Лежат прямо на обоях, под окнами, не мешают работать и не пропадают от Win+D.
+**English** · [Русский](README.ru.md)
 
-[![Скачать для Windows 11](https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C_%D0%B4%D0%BB%D1%8F_Windows_11-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B)](https://github.com/cyberbara01/aitudesk/releases/latest)
+**Desktop widgets for Windows 11: a clock, battery and network, shortcuts, notes with deadlines, the class schedule
+and the map of Astana IT University.** They sit right on the wallpaper, under your windows, stay out of the way and
+don't vanish with Win+D.
 
-[![Версия](https://img.shields.io/github/v/release/cyberbara01/aitudesk?label=%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F&color=0078D4)](https://github.com/cyberbara01/aitudesk/releases/latest)
-[![Windows 11](https://img.shields.io/badge/Windows-11%2C_64_%D0%B1%D0%B8%D1%82%D0%B0-0078D4)](#установка)
-[![Русский и English](https://img.shields.io/badge/%D1%8F%D0%B7%D1%8B%D0%BA-%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9%2C_English-0078D4)](#in-english)
-[![Лицензия MIT](https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-MIT-2EA043)](LICENSE)
-[![Без телеметрии](https://img.shields.io/badge/%D1%82%D0%B5%D0%BB%D0%B5%D0%BC%D0%B5%D1%82%D1%80%D0%B8%D1%8F-%D0%BD%D0%B5%D1%82-2EA043)](#почему-ему-можно-доверять)
-[![Без прав администратора](https://img.shields.io/badge/%D0%BF%D1%80%D0%B0%D0%B2%D0%B0_%D0%B0%D0%B4%D0%BC%D0%B8%D0%BD%D0%B8%D1%81%D1%82%D1%80%D0%B0%D1%82%D0%BE%D1%80%D0%B0-%D0%BD%D0%B5_%D0%BD%D1%83%D0%B6%D0%BD%D1%8B-2EA043)](#установка)
+[![Download for Windows 11](https://img.shields.io/badge/Download_for_Windows_11-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B)](https://github.com/cyberbara01/aitudesk/releases/latest)
+
+[![Version](https://img.shields.io/github/v/release/cyberbara01/aitudesk?label=version&color=0078D4)](https://github.com/cyberbara01/aitudesk/releases/latest)
+[![Windows 11](https://img.shields.io/badge/Windows-11%2C_64--bit-0078D4)](#installation)
+[![English and Russian](https://img.shields.io/badge/languages-English%2C_Russian-0078D4)](README.ru.md)
+[![MIT license](https://img.shields.io/badge/license-MIT-2EA043)](LICENSE)
+[![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043)](#why-you-can-trust-it)
+[![No admin rights](https://img.shields.io/badge/admin_rights-not_needed-2EA043)](#installation)
 <br>
 [![Tauri 2](https://img.shields.io/badge/Tauri_2-24C8DB?logo=tauri&logoColor=white)](https://tauri.app)
 [![Rust](https://img.shields.io/badge/Rust-B7410E?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![React](https://img.shields.io/badge/React-087EA4?logo=react&logoColor=white)](https://react.dev)
 
-<img src="docs/screenshots/desktop-dark.png" alt="Виджеты AITU Desk на рабочем столе" width="760">
+<img src="docs/screenshots/desktop-dark.png" alt="AITU Desk widgets on the desktop" width="760">
 
 </div>
 
-## Что умеет
+## What it does
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/clock.svg" width="22" height="22" alt=""><br><b>Часы</b><br>Готовые стили и тонкая настройка: шрифт, размер, секунды, формат даты, фон</td>
-<td width="50%" valign="top"><img src="docs/readme/system.svg" width="22" height="22" alt=""><br><b>Система</b><br>Заряд батареи, Wi-Fi и Bluetooth. Имена сети и устройств можно скрыть</td>
+<td width="50%" valign="top"><img src="docs/readme/clock.svg" width="22" height="22" alt=""><br><b>Clock</b><br>Ready-made styles and fine tuning: font, size, seconds, date format, background</td>
+<td width="50%" valign="top"><img src="docs/readme/system.svg" width="22" height="22" alt=""><br><b>System</b><br>Battery charge, Wi-Fi and Bluetooth. Network and device names can be hidden</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Ярлыки</b><br>Любимые сайты в один клик: иконка сайта, из набора или буква, свой цвет</td>
-<td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Заметки</b><br>Задачи с дедлайном и обратным отсчётом, просроченные сразу видно</td>
+<td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Shortcuts</b><br>Favorite sites in one click: the site's icon, one from the set or a letter, your own color</td>
+<td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Notes</b><br>Tasks with a deadline and a countdown, overdue ones stand out at once</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Расписание</b><br>Пары по дням недели, текущая и следующая подсвечены</td>
-<td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Напоминания</b><br>Уведомления Windows перед парой и дедлайном, тихие часы</td>
+<td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Schedule</b><br>Classes by day of the week, the current and the next one highlighted</td>
+<td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Reminders</b><br>Windows notifications before a class and a deadline, quiet hours</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>Карта AITU</b><br>Этажи университета, поиск кабинета, свои цветные метки</td>
-<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Оформление</b><br>Три дизайна, темы от светлой до чёрной, стекло, свой акцент, размер под экран</td>
+<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>AITU map</b><br>The university's floors, room search, your own colored marks</td>
+<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Appearance</b><br>Three designs, themes from light to black, glass, your own accent, a size for your screen</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Приватность</b><br>Текст на рабочем столе можно скрыть точками, как пароль</td>
-<td width="50%" valign="top"><img src="docs/readme/configs.svg" width="22" height="22" alt=""><br><b>Конфиги</b><br>Все настройки в одном файле: на другой компьютер или другу</td>
+<td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Privacy</b><br>Text on the desktop can be hidden behind dots, like a password</td>
+<td width="50%" valign="top"><img src="docs/readme/configs.svg" width="22" height="22" alt=""><br><b>Configs</b><br>All your settings in one file: for another computer or a friend</td>
 </tr>
 </table>
 
-Не учитесь в AITU? Всё, кроме карты, пригодится и вам, а карту и ярлыки сайтов университета можно выключить.
+Not at AITU? Everything except the map is useful to you too, and the map and the university's shortcuts can be
+turned off.
 
-## Почему ему можно доверять
+## Why you can trust it
 
-- **Открытый код** под лицензией MIT: всё, что делает приложение, видно в этом репозитории.
-- **Ничего не отправляет**: нет телеметрии, рекламы, учётных записей и автообновлений.
-- **Не просит прав администратора** и ставится только для вашей учётной записи.
-- **Собирается на GitHub**: установщик для каждого релиза собирает GitHub Actions из исходников, рядом лежат
-  контрольные суммы.
-- **Лёгкое**: установщик около 3 МБ, в простое приложение почти не нагружает процессор.
+- **Open source** under the MIT license: everything the app does is in this repository.
+- **Sends nothing**: no telemetry, ads, accounts or auto-updates.
+- **Needs no admin rights** and installs for your account only.
+- **Built on GitHub**: GitHub Actions builds the installer of every release from the source, with checksums next
+  to it.
+- **Light**: the installer is about 3 MB, and when idle the app barely touches the processor.
 
-## Скриншоты
+## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/desktop-light.png" alt="Светлая тема на рабочем столе" width="760">
+  <img src="docs/screenshots/desktop-light.png" alt="The light theme on the desktop" width="760">
 </p>
 <p align="center">
-  <img src="docs/screenshots/settings-appearance.png" alt="Оформление: дизайн, тема и акцент" width="49%">
-  <img src="docs/screenshots/settings-notes.png" alt="Заметка с дедлайном и напоминанием" width="49%">
+  <img src="docs/screenshots/settings-appearance.png" alt="Appearance: design, theme and accent" width="49%">
+  <img src="docs/screenshots/settings-notes.png" alt="A note with a deadline and a reminder" width="49%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/settings-reminders.png" alt="Напоминания о парах и дедлайнах" width="49%">
-  <img src="docs/screenshots/settings-configs.png" alt="Конфиги: перенос настроек в файл" width="49%">
+  <img src="docs/screenshots/settings-reminders.png" alt="Reminders about classes and deadlines" width="49%">
+  <img src="docs/screenshots/settings-configs.png" alt="Configs: settings in a file" width="49%">
 </p>
 
-## Установка
+## Installation
 
-1. Скачайте `AITU Desk_<версия>_x64-setup.exe` из [последнего релиза](https://github.com/cyberbara01/aitudesk/releases/latest) и запустите.
-2. Если Windows покажет «Система Windows защитила ваш компьютер», нажмите «Подробнее», затем «Выполнить в любом
-   случае». Предупреждение появляется потому, что приложение не подписано платным сертификатом.
-3. Откроется окно настроек с короткой подсказкой, а виджеты появятся на рабочем столе. Чтобы они запускались вместе
-   с Windows, включите это в разделе «Общие».
+1. Download `AITU Desk_<version>_x64-setup.exe` from the [latest release](https://github.com/cyberbara01/aitudesk/releases/latest) and run it.
+2. If Windows shows “Windows protected your PC”, click “More info”, then “Run anyway”. The warning appears because
+   the app is not signed with a paid certificate.
+3. The settings window opens with a short guide, and the widgets appear on the desktop. To start them with Windows,
+   turn this on in “General”.
 
-Нужна Windows 11, 64 бита. Чтобы переставить виджет или изменить его размер, нажмите на него правой кнопкой мыши.
-Интерфейс на русском или английском, как в Windows; сменить язык можно кнопкой внизу окна настроек, рядом
-с «Как пользоваться».
+Windows 11, 64-bit, is required. To move a widget or change its size, right-click it. The interface is in English
+or Russian, following Windows; switch the language with the “RU | EN” button at the bottom of the settings window.
 
 <details>
-<summary><b>Проверить, что установщик тот самый</b></summary>
+<summary><b>Check that the installer is genuine</b></summary>
 <br>
 
-Рядом с установщиком в релизе лежит `SHA256SUMS.txt`. Сравните с ним хеш скачанного файла в PowerShell:
+Next to the installer, the release has `SHA256SUMS.txt`. Compare it with the hash of the downloaded file in
+PowerShell:
 
 ```powershell
 Get-FileHash ".\AITU Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 ```
 
-Сборку делает [`.github/workflows/release.yml`](.github/workflows/release.yml) из исходников этого репозитория.
+The build is made by [`.github/workflows/release.yml`](.github/workflows/release.yml) from the source of this
+repository.
 </details>
 
 <details>
-<summary><b>Что делает установщик и где лежат данные</b></summary>
+<summary><b>What the installer does and where your data lives</b></summary>
 <br>
 
-| Что | Где |
+| What | Where |
 | --- | --- |
-| Программа `aitudesk.exe` и деинсталлятор `uninstall.exe` | `%LOCALAPPDATA%\AITU Desk\` |
-| Ярлык в меню «Пуск» и, если оставить галочку, на рабочем столе | меню «Пуск», рабочий стол |
-| Запись для удаления в «Установленных приложениях» | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\AITU Desk` |
-| Настройки, пары, заметки, ярлыки, расположение виджетов (обычный JSON) | `%APPDATA%\kz.edu.astanait.aitudesk\settings.json` |
-| Служебный кэш WebView2 | `%LOCALAPPDATA%\kz.edu.astanait.aitudesk\EBWebView\` |
-| Автозапуск, только если вы его включили | значение `AITU Desk` в `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
+| The program `aitudesk.exe` and the uninstaller `uninstall.exe` | `%LOCALAPPDATA%\AITU Desk\` |
+| A Start menu shortcut and, if you leave the box checked, a desktop shortcut | Start menu, desktop |
+| The entry for uninstalling in “Installed apps” | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\AITU Desk` |
+| Settings, classes, notes, shortcuts, widget layout (plain JSON) | `%APPDATA%\kz.edu.astanait.aitudesk\settings.json` |
+| The WebView2 service cache | `%LOCALAPPDATA%\kz.edu.astanait.aitudesk\EBWebView\` |
+| Autostart, only if you turned it on | the `AITU Desk` value in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
 
-Больше установщик ничего не делает: нет служб, драйверов, задач планировщика, расширений браузера и программ
-в комплекте. WebView2 уже есть в Windows 11; только если его нет, установщик скачает его с сайта Microsoft.
+The installer does nothing else: no services, drivers, scheduled tasks, browser extensions or bundled programs.
+WebView2 is already part of Windows 11; only if it is missing does the installer download it from Microsoft.
 
-Файл настроек можно открыть в Блокноте. Если после правки он перестанет читаться, приложение его не сотрёт, а
-переименует в `settings.broken-<время>.json`.
+The settings file opens in Notepad. If it stops being readable after an edit, the app does not erase it but renames
+it to `settings.broken-<time>.json`.
 </details>
 
 <details>
-<summary><b>Сеть и приватность</b></summary>
+<summary><b>Network and privacy</b></summary>
 <br>
 
-- Сеть нужна только по вашему действию: открыть ярлык в браузере или один раз загрузить иконку сайта, когда вы
-  добавляете ярлык (запрос к самому сайту, а если иконки там нет, к сервису иконок Google).
-- Расписание, заметки, имя сети Wi-Fi и названия Bluetooth-устройств на рабочем столе можно скрыть точками.
-- Конфиг содержит только выбранные вами разделы, заметки по умолчанию в него не попадают. Ярлыки из чужого конфига
-  принимаются только с адресами `http://` и `https://`.
+- The network is used only when you act: to open a shortcut in your browser, or to download a site's icon once when
+  you add a shortcut (a request to the site itself and, if it has no icon, to Google's icon service).
+- The schedule, notes, the Wi-Fi network name and Bluetooth device names on the desktop can be hidden behind dots.
+- A config holds only the parts you choose, and notes are left out by default. Shortcuts from someone else's config
+  are accepted only with `http://` and `https://` addresses.
 </details>
 
 <details>
-<summary><b>Удаление</b></summary>
+<summary><b>Uninstalling</b></summary>
 <br>
 
-Параметры → Приложения → Установленные приложения → AITU Desk → Удалить. Галочка «Удалить данные приложения»
-стирает и настройки; без неё они останутся на случай повторной установки. Перед удалением всё можно сохранить
-в конфиг в разделе «Конфиги».
+Settings → Apps → Installed apps → AITU Desk → Uninstall. The “Delete app data” box erases the settings too;
+without it they stay in case you install again. Before uninstalling you can save everything to a config in
+“Configs”.
 </details>
 
 <details>
-<summary><b>Сборка из исходников</b></summary>
+<summary><b>Building from source</b></summary>
 <br>
 
-Понадобятся Node.js 22+, Rust (stable) и, по [инструкции Tauri](https://tauri.app/start/prerequisites/), Microsoft
-C++ Build Tools (или mingw-w64 для цели `x86_64-pc-windows-gnu`).
+You need Node.js 22+, Rust (stable) and, following the [Tauri guide](https://tauri.app/start/prerequisites/),
+Microsoft C++ Build Tools (or mingw-w64 for the `x86_64-pc-windows-gnu` target).
 
 ```bash
 npm install
-npm run tauri dev      # запуск в режиме разработки
-npm run tauri build    # установщик в src-tauri/target/release/bundle/nsis/
+npm run tauri dev      # run in development mode
+npm run tauri build    # the installer lands in src-tauri/target/release/bundle/nsis/
 ```
 
-Для проверки без ноутбука есть переменные окружения: `AITUDESK_MOCK_POWER` (`none` | `78` | `15,charging` | `40,saver`),
-`AITUDESK_MOCK_WIFI` (`off` | `SSID,bars` | `hidden,bars`), `AITUDESK_MOCK_BT` (`off` | `none` | `A;B;C`).
+For testing without a laptop there are environment variables: `AITUDESK_MOCK_POWER` (`none` | `78` |
+`15,charging` | `40,saver`), `AITUDESK_MOCK_WIFI` (`off` | `SSID,bars` | `hidden,bars`), `AITUDESK_MOCK_BT`
+(`off` | `none` | `A;B;C`).
 
-Внутри: Tauri 2, Rust, React 18, TypeScript и Vite. Все виджеты работают в одном процессе WebView2, часы
-просыпаются раз в минуту, если секунды не показаны, а скрытые виджеты не держат таймеров. В режиме экономии заряда
-Windows часы прячут секунды, а заряд и сеть проверяются реже.
+Inside: Tauri 2, Rust, React 18, TypeScript and Vite. All widgets run in one WebView2 process, the clock wakes up
+once a minute when seconds are not shown, and hidden widgets keep no timers. In Windows battery saver the clock
+hides its seconds, and charge and network are checked less often.
 </details>
 
-## Обратная связь
+## Feedback
 
-- Оцените приложение от 0 до 10 и предложите идею в [форме отзыва](https://forms.gle/LV7BYCqeveRyRm9YA), это пара минут.
-- Нашли ошибку? Напишите в [Issues](https://github.com/cyberbara01/aitudesk/issues) или в Telegram [@capybara205](https://t.me/capybara205).
+- Rate the app from 0 to 10 in the [anonymous form](https://forms.gle/LV7BYCqeveRyRm9YA): a single rating is enough, ideas are optional.
+- Found a bug? Write in [Issues](https://github.com/cyberbara01/aitudesk/issues) or on Telegram [@capybara205](https://t.me/capybara205).
 
-Автор: [@cyberbara01](https://github.com/cyberbara01). Карта: проект [aitumap](https://github.com/Yuujiso/aitumap)
-от [Yuujiso](https://github.com/Yuujiso).
+Author: [@cyberbara01](https://github.com/cyberbara01). Map: the [aitumap](https://github.com/Yuujiso/aitumap)
+project by [Yuujiso](https://github.com/Yuujiso).
 
-## In English
+## License
 
-AITU Desk is a set of desktop widgets for Windows 11: a clock, battery and network, shortcuts, notes with deadlines,
-the class schedule and the Astana IT University map. The interface is in Russian and English: it follows the
-Windows display language, and you can switch it with the language button at the bottom of the settings window,
-next to “How to use”. Get the installer from the
-[latest release](https://github.com/cyberbara01/aitudesk/releases/latest).
-
-## Лицензия
-
-[MIT](LICENSE): пользуйтесь, меняйте и делитесь, сохраняя имя автора. Сторонние компоненты (карта, иконки, шрифты)
-перечислены в [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+[MIT](LICENSE): use it, change it and share it, keeping the author's name. Third-party components (the map, icons,
+fonts) are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
