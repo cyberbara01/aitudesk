@@ -1,6 +1,6 @@
 /* =====================================================================================
    Schedule: «Расписание»
-   Tile: weekday row on top, the day's lessons below (scrolls without a visible scrollbar).
+   Tile: weekday row on top, the day's lessons below (they scroll, the thumb shows under the pointer).
    Drawn with tokens only, so the three styles and all palettes apply by themselves.
    ===================================================================================== */
 
@@ -39,37 +39,44 @@
 :root[data-scheme="light"] .sched-item,
 :root[data-scheme="light"] .sched-week-block { --lesson-ink: var(--ink-light, var(--accent)); }
 
-/* The list fills the rest and scrolls by wheel without a scrollbar. Rows carry 4 px above and below
-   (8 px between rows); the negative margin puts the first and the last text on the list's edges. */
+/* The list fills the rest and scrolls (the thumb shows under the pointer, base.css). Rows carry 4 px above and
+   below (8 px between rows); the negative margin puts the first and the last text on the list's edges. On the
+   right the list reaches into the tile padding by the scrollbar gutter plus 4 px it pads back, so the rows
+   keep their width and the thumb sits where the launcher grid has it. */
 .sched-list {
   position: relative;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  margin: calc(-1 * var(--s1)) 0;
+  margin: calc(-1 * var(--s1)) calc(-1 * var(--s1) - var(--sb-w)) calc(-1 * var(--s1)) 0;
+  padding-right: var(--s1);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
+  scrollbar-gutter: stable;
 }
-.sched-list::-webkit-scrollbar { display: none; }
 /* Edge fades only while rows are hidden in that direction; 8 px in a short list. Schedule.tsx scrolls the
    current lesson to 4 px less than the fade below the top, so its text starts where the fade ends.
    Bottom: Schedule.tsx sets --cut to the end of the last whole text line and --fade-end to 8 px; below the
    cut nothing shows (a sliced line never appears), above it the last complete line fades a little. */
 .sched-list { --fade: 16px; --cut: 100%; --fade-end: var(--fade); }
 .sched-list.short { --fade: 8px; }
-.sched-list.fade-top {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade));
-  mask-image: linear-gradient(to bottom, transparent, #000 var(--fade));
-}
+/* Fades cover the rows only: the scrollbar strip on the right stays whole (the second mask layer). */
+.sched-list.fade-top { --fade-mask: linear-gradient(to bottom, transparent, #000 var(--fade)); }
 .sched-list.fade-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
-  mask-image: linear-gradient(to bottom, #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
+  --fade-mask: linear-gradient(to bottom, #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
 }
 .sched-list.fade-top.fade-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
-  mask-image: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
+  --fade-mask: linear-gradient(to bottom, transparent, #000 var(--fade), #000 calc(var(--cut) - var(--fade-end)), transparent var(--cut));
+}
+.sched-list.fade-top,
+.sched-list.fade-bottom {
+  -webkit-mask:
+    var(--fade-mask) left top / calc(100% - var(--sb-w)) 100% no-repeat,
+    linear-gradient(#000, #000) right top / var(--sb-w) 100% no-repeat;
+  mask:
+    var(--fade-mask) left top / calc(100% - var(--sb-w)) 100% no-repeat,
+    linear-gradient(#000, #000) right top / var(--sb-w) 100% no-repeat;
 }
 
 /* Row: bar · text · eye. The bar column is always 3 px wide, so a state change never shifts the text. */
@@ -165,9 +172,7 @@
   padding: 0 var(--s2);
   overflow-y: auto;
   overflow-wrap: anywhere;
-  scrollbar-width: none;
 }
-.tile-schedule .sched-empty::-webkit-scrollbar { display: none; }
 
 /* =====================================================================================
    Settings → «Расписание»

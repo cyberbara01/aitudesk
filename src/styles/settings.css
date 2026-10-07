@@ -11,9 +11,12 @@
 /* =====================================================================================
    Shell
    ===================================================================================== */
-/* The content column is the only scroller: pin its height so the wheel works anywhere over a page. */
+/* The content column is the only scroller: pin its height so the wheel works anywhere over a page. Its
+   scrollbar gutter is always there and the page gives the same room back, so pages that scroll and pages that
+   do not have the same width and the same 32 px to the window edge. */
 .shell { min-height: 0; overflow: hidden; }
-.content { height: 100%; min-height: 0; overflow-x: hidden; overscroll-behavior: contain; }
+.content { height: 100%; min-height: 0; overflow-x: hidden; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.content > .page { padding-right: calc(var(--s8) - var(--sb-w)); }
 .page-title { margin: 0; }
 /* The tabs, then a spacer, then «Как пользоваться» at the bottom of the sidebar. */
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; }

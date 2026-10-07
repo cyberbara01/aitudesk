@@ -7,24 +7,36 @@
 /* ---- Tile ------------------------------------------------------------------------- */
 .tile-launchers { display: flex; }
 
-/* 64 px cells; columns and rows are measured by LaunchersGrid (--ln-cols), rows that do not fit are not
-   rendered. The grid covers the tile's content box exactly: it pads itself by --s1 (room for the 2 px ring
-   plus 1 px offset of focused edge cells) and takes the same amount back with a negative margin, so the
-   measured content box is the tile's own. */
+/* 64 px cells; LaunchersGrid measures the tile's content box into columns (--ln-cols) and rows (--ln-rows).
+   The grid spans the content width and is exactly as tall as those rows, centred in the tile: it pads itself
+   by --s1 (room for the 2 px ring plus 1 px offset of focused edge cells) and takes the same amount back
+   with a negative margin. Rows that do not fit scroll, snapping a whole row at a time, so no cut row ever
+   rests at an edge. The scrollbar gutters (--sb-w, base.css) lie in the tile padding on both sides, so the
+   cells stay centred and never move when the grid starts to scroll. Fewer rows than room: they centre.
+   The settings preview shows the tile at rest and does not scroll. */
 .ln-grid {
   display: grid;
   grid-template-columns: repeat(var(--ln-cols, 3), 64px);
   grid-auto-rows: 64px;
   gap: var(--s2);
   flex: 0 0 auto;
-  width: calc(100% + 2 * var(--s1));
-  height: calc(100% + 2 * var(--s1));
-  margin: calc(-1 * var(--s1));
+  align-self: center;
+  width: calc(100% + 2 * var(--s1) + 2 * var(--sb-w));
+  height: calc(var(--ln-rows, 2) * 64px + (var(--ln-rows, 2) - 1) * var(--s2) + 2 * var(--s1));
+  margin: calc(-1 * var(--s1)) calc(-1 * var(--s1) - var(--sb-w));
   padding: var(--s1);
   justify-content: center;
-  align-content: center;
-  overflow: hidden;
+  align-content: safe center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scroll-padding-block: var(--s1);
+  scrollbar-gutter: stable both-edges;
 }
+/* Rows snap to the top edge; the wheel moves one row per notch (useRowWheel in LaunchersGrid.tsx). */
+.ln-grid > * { scroll-snap-align: start; }
+.ln-preview .ln-grid { overflow-y: hidden; }
 
 /* ---- Cell: 64×64, hover = control fill, press = scale(.97) 83 ms (the only scale in the app) ---- */
 .ln-cell {
@@ -47,8 +59,8 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
 
 /* 36×36 square (radius 8) tinted with the launcher colour. The icon / letter take the colour at
    100 %, in the tone that reads on the square: --ln-ink-dark / --ln-ink-light come with the colour
-   (lib/launchers.ts launcherInk) and are picked by palette through --ln-ink, so the service cells below can
-   still set their own colour. */
+   (lib/launchers.ts launcherInk) and are picked by palette through --ln-ink, so «Добавить» below can still
+   set its own colour. */
 .ln-square {
   --ln-ink: var(--ln-ink-dark, var(--ln-color, var(--accent)));
   display: inline-flex;
@@ -72,8 +84,7 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
   border-radius: var(--r6);
   object-fit: contain;
 }
-.ln-letter,
-.ln-more-text {
+.ln-letter {
   font-size: var(--body-size);
   line-height: var(--body-lh);
   font-weight: 600;
@@ -92,21 +103,18 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
   text-overflow: ellipsis;
 }
 
-/* «Добавить»: no tint, tertiary icon. «+N»: neutral fill, secondary text. */
+/* «Добавить»: no tint, tertiary icon. */
 .ln-add .ln-square { background: transparent; color: var(--text-3); }
-.ln-more .ln-square { background: var(--ctl-fill); color: var(--text-2); }
-.ln-more .ln-caption { color: var(--text-3); }
 
 /* Aqua: squircle-ish square with the bright top edge of the glass. Rice keeps 8 (its control radius).
    The edge belongs to filled squares only: on the transparent «Добавить» square it would be a lone arc. */
 :root[data-style="aqua"] .ln-square { border-radius: var(--r-ctl); box-shadow: inset 0 1px 0 var(--tile-edge); }
 :root[data-style="aqua"] .ln-add .ln-square { box-shadow: none; }
-/* Rice: thin outline in the glyph tone, neutral stroke for the service cells. */
+/* Rice: thin outline in the glyph tone, neutral stroke for «Добавить». */
 :root[data-style="rice"] .ln-square {
   box-shadow: inset 0 0 0 var(--ctl-border-w) color-mix(in srgb, var(--ln-ink) 40%, transparent);
 }
-:root[data-style="rice"] .ln-add .ln-square,
-:root[data-style="rice"] .ln-more .ln-square { box-shadow: inset 0 0 0 var(--ctl-border-w) var(--ctl-stroke); }
+:root[data-style="rice"] .ln-add .ln-square { box-shadow: inset 0 0 0 var(--ctl-border-w) var(--ctl-stroke); }
 
 /* ---- Settings page ---------------------------------------------------------------- */
 /* Live preview: the real tile on a quiet stage, the hint under the stage (as on the «Система» page). */

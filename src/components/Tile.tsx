@@ -7,6 +7,7 @@ import { settings, type TileId } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { Button } from "./Button";
 import { ContextMenu, type MenuItemSpec } from "./ContextMenu";
+import { Tooltip } from "./Tooltip";
 
 interface TileProps {
   label: TileId;
@@ -56,8 +57,9 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     // A real Windows menu, never squeezed by a small widget; the one drawn inside the widget only if that fails.
     const show = (items: MenuItemSpec[]) => void popupMenu(items).catch(() => setMenu({ x, y, items }));
     if (edit.editing) {
-      // While moving or resizing, the menu offers the way out.
-      show([{ id: "done", label: ru.common.done, icon: "checkmark", onSelect: edit.stop }]);
+      // While moving or resizing, the menu offers a step back and the way out.
+      const done: MenuItemSpec = { id: "done", label: ru.common.done, icon: "checkmark", onSelect: edit.stop };
+      show(edit.canUndo ? [{ id: "undo", label: ru.edit.undo, icon: "arrow_undo", onSelect: () => void edit.undo() }, done] : [done]);
       return;
     }
     const extra = menuItems?.(e.target as HTMLElement) ?? [];
@@ -89,6 +91,11 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
       {children}
       {edit.editing && (
         <div className="edit-pill" onPointerDown={(e) => e.stopPropagation()}>
+          {edit.canUndo && (
+            <Tooltip text={ru.edit.undoHint} className="edit-undo">
+              <Button size="sm" icon="arrow_undo" aria-label={ru.edit.undoHint} onClick={() => void edit.undo()} />
+            </Tooltip>
+          )}
           <Button size="sm" variant="accent" icon="checkmark" onClick={edit.stop}>
             {ru.common.done}
           </Button>

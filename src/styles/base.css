@@ -74,7 +74,8 @@ a { color: var(--accent-text); text-decoration: none; }
 .tile.editing .edit-pill *,
 .tile.editing .ctx-menu,
 .tile.editing .ctx-menu * { pointer-events: auto; }
-/* «Готово» while moving or resizing: top centre of the tile, above the content. */
+/* «Готово» while moving or resizing, with the step back before it once there is one: top centre of the tile,
+   above the content. */
 .edit-pill {
   position: absolute;
   z-index: 50;
@@ -82,8 +83,10 @@ a { color: var(--accent-text); text-decoration: none; }
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  gap: var(--s1);
   cursor: default;
 }
+.edit-pill .edit-undo { display: inline-flex; }
 
 .resize-grip {
   position: absolute;
@@ -508,7 +511,12 @@ a { color: var(--accent-text); text-decoration: none; }
 }
 @keyframes dialog-in { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
 .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s4) var(--s5) var(--s3); }
-.dialog-body { padding: 0 var(--s5) var(--s5); overflow-y: auto; min-height: 0; }
+.dialog-body {
+  padding: 0 calc(var(--s5) - var(--sb-w)) var(--s5) var(--s5);
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-gutter: stable;
+}
 .dialog-foot { display: flex; justify-content: flex-end; gap: var(--s2); padding: var(--s3) var(--s5) var(--s5); }
 
 /* =====================================================================================
@@ -633,7 +641,6 @@ a { color: var(--accent-text); text-decoration: none; }
   max-height: calc(100vh - 2 * var(--s1));
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
   animation: ctx-in var(--t-base) var(--ease-in);
 }
 @keyframes ctx-in { from { opacity: 0; } to { opacity: 1; } }
@@ -693,5 +700,59 @@ a { color: var(--accent-text); text-decoration: none; }
 .reset-section { display: flex; justify-content: flex-start; padding-top: var(--s2); }
 .reset-text { margin: 0; color: var(--text-2); }
 
-/* Scrollbars: WebView2 overlay scrollbars (scrollBarStyle fluentOverlay in tauri.conf.json): thin, appear on
-   scroll and hover. No CSS scrollbar colours here, they would turn them back into classic bars. */
+/* =====================================================================================
+   Scrollbars, wherever something scrolls (widgets and the settings window)
+   A thin rounded thumb, invisible until the pointer is over the area that scrolls; then it fades in within
+   167 ms, so a list shows it can be scrolled as soon as the pointer reaches it. It can be dragged and widens
+   a little under the pointer. These bars replace WebView2's overlay ones (scrollBarStyle in tauri.conf.json)
+   and take --sb-w of room: each area below reserves it (scrollbar-gutter), mostly inside its own padding, so
+   nothing moves when an area starts or stops scrolling.
+   ===================================================================================== */
+@property --sb-thumb {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+:root {
+  --sb-color: color-mix(in srgb, var(--text) 30%, transparent);
+  --sb-color-hover: color-mix(in srgb, var(--text) 52%, transparent);
+}
+::-webkit-scrollbar { width: var(--sb-w); height: var(--sb-w); background: transparent; }
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: var(--sb-thumb);
+}
+::-webkit-scrollbar-thumb:vertical { min-height: 32px; }
+::-webkit-scrollbar-thumb:horizontal { min-width: 32px; }
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active { border-width: 2px; background-color: var(--sb-color-hover); }
+/* Each area keeps its own thumb hidden (an area inside another, hovered one would inherit its colour) and
+   shows it while the pointer is over the area. The text area has transitions of its own: no fade there. */
+.content,
+.dialog-body,
+.popover,
+.ctx-menu,
+.notes-list,
+.sched-list,
+.sched-empty,
+.ln-grid,
+.ln-icon-scroll {
+  --sb-thumb: transparent;
+  transition: --sb-thumb var(--t-base) var(--ease-in);
+}
+.textarea-input { --sb-thumb: transparent; }
+.content:hover,
+.dialog-body:hover,
+.popover:hover,
+.ctx-menu:hover,
+.notes-list:hover,
+.sched-list:hover,
+.sched-empty:hover,
+.ln-grid:hover,
+.ln-icon-scroll:hover,
+.textarea-input:hover { --sb-thumb: var(--sb-color); }

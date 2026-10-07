@@ -1,5 +1,6 @@
-// Edit mode: drag the whole tile, resize the map by its bottom-right grip,
-// snap to an 8 px grid and to the screen edges with a 24 px margin; Esc exits and positions are saved.
+// Edit mode: drag the whole tile, resize it by its bottom-right grip, snap to an 8 px grid and to the screen
+// edges with a 24 px margin; Esc exits and positions are saved. Every move or resize of the session can be
+// undone, the last one first («Отменить» on the tile, its menu, Ctrl+Z).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
@@ -14,6 +15,21 @@ interface WorkArea {
   h: number;
   scale: number;
 }
+
+/** A tile's place on screen in physical px, as the window reports it. */
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Steps kept per tile and session: far more than anyone undoes, small enough to never matter. */
+const UNDO_LIMIT = 50;
+
+const sameRect = (a: Rect, b: Rect) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+
+const VK_Z = 0x5a;
 
 export interface EditModeOptions {
   label: string;
@@ -44,12 +60,57 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
   const [editing, setEditing] = useState(false);
   const editingRef = useRef(false);
   editingRef.current = editing;
+  /** Where the tile was before each move or resize of this session, the latest last. */
+  const history = useRef<Rect[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+
+  const save = useCallback(async () => {
+    const win = getCurrentWindow();
+    const [pos, size] = await Promise.all([win.outerPosition(), win.outerSize()]);
+    await invoke("save_rect", { label, x: pos.x, y: pos.y, w: size.width, h: size.height });
+  }, [label]);
+
+  /** A finished move or resize: remember where the tile was, unless nothing changed. */
+  const remember = useCallback((before: Rect, after: Rect) => {
+    if (sameRect(before, after)) return;
+    history.current.push(before);
+    if (history.current.length > UNDO_LIMIT) history.current.shift();
+    setCanUndo(true);
+  }, []);
+
+  /** Back to where the tile was before its last move or resize; again for the one before. */
+  const undo = useCallback(async () => {
+    const prev = history.current.pop();
+    setCanUndo(history.current.length > 0);
+    if (!prev) return;
+    const win = getCurrentWindow();
+    await win.setSize(new PhysicalSize(prev.w, prev.h));
+    await win.setPosition(new PhysicalPosition(prev.x, prev.y));
+    await save();
+  }, [save]);
+  const undoRef = useRef(undo);
+  undoRef.current = undo;
+
+  // A new session starts with nothing to undo.
+  useEffect(() => {
+    if (!editing) {
+      history.current = [];
+      setCanUndo(false);
+    }
+  }, [editing]);
 
   useEffect(() => {
     let off: (() => void) | undefined;
     listen<boolean>(EDIT_EVENT, (e) => setEditing(Boolean(e.payload))).then((u) => (off = u));
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && editingRef.current) setEditMode(false);
+      if (!editingRef.current) return;
+      if (e.key === "Escape") setEditMode(false);
+      // keyCode is the Windows virtual key: VK_Z is the key labelled Z in any Latin layout and the same key
+      // in the Russian one, as in every Windows app.
+      else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.keyCode === VK_Z) {
+        e.preventDefault();
+        void undoRef.current();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -58,18 +119,14 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
     };
   }, []);
 
-  const save = useCallback(async () => {
-    const win = getCurrentWindow();
-    const [pos, size] = await Promise.all([win.outerPosition(), win.outerSize()]);
-    await invoke("save_rect", { label, x: pos.x, y: pos.y, w: size.width, h: size.height });
-  }, [label]);
-
   const onDragStart = useCallback(
     async (e: React.PointerEvent<HTMLElement>) => {
       if (!editingRef.current || e.button !== 0) return;
       if ((e.target as HTMLElement).closest(".resize-grip")) return;
       const el = e.currentTarget;
       el.setPointerCapture(e.pointerId);
+      // The keyboard follows the tile being arranged, so Esc and Ctrl+Z reach it.
+      invoke("activate_tile").catch(() => undefined);
       const win = getCurrentWindow();
       const [start, size, wa] = await Promise.all([
         win.outerPosition(),
@@ -77,6 +134,7 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         invoke<WorkArea>("get_work_area"),
       ]);
       const s = wa.scale;
+      const before: Rect = { x: start.x, y: start.y, w: size.width, h: size.height };
       const origin = { x: e.screenX, y: e.screenY };
       let raf = 0;
       let next: { x: number; y: number } | null = null;
@@ -99,13 +157,14 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         el.removeEventListener("pointercancel", up);
         if (raf) cancelAnimationFrame(raf);
         if (next) await win.setPosition(new PhysicalPosition(next.x, next.y));
+        remember(before, { ...before, ...(next ?? {}) });
         await save();
       };
       el.addEventListener("pointermove", move);
       el.addEventListener("pointerup", up);
       el.addEventListener("pointercancel", up);
     },
-    [save],
+    [save, remember],
   );
 
   const onResizeStart = useCallback(
@@ -114,8 +173,10 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
       e.stopPropagation();
       const el = e.currentTarget;
       el.setPointerCapture(e.pointerId);
+      invoke("activate_tile").catch(() => undefined);
       const win = getCurrentWindow();
-      const [size, wa] = await Promise.all([win.outerSize(), invoke<WorkArea>("get_work_area")]);
+      const [size, pos, wa] = await Promise.all([win.outerSize(), win.outerPosition(), invoke<WorkArea>("get_work_area")]);
+      const before: Rect = { x: pos.x, y: pos.y, w: size.width, h: size.height };
       const s = wa.scale;
       const g = GRID * s;
       const origin = { x: e.screenX, y: e.screenY };
@@ -137,14 +198,23 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         el.removeEventListener("pointercancel", up);
         if (raf) cancelAnimationFrame(raf);
         if (next) await win.setSize(new PhysicalSize(next.w, next.h));
+        remember(before, { ...before, ...(next ?? {}) });
         await save();
       };
       el.addEventListener("pointermove", move);
       el.addEventListener("pointerup", up);
       el.addEventListener("pointercancel", up);
     },
-    [resizable, minSize.w, minSize.h, save],
+    [resizable, minSize.w, minSize.h, save, remember],
   );
 
-  return { editing, onDragStart, onResizeStart, start: () => setEditMode(true), stop: () => setEditMode(false) };
+  return {
+    editing,
+    canUndo,
+    undo,
+    onDragStart,
+    onResizeStart,
+    start: () => setEditMode(true),
+    stop: () => setEditMode(false),
+  };
 }

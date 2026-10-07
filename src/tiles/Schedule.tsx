@@ -207,7 +207,7 @@ export function LessonRow({ lesson, state, now, preview, roomLink }: LessonRowPr
 }
 
 /**
- * The day's lessons: scrolls by wheel without a scrollbar, edge fades only where rows are hidden. At the
+ * The day's lessons: scrolls (the thumb shows under the pointer), edge fades only where rows are hidden. At the
  * bottom the list ends on a whole text line: a line the edge would slice is hidden (the rest of the box
  * stays empty) and a short fade over the last complete line says that more follows.
  */

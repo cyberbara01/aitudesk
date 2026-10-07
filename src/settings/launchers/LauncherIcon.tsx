@@ -99,25 +99,21 @@ export function LauncherCell({ look, showLabel, onClick, launcherId, className, 
   );
 }
 
-interface ServiceCellProps {
-  /** "add" = plus icon without tint; "more" = "+N" on a neutral fill. */
-  variant: "add" | "more";
+interface AddCellProps {
   /** Caption under the square (when showLabel). */
   caption: string;
   showLabel: boolean;
   ariaLabel: string;
-  /** "+N" text for the "more" variant. */
-  text?: string;
   onClick?: () => void;
 }
 
-/** Service cell at the end of the grid: «Добавить» or «+N». */
-export function ServiceCell({ variant, caption, showLabel, ariaLabel, text, onClick }: ServiceCellProps) {
-  const cls = cx("ln-cell", variant === "add" ? "ln-add" : "ln-more");
+/** «Добавить» at the end of the grid: a plus without tint. */
+export function AddCell({ caption, showLabel, ariaLabel, onClick }: AddCellProps) {
+  const cls = "ln-cell ln-add";
   const body = (
     <>
       <span className="ln-square" aria-hidden="true">
-        {variant === "add" ? <Icon name="add" /> : <span className="ln-more-text num">{text}</span>}
+        <Icon name="add" />
       </span>
       {showLabel && <span className="ln-caption caption">{caption}</span>}
     </>

@@ -46,7 +46,7 @@ export function LaunchersPage({ editId }: Props) {
   const ln = s.launchers;
   /** The open editor: item null = a new launcher. */
   const [editor, setEditor] = useState<{ item: LauncherItem | null } | null>(null);
-  /** Launchers the preview hides behind «+N»: the hint then explains how to make the tile bigger. */
+  /** Launchers below the preview's rows: the hint then says the tile scrolls and how to make it bigger. */
   const [previewHidden, setPreviewHidden] = useState(0);
   const handledEdit = useRef<string | null>(null);
 
@@ -98,7 +98,7 @@ export function LaunchersPage({ editId }: Props) {
   return (
     <Page title={ru.settings.nav.launchers} description={extra.description}>
       {/* Live preview: the real tile (material, padding and grid of the chosen style) at the default tile
-          size 280 x 184, so «Добавить» and «+N» appear exactly as on a desktop tile of that size. */}
+          size 280 x 184, so the cells and «Добавить» sit exactly as on a desktop tile of that size at rest. */}
       <div className="ln-preview-wrap">
         <div className="ln-stage">
           <div className={ln.background ? "tile tile-launchers ln-preview" : "tile tile-launchers no-bg ln-preview"} role="img" aria-label={ru.common.preview}>

@@ -1,6 +1,7 @@
 /* =====================================================================================
    Notes: «Заметки»
-   Tile: round «выполнено» toggle, text (two lines), countdown chip; the list scrolls without a scrollbar.
+   Tile: round «выполнено» toggle, text (two lines), countdown chip; the list scrolls, its thumb shows under
+   the pointer (base.css).
    Plus the settings page, the note editor and two kit components that live here for now: TextArea and
    DatePicker. Tokens only, so the three styles and every palette apply by themselves.
    ===================================================================================== */
@@ -76,30 +77,35 @@
 }
 
 /* Rows carry 4 px above and below (8 px between rows); the list reaches 4 px into the tile padding so the
-   first line still starts at the padding edge. Scrolls by wheel, no scrollbar; fades hint at hidden rows. */
+   first line still starts at the padding edge. On the right it reaches into the padding by the scrollbar
+   gutter (base.css) plus 4 px it pads back, so the rows keep their width and the thumb sits where the
+   launcher grid has it; fades hint at hidden rows. */
 .notes-list {
   position: relative;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  margin: calc(-1 * var(--s1)) 0;
+  margin: calc(-1 * var(--s1)) calc(-1 * var(--s1) - var(--sb-w)) calc(-1 * var(--s1)) 0;
+  padding-right: var(--s1);
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
+  scrollbar-gutter: stable;
 }
-.notes-list::-webkit-scrollbar { display: none; }
-.notes-list.fade-top {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px);
-  mask-image: linear-gradient(to bottom, transparent, #000 20px);
-}
-.notes-list.fade-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 20px), transparent);
-}
+/* Fades cover the rows only: the scrollbar strip on the right stays whole (the second mask layer). */
+.notes-list.fade-top { --fade-mask: linear-gradient(to bottom, transparent, #000 20px); }
+.notes-list.fade-bottom { --fade-mask: linear-gradient(to bottom, #000 calc(100% - 20px), transparent); }
 .notes-list.fade-top.fade-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+  --fade-mask: linear-gradient(to bottom, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+}
+.notes-list.fade-top,
+.notes-list.fade-bottom {
+  -webkit-mask:
+    var(--fade-mask) left top / calc(100% - var(--sb-w)) 100% no-repeat,
+    linear-gradient(#000, #000) right top / var(--sb-w) 100% no-repeat;
+  mask:
+    var(--fade-mask) left top / calc(100% - var(--sb-w)) 100% no-repeat,
+    linear-gradient(#000, #000) right top / var(--sb-w) 100% no-repeat;
 }
 
 .note-row {
@@ -241,12 +247,15 @@
    Kit: TextArea (src/components/TextArea.tsx)
    Shares .textfield-input (fill, strong bottom line, accent underline in focus, Aqua / Rice variants).
    ===================================================================================== */
+/* Past its last row the field scrolls; the scrollbar gutter (base.css) is always reserved inside the right
+   padding, so the text never reflows when the scrollbar appears and keeps 12 px from both edges. */
 .textfield-input.textarea-input {
   display: block;
   height: auto;
   min-height: calc(var(--ta-min-rows, 3) * var(--body-lh) + 12px + 2 * var(--ctl-border-w));
   max-height: calc(var(--ta-max-rows, 8) * var(--body-lh) + 12px + 2 * var(--ctl-border-w));
-  padding: 6px var(--s3);
+  padding: 6px calc(var(--s3) - var(--sb-w)) 6px var(--s3);
+  scrollbar-gutter: stable;
   line-height: var(--body-lh);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

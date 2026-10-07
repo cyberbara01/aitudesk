@@ -9,8 +9,8 @@ import { useSettings } from "../lib/useSettings";
 import { LaunchersGrid } from "../settings/launchers/LaunchersGrid";
 
 /**
- * «Ярлыки»: the shared LaunchersGrid (64 px cells measured from the tile's content box; «Добавить» in a
- * free cell, «+N» only when real launchers are cut, the rule is documented on the grid). Click opens the
+ * «Ярлыки»: the shared LaunchersGrid (64 px cells measured from the tile's content box; rows that do not fit
+ * scroll, «Добавить» closes the list, the rule is documented on the grid). Click opens the
  * URL in the default browser; right-click offers Изменить (the settings editor) on every launcher, then
  * Удалить for a custom one and Выключить ярлык for a built-in one (built-ins are switched off, not deleted).
  * Fluent icons the user picked (custom launchers, edited built-ins) are drawn from the markup cached in the

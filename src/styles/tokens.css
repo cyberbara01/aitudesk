@@ -38,6 +38,8 @@
   --tile-pad: 16px;
   --ctl-h: 32px;
   --ctl-border-w: 1px;
+  /* Scrollbar width (base.css). Areas that scroll reserve it, mostly inside their own padding. */
+  --sb-w: 10px;
 
   /* ---- Motion ---- */
   --t-fast: 83ms; --t-base: 167ms; --t-slow: 250ms;
