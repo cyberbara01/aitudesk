@@ -10,6 +10,9 @@ export const VIEWBOX = { w: 924.69, h: 396.16 } as const;
 
 export const MIN_ZOOM = 1;
 export const MAX_ZOOM = 6;
+/** «Номера только при приближении»: room numbers show from this zoom, two wheel notches (1.1 each) from the
+ * whole floor. */
+export const LABELS_ZOOM = 1.2;
 
 /** Width kept free beside the plan for the always-visible floor switch: the 36 px switch plus an 8 px gap (map.css). */
 export const SWITCH_COLUMN_PX = 44;

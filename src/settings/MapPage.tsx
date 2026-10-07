@@ -102,6 +102,14 @@ export function MapPage() {
         <Row label={T.labels} hint={extra.labelsHint}>
           <Switch checked={m.showLabels} onChange={(v) => update({ showLabels: v })} ariaLabel={T.labels} />
         </Row>
+        <Row label={extra.labelsWhenZoomed} hint={extra.labelsWhenZoomedHint}>
+          <Switch
+            checked={m.labelsWhenZoomed}
+            disabled={!m.showLabels}
+            onChange={(v) => update({ labelsWhenZoomed: v })}
+            ariaLabel={extra.labelsWhenZoomed}
+          />
+        </Row>
         <Row label={T.icons} hint={extra.iconsHint}>
           <Switch checked={m.showIcons} onChange={(v) => update({ showIcons: v })} ariaLabel={T.icons} />
         </Row>

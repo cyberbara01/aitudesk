@@ -72,6 +72,8 @@ interface Props {
   mark: { floor: Floor; rooms: readonly string[] } | null;
   /** The pointer came over a marked room (its box in window px) or left it (null); never while painting or pressing. */
   onMarkHover: (box: DOMRect | null) => void;
+  /** Room codes show from this zoom on (1: whenever they are big enough to read). */
+  codesFromZoom: number;
 }
 
 const NO_ROOMS: readonly string[] = [];
@@ -165,7 +167,7 @@ function readMs(name: string): number {
 
 export const MapCanvas = memo(
   forwardRef<MapCanvasHandle, Props>(function MapCanvas(
-    { floor, query, favorites, painting, onPaint, reserve, onMatches, focusSeq, onFocusResult, mark, onMarkHover },
+    { floor, query, favorites, painting, onPaint, reserve, onMatches, focusSeq, onFocusResult, mark, onMarkHover, codesFromZoom },
     ref,
   ) {
     const hostRef = useRef<HTMLDivElement>(null);
@@ -173,6 +175,8 @@ export const MapCanvas = memo(
     const box = useRef<Box>({ hostW: 0, hostH: 0, fitW: 0, fitH: 0, left: 0, top: 0, biasX: 0 });
     const reserveRef = useRef(reserve);
     reserveRef.current = reserve;
+    const codesFrom = useRef(codesFromZoom);
+    codesFrom.current = codesFromZoom;
     const view = useRef<View>({ zoom: MIN_ZOOM, x: 0, y: 0 });
     const press = useRef<Press | null>(null);
     const lod = useRef<{ shared: LodItem[]; floor: LodItem[] }>({ shared: [], floor: [] });
@@ -216,9 +220,15 @@ export const MapCanvas = memo(
     const runLod = useCallback(() => {
       const ppu = (box.current.fitW / VIEWBOX.w) * view.current.zoom;
       if (ppu <= 0) return;
-      applyLod(lod.current.shared, ppu);
-      applyLod(lod.current.floor, ppu);
+      const codes = view.current.zoom >= codesFrom.current - 1e-6;
+      applyLod(lod.current.shared, ppu, codes);
+      applyLod(lod.current.floor, ppu, codes);
     }, []);
+
+    // «Номера только при приближении» switched: the codes follow at once.
+    useEffect(() => {
+      runLod();
+    }, [codesFromZoom, runLod]);
 
     const scheduleLod = useCallback(() => {
       if (lodFrame.current) return;

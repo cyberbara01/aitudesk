@@ -23,7 +23,7 @@ import { MapSearch } from "../map/MapSearch";
 import { useNextLesson, type NextLesson } from "../map/nextLesson";
 import { PaintDock } from "../map/PaintDock";
 import { roomAt } from "../map/rooms";
-import { toFloor, type Floor, type PaintTool } from "../map/types";
+import { LABELS_ZOOM, toFloor, type Floor, type PaintTool } from "../map/types";
 import { useRoomSearch } from "../map/useRoomSearch";
 
 const MIN_SIZE = { w: 400, h: 220 };
@@ -319,6 +319,7 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
           onFocusResult={onFocusResult}
           mark={lesson}
           onMarkHover={onMarkHover}
+          codesFromZoom={map.labelsWhenZoomed ? LABELS_ZOOM : 1}
         />
         {(map.showSearch || flash) && (
           <MapSearch

@@ -106,11 +106,15 @@ export function lodItems(root: Element, key: string): LodItem[] {
   return els.map((el, k) => ({ el, size: sizes[k], minPx: minPx[k], shown: !el.classList.contains("lod-off") }));
 }
 
-/** Shows or hides each item for `pxPerUnit` (screen px per user unit); only elements that change are touched. */
-export function applyLod(items: readonly LodItem[], pxPerUnit: number): void {
+/**
+ * Shows or hides each item for `pxPerUnit` (screen px per user unit); only elements that change are touched.
+ * `codes` false hides every room code whatever its size («Номера только при приближении» before that zoom).
+ */
+export function applyLod(items: readonly LodItem[], pxPerUnit: number, codes = true): void {
   const codeMin = codeMinPx();
   for (const it of items) {
-    const show = it.size * pxPerUnit >= (Number.isNaN(it.minPx) ? codeMin : it.minPx);
+    const code = Number.isNaN(it.minPx);
+    const show = (!code || codes) && it.size * pxPerUnit >= (code ? codeMin : it.minPx);
     if (show === it.shown) continue;
     it.shown = show;
     it.el.classList.toggle("lod-off", !show);

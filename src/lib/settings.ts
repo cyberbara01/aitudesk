@@ -157,6 +157,8 @@ export interface MapSettings {
   showSearch: boolean;
   showZoom: boolean;
   showLabels: boolean;
+  /** Room numbers only once the map is zoomed in (src/map/types.ts LABELS_ZOOM), none on the whole-floor view. */
+  labelsWhenZoomed: boolean;
   showIcons: boolean;
   /** Mark the room of the lesson running now or starting within 30 minutes (from settings.schedule.lessons). */
   showNextLesson: boolean;
@@ -334,6 +336,7 @@ export const DEFAULT_MAP: MapSettings = {
   showSearch: true,
   showZoom: true,
   showLabels: true,
+  labelsWhenZoomed: false,
   showIcons: true,
   showNextLesson: true,
   favorites: [],
@@ -592,6 +595,7 @@ export function normalize(saved: unknown): Settings {
     showSearch: bool(m.showSearch, d.map.showSearch),
     showZoom: bool(m.showZoom, d.map.showZoom),
     showLabels: bool(m.showLabels, d.map.showLabels),
+    labelsWhenZoomed: bool(m.labelsWhenZoomed, d.map.labelsWhenZoomed),
     showIcons: bool(m.showIcons, d.map.showIcons),
     showNextLesson: bool(m.showNextLesson, d.map.showNextLesson),
     favorites: favRaw
