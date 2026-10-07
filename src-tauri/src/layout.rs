@@ -93,8 +93,8 @@ const COLUMN: &[(&str, f64)] = &[
     ("schedule", 256.0),
     ("notes", 200.0),
 ];
-const MAP_W: f64 = 640.0;
-const MAP_H: f64 = 320.0;
+const MAP_W: f64 = 720.0;
+const MAP_H: f64 = 360.0;
 /// The map tile's minimum size (src/components/Tile.tsx); it keeps its 2:1 shape when narrowed.
 const MAP_MIN_W: f64 = 400.0;
 const MAP_MIN_H: f64 = 220.0;

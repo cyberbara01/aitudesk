@@ -35,8 +35,6 @@ export const en: ShellStrings = {
     resetAllDone: "Appearance reset",
     resetAllFailed: "Couldn't reset the appearance",
     language: "Language · Язык",
-    languageLabel: "Interface language",
-    languageHint: "The app restarts to switch the language",
     languageAuto: "Same as Windows",
     languageTitle: "Switch the language?",
     languageText:
@@ -58,7 +56,7 @@ export const en: ShellStrings = {
     tileScaleHint: "Changes everything at once: text, icons and the widgets themselves. The widgets stay where they are",
     tileScaleLabel: "Scale",
     tileScaleAuto: "Auto",
-    tileScaleAutoNow: (percent: string) => `On small laptop screens Auto makes the widgets smaller. For this screen: ${percent}`,
+    tileScaleAutoHint: "Auto picks the recommended scale for your screen size",
     percent: (n: number) => `${n}%`,
     sampleTime: "12:34",
     sampleBattery: "72 %",
@@ -73,8 +71,9 @@ export const en: ShellStrings = {
     appLicence: "AITU Desk license text",
     appLicenceText:
       "AITU Desk is distributed under the MIT license: you can use, change and share the app freely, as long as the author's name and the license text are kept.",
-    feedback: "Feedback and ideas form",
-    feedbackHint: "Rate the app from 0 to 10 and share your ideas",
+    feedback: "Rate AITU Desk",
+    feedbackHint: "Anonymous. A single rating from 0 to 10 is enough, ideas are optional",
+    feedbackButton: "Rate",
     mapRepoLabel: "Map repository",
     show: "Show",
     hide: "Hide",
@@ -106,7 +105,7 @@ export const en: ShellStrings = {
     startText: (reminders: string) =>
       `Turn on autostart so the widgets are in place after a restart. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
     footer: (help: string) =>
-      `You can close this window: the widgets stay. Open the settings again from the AITU Desk shortcut or its icon next to the clock on the taskbar, and these tips from “${help}” at the bottom of the sidebar.`,
+      `You can close this window: the widgets stay. Open the settings again from the AITU Desk shortcut or its icon next to the clock on the taskbar, these tips from “${help}” at the bottom of the sidebar, and switch the app language with the button beside it.`,
     start: "Get started",
   },
 };

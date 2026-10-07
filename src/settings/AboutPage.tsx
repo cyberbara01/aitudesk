@@ -1,7 +1,7 @@
-// «О программе»: app header, help and the author, credits, privacy, licences. Below the header everything is
-// kit sections with one alignment rule: label and hint on the left edge of the card, actions on the right. The
-// one exception is «Автор»: the author's GitHub and Telegram follow the caption on its line, like a byline,
-// and the feedback form is the action at the right end of that line.
+// «О программе»: app header, help, the author and the feedback form, credits, privacy, licences. Below the
+// header everything is kit sections with one alignment rule: label and hint on the left edge of the card,
+// actions on the right. The one exception is «Автор»: the author's GitHub and Telegram follow the caption on its
+// line, like a byline. The feedback row says up front that the form is anonymous and a rating alone will do.
 // The only marks are the ones that are links: GitHub (the author, the map's author, the map's repository),
 // Telegram and Google (the feedback form is a Google Form).
 import { useId, useState, type MouseEvent, type ReactNode } from "react";
@@ -157,23 +157,28 @@ export function AboutPage() {
               <TelegramMark />
             </MarkLink>
           </span>
-          <Tooltip text={x.feedbackHint} className="about-feedback">
-            <Button onClick={() => open(ab.feedbackUrl)}>
-              <ButtonMark>
-                <GoogleMark />
-              </ButtonMark>
-              {x.feedback}
-            </Button>
-          </Tooltip>
         </div>
+        <Row label={x.feedback} hint={x.feedbackHint}>
+          <Button onClick={() => open(ab.feedbackUrl)}>
+            <ButtonMark>
+              <GoogleMark />
+            </ButtonMark>
+            {x.feedbackButton}
+          </Button>
+        </Row>
       </Section>
 
       <Section title={ab.credits}>
         <Row label={x.mapTitle} hint={ab.mapCredit}>
           <span className="inline about-credit-links">
-            <MarkLink href={ab.mapAuthorGithub} name={`${ab.github}: ${ab.mapAuthor}`}>
-              <GitHubMark />
-            </MarkLink>
+            <Tooltip text={`${ab.github}: ${ab.mapAuthor}`}>
+              <Button onClick={() => open(ab.mapAuthorGithub)}>
+                <ButtonMark>
+                  <GitHubMark />
+                </ButtonMark>
+                {ab.author}
+              </Button>
+            </Tooltip>
             <Button onClick={() => open(ab.mapRepo)}>
               <ButtonMark>
                 <GitHubMark />

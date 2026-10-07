@@ -153,6 +153,7 @@ a { color: var(--accent-text); text-decoration: none; }
 .icon-btn:active { background: var(--ctl-fill-pressed); color: var(--text-2); }
 .icon-btn.subtle { background: transparent; border-color: transparent; }
 .icon-btn.subtle:hover { background: var(--ctl-fill-hover); }
+.icon-btn:disabled { color: var(--text-disabled); pointer-events: none; }
 .icon-btn.danger { background: transparent; border-color: transparent; color: var(--text-2); }
 .icon-btn.danger:hover { background: color-mix(in srgb, var(--critical) 12%, transparent); color: var(--critical); }
 .icon-btn.danger:active { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical); }

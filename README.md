@@ -83,6 +83,8 @@ Astana IT University.** Лежат прямо на обоях, под окнам
    с Windows, включите это в разделе «Общие».
 
 Нужна Windows 11, 64 бита. Чтобы переставить виджет или изменить его размер, нажмите на него правой кнопкой мыши.
+Интерфейс на русском или английском, как в Windows; сменить язык можно кнопкой внизу окна настроек, рядом
+с «Как пользоваться».
 
 <details>
 <summary><b>Проверить, что установщик тот самый</b></summary>
@@ -170,7 +172,8 @@ Windows часы прячут секунды, а заряд и сеть пров
 
 AITU Desk is a set of desktop widgets for Windows 11: a clock, battery and network, shortcuts, notes with deadlines,
 the class schedule and the Astana IT University map. The interface is in Russian and English: it follows the
-Windows display language, and you can switch it in Settings → General → Language. Get the installer from the
+Windows display language, and you can switch it with the language button at the bottom of the settings window,
+next to “How to use”. Get the installer from the
 [latest release](https://github.com/cyberbara01/aitudesk/releases/latest).
 
 ## Лицензия

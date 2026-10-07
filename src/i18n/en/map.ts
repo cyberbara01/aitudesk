@@ -40,7 +40,7 @@ export const en: MapStrings = {
     silhouette: "No glass: a soft underlay beneath the building keeps the plan readable on any wallpaper",
     none: "Only the plan itself, right on the wallpaper, with no underlay at all",
   },
-  labelsHint: "Large rooms show their numbers at once, the rest appear as you zoom in",
+  labelsHint: "Shown at once; in the smallest rooms they appear as you zoom in",
   iconsHint: "Hidden while the map is too small",
   nextLesson: "Show the next class",
   nextLessonHint:
@@ -62,7 +62,7 @@ export const en: MapStrings = {
 
   marked: "Marked rooms",
   markedDesc:
-    "Rooms with a color mark. On the map, click the brush button, pick a color and click rooms. The eraser removes a mark, and “Done” finishes coloring. You can also mark a room with a right-click",
+    "Rooms with a color mark. On the map, click the brush button, pick a color and click rooms. The eraser removes a mark, the arrow undoes the last step, and “Done” finishes coloring. You can also mark a room with a right-click",
   markedEmpty: "No marked rooms yet",
   markedEmptyHint: "On the map, click the brush button, then click a room",
   colorFor: (room: string) => `Mark color: ${room}`,

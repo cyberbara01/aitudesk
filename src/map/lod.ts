@@ -5,7 +5,7 @@
 // threshold crossing touches no DOM at all. Never re-renders the drawings through React.
 import { CAP_HEIGHT } from "./codes";
 import { labelSize, outlineOf, pictogramSize } from "./geometry";
-import { LABEL_MIN_PX, PICTOGRAM_MIN_PX } from "./types";
+import { CODE_MIN_DEVICE_PX, CODE_MIN_PX, LABEL_MIN_PX, PICTOGRAM_MIN_PX } from "./types";
 
 /** Room groups whose own <path> children are their code. The coworking curves and the Mediker logo are not text. */
 const ROOM_WITH_LABEL = 'g[data-name]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"])';
@@ -21,9 +21,14 @@ export interface LodItem {
   el: Element;
   /** Size in SVG user units (glyph height of a label, plate side of a pictogram). */
   size: number;
-  /** Smallest readable size on screen, CSS px. */
+  /** Smallest readable size on screen, CSS px; NaN for a room code (codeMinPx, it depends on the screen). */
   minPx: number;
   shown: boolean;
+}
+
+/** Smallest readable cap height of a room code on this screen, CSS px (see CODE_MIN_DEVICE_PX). */
+function codeMinPx(): number {
+  return Math.max(CODE_MIN_PX, CODE_MIN_DEVICE_PX / (window.devicePixelRatio || 1));
 }
 
 interface Measured {
@@ -81,7 +86,7 @@ function measure(root: Element, key: string): Measured {
       const text = el.querySelector(":scope > text.map-code");
       const size = text ? parseFloat(text.getAttribute("font-size") ?? "") : NaN;
       sizes[k] = Number.isFinite(size) ? size * CAP_HEIGHT : labelSize(outlineOf(el.querySelectorAll(":scope > path")));
-      minPx[k] = LABEL_MIN_PX;
+      minPx[k] = NaN;
     } else if (kind === "free") {
       const glyphs = labelSize(outlineOf(el.tagName.toLowerCase() === "path" ? [el] : el.querySelectorAll("path")));
       sizes[k] = glyphs * cssScale(el);
@@ -103,8 +108,9 @@ export function lodItems(root: Element, key: string): LodItem[] {
 
 /** Shows or hides each item for `pxPerUnit` (screen px per user unit); only elements that change are touched. */
 export function applyLod(items: readonly LodItem[], pxPerUnit: number): void {
+  const codeMin = codeMinPx();
   for (const it of items) {
-    const show = it.size * pxPerUnit >= it.minPx;
+    const show = it.size * pxPerUnit >= (Number.isNaN(it.minPx) ? codeMin : it.minPx);
     if (show === it.shown) continue;
     it.shown = show;
     it.el.classList.toggle("lod-off", !show);

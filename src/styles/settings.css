@@ -18,8 +18,28 @@
 .content { height: 100%; min-height: 0; overflow-x: hidden; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .content > .page { padding-right: calc(var(--s8) - var(--sb-w)); }
 .page-title { margin: 0; }
-/* The tabs, then a spacer, then «Как пользоваться» at the bottom of the sidebar. */
+/* The tabs, then a spacer, then «Как пользоваться» at the bottom of the sidebar with the language button beside it. */
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; }
+.sidebar-foot { display: flex; align-items: center; gap: 2px; }
+.sidebar-foot > .nav-item { flex: 1 1 auto; min-width: 0; padding-right: var(--s2); }
+.lang-switch { position: relative; flex: none; display: flex; }
+/* A square the height of a nav item, with the language glyph at the size of the nav icons. */
+.lang-btn {
+  display: grid; place-items: center;
+  width: 36px; height: 36px;
+  border-radius: var(--r-ctl);
+  color: var(--text-2);
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.lang-btn .icon { color: inherit; }
+.lang-btn:hover, .lang-btn.open { background: var(--ctl-fill-hover); color: var(--text); }
+.lang-btn:active { background: var(--ctl-fill-pressed); color: var(--text-2); }
+.lang-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+/* The menu opens upwards from the bottom corner, its right edge on the button's. */
+.popover.lang-menu { top: auto; bottom: calc(100% + 4px); left: auto; right: 0; min-width: 168px; animation-name: pop-up; }
+@keyframes pop-up { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.lang-menu .popover-item { justify-content: space-between; }
+.lang-check { color: var(--accent-text); }
 .nav-item { width: 100%; }
 .nav-item > .ellipsis { min-width: 0; }
 .nav-item:not(.selected):active { background: var(--ctl-fill-pressed); color: var(--text-2); }
@@ -357,15 +377,13 @@
 .mark-link { cursor: default; }
 .mark-link .icon { display: grid; place-items: center; }
 .mark-link .icon svg { width: 18px; height: 18px; }
-/* «Автор»: the marks follow the caption on its line, like a byline, instead of sitting at the far edge; the
-   feedback form is the line's action, at the right end. */
+/* «Автор»: the marks follow the caption on its line, like a byline, instead of sitting at the far edge. */
 .row.about-author { justify-content: flex-start; gap: var(--s3); }
 .about-links { display: flex; align-items: center; gap: var(--s1); }
-.about-feedback { display: inline-flex; margin-left: auto; }
 /* GitHub and Google marks inside a button: the optical size of a Fluent icon in its 20 px slot. */
 .btn-mark { display: grid; place-items: center; }
 .btn-mark svg { width: 16px; height: 16px; }
-/* «Карта AITU» in the credits: the map author's GitHub mark, then the button to the map's repository. */
+/* «Карта AITU» in the credits: the buttons to the map author's GitHub and to the map's repository. */
 .about-credit-links { flex-wrap: nowrap; }
 .about-p { margin: 0; color: var(--text-2); }
 .inline.between { justify-content: space-between; }

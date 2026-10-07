@@ -1,10 +1,12 @@
 // Paint mode controls (brief 6.3). The brush button sits in the bottom corner opposite the zoom column; while
 // painting, the palette opens next to it: the six FAVORITE_COLORS, «Свой цвет» (ColorPicker in a small popover),
-// the eraser and «Готово». The palette only picks the tool; MapCanvas turns a click on a room into a paint call.
+// the eraser, «Отменить» (the last step of this session, also Ctrl+Z) and «Готово». The palette only picks the
+// tool; MapCanvas turns a click on a room into a paint call.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button, IconButton } from "../components/Button";
 import { ColorPicker } from "../components/ColorPicker";
+import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.map";
 import { FAVORITE_COLORS } from "../lib/design";
@@ -18,6 +20,9 @@ interface Props {
   /** The colour last chosen in the custom editor; null until one was chosen. */
   custom: string | null;
   onCustomChange: (hex: string) => void;
+  /** Whether this paint session has a step to undo, and the undo itself. */
+  canUndo: boolean;
+  onUndo: () => void;
 }
 
 export function PaintDock({ painting, onPaintingChange, ...palette }: Props) {
@@ -45,7 +50,7 @@ const POP_MARGIN = 4;
 
 type PaletteProps = Omit<Props, "painting" | "onPaintingChange"> & { onDone: () => void; restoreFocus: () => void };
 
-function Palette({ tool, onToolChange, custom, onCustomChange, onDone, restoreFocus }: PaletteProps) {
+function Palette({ tool, onToolChange, custom, onCustomChange, canUndo, onUndo, onDone, restoreFocus }: PaletteProps) {
   const [popOpen, setPopOpen] = useState(false);
   /** "above" the palette, or "over" it when the tile is too low for that. */
   const [placement, setPlacement] = useState<"above" | "over">("above");
@@ -115,7 +120,9 @@ function Palette({ tool, onToolChange, custom, onCustomChange, onDone, restoreFo
   const onBarKeys = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     if (popRef.current?.contains(e.target as Node)) return;
-    const items = Array.from(barRef.current?.querySelectorAll<HTMLButtonElement>(":scope > button, .map-paint-colors > button") ?? []);
+    const items = Array.from(
+      barRef.current?.querySelectorAll<HTMLButtonElement>(":scope > button, :scope > .map-paint-undo > button:enabled, .map-paint-colors > button") ?? [],
+    );
     const i = items.indexOf(e.target as HTMLButtonElement);
     if (i < 0) return;
     e.preventDefault();
@@ -163,6 +170,9 @@ function Palette({ tool, onToolChange, custom, onCustomChange, onDone, restoreFo
         aria-pressed={tool.kind === "erase"}
         onClick={() => onToolChange({ kind: "erase" })}
       />
+      <Tooltip text={ru.edit.undoHint} className="map-paint-undo" disabled={!canUndo}>
+        <IconButton icon="arrow_undo" label={ru.edit.undoHint} variant="subtle" disabled={!canUndo} onClick={onUndo} />
+      </Tooltip>
       <Button variant="accent" size="sm" onClick={onDone}>
         {ru.common.done}
       </Button>

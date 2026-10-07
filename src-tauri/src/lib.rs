@@ -109,7 +109,6 @@ pub fn run() {
             commands::open_config_file,
             commands::restart_app,
             commands::apply_tile_scale,
-            commands::get_tile_zoom,
             sysinfo::get_power,
             sysinfo::get_wifi,
             sysinfo::get_bluetooth,

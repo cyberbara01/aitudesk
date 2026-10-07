@@ -15,7 +15,7 @@ import { FAVORITE_COLORS } from "../lib/design";
 import { minutesUntil } from "../lib/schedule";
 import { settings, type Lesson, type MapSettings } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
-import { markRoom, unmarkRoom } from "../map/favorites";
+import { markRoom, restoreRoom, roomState, unmarkRoom, type RoomState } from "../map/favorites";
 import { FloorSwitch } from "../map/FloorSwitch";
 import { LessonTip } from "../map/LessonTip";
 import { MapCanvas, type MapCanvasHandle } from "../map/MapCanvas";
@@ -28,6 +28,10 @@ import { useRoomSearch } from "../map/useRoomSearch";
 
 const MIN_SIZE = { w: 400, h: 220 };
 const FIRST_COLOR = FAVORITE_COLORS[0].toUpperCase();
+/** Paint steps kept for «Отменить»: far more than anyone undoes. */
+const PAINT_UNDO_LIMIT = 100;
+/** Windows virtual key of Z: Ctrl+Z in any keyboard layout. */
+const VK_Z = 0x5a;
 /** Tauri event from the schedule tile: show a lesson's room. */
 const FOCUS_EVENT = "map-focus-room";
 /** How long a room asked for by the schedule tile but missing from the plan stays in the search field (ms). */
@@ -210,23 +214,65 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [floor, setFloor]);
 
-  // Esc ends paint mode (the search field, the colour popover and the context menu take their own Esc first).
+  // Paint mode: how each room was before the brush or the eraser changed it, the latest last («Отменить»).
+  const paintHistory = useRef<RoomState[]>([]);
+  const [canUndoPaint, setCanUndoPaint] = useState(false);
+  // A new paint session starts with nothing to undo.
+  useEffect(() => {
+    if (!painting) {
+      paintHistory.current = [];
+      setCanUndoPaint(false);
+    }
+  }, [painting]);
+
+  /** Marks a room in `color` or (null) removes its mark; while painting the step can be undone. */
+  const paintRoom = useCallback(
+    (room: string, color: string | null) => {
+      const before = roomState(room);
+      const changes = color === null ? before.mark !== null : before.mark?.color.toUpperCase() !== color.toUpperCase();
+      if (!changes) return;
+      if (painting) {
+        paintHistory.current.push(before);
+        if (paintHistory.current.length > PAINT_UNDO_LIMIT) paintHistory.current.shift();
+        setCanUndoPaint(true);
+      }
+      void (color === null ? unmarkRoom(room) : markRoom(room, color));
+    },
+    [painting],
+  );
+
+  /** Back to how the room changed last was before that step; again for the step before. */
+  const undoPaint = useCallback(() => {
+    const last = paintHistory.current.pop();
+    setCanUndoPaint(paintHistory.current.length > 0);
+    if (last) void restoreRoom(last);
+  }, []);
+
+  // Esc ends paint mode (the search field, the colour popover and the context menu take their own Esc first),
+  // Ctrl+Z undoes the last step.
   useEffect(() => {
     if (!painting) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !e.defaultPrevented) setPainting(false);
+      else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.keyCode === VK_Z && !e.defaultPrevented) {
+        e.preventDefault();
+        undoPaint();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [painting]);
+  }, [painting, undoPaint]);
 
   // A click on a room in paint mode: the brush colour, or the eraser. The store applies it to its current list.
   const toolRef = useRef(tool);
   toolRef.current = tool;
-  const onPaint = useCallback((room: string) => {
-    const t = toolRef.current;
-    void (t.kind === "erase" ? unmarkRoom(room) : markRoom(room, t.color));
-  }, []);
+  const onPaint = useCallback(
+    (room: string) => {
+      const t = toolRef.current;
+      paintRoom(room, t.kind === "erase" ? null : t.color);
+    },
+    [paintRoom],
+  );
 
   // Context menu over a room: mark it in the brush colour or remove its mark; anywhere: start painting.
   const menuItems = useCallback(
@@ -235,16 +281,17 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
       const room = roomAt(target, floor);
       if (room) {
         if (map.favorites.some((f) => f.room === room)) {
-          items.push({ id: "unmark", label: extra.unmark, icon: "eraser", onSelect: () => void unmarkRoom(room) });
+          items.push({ id: "unmark", label: extra.unmark, icon: "eraser", onSelect: () => paintRoom(room, null) });
         } else {
           const color = tool.kind === "color" ? tool.color : FIRST_COLOR;
-          items.push({ id: "mark", label: extra.mark, swatch: color, onSelect: () => void markRoom(room, color) });
+          items.push({ id: "mark", label: extra.mark, swatch: color, onSelect: () => paintRoom(room, color) });
         }
       }
+      if (painting && canUndoPaint) items.push({ id: "undo", label: ru.edit.undo, icon: "arrow_undo", onSelect: undoPaint });
       if (!painting) items.push({ id: "paint", label: extra.paint, icon: "paint_brush", onSelect: () => setPainting(true) });
       return items;
     },
-    [floor, map.favorites, painting, tool],
+    [floor, map.favorites, painting, tool, paintRoom, canUndoPaint, undoPaint],
   );
 
   return (
@@ -298,6 +345,8 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
           onToolChange={setTool}
           custom={custom}
           onCustomChange={setCustom}
+          canUndo={canUndoPaint}
+          onUndo={undoPaint}
         />
       </div>
       {tipAt && lesson && <LessonTip anchor={tipAt} {...lessonTip(lesson)} />}

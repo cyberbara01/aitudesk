@@ -1,6 +1,6 @@
 // «Общие»: «Все виджеты» (every tile off the desktop and back with one button), the tiles one by one, desktop
-// behaviour (lock layout), the interface language, autostart, and the resets (tile layout, the whole
-// customization).
+// behaviour (lock layout), autostart, and the resets (tile layout, the whole customization). The interface
+// language is the small button in the bottom-left corner of the window (shell/LanguageSwitch.tsx).
 import { useCallback, useEffect, useId, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -10,11 +10,10 @@ import { Button, IconButton } from "../components/Button";
 import { Dialog } from "../components/Dialog";
 import { Icon } from "../components/Icon";
 import { Page, Row, Section } from "../components/Section";
-import { Select, type SelectOption } from "../components/Select";
 import { Switch } from "../components/Switch";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
-import { TILE_IDS, settings, type LanguageSetting, type TileId } from "../lib/settings";
+import { TILE_IDS, settings, type TileId } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { useSettled, useTransient } from "./shell/hooks";
 import { IconRow } from "./shell/IconRow";
@@ -22,13 +21,6 @@ import { TILE_ICONS, useNavigate } from "./shell/nav";
 
 const g = ru.settings.general;
 const x = extra.general;
-
-/** Language names are written in their own language, so each reads its own name whatever the interface is. */
-const LANGUAGE_OPTIONS: readonly SelectOption<LanguageSetting>[] = [
-  { value: "auto", label: x.languageAuto },
-  { value: "ru", label: "Русский" },
-  { value: "en", label: "English" },
-];
 
 // ---------------------------------------------------------------------------------------------
 // «Все виджеты» and autostart live outside the settings file. Both are read once when the settings
@@ -164,9 +156,6 @@ export function GeneralPage() {
   const [lookReset, flashLookReset] = useTransient<Outcome>("idle");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const closeConfirm = useCallback(() => setConfirmOpen(false), []);
-  /** The language picked in the list, waiting for «Перезапустить». */
-  const [language, setLanguage] = useState<LanguageSetting | null>(null);
-  const closeLanguage = useCallback(() => setLanguage(null), []);
   const navigate = useNavigate();
 
   const toggleTile = (id: TileId, enabled: boolean) => {
@@ -192,13 +181,6 @@ export function GeneralPage() {
       () => flashLayoutReset("done"),
       () => flashLayoutReset("failed"),
     );
-  };
-
-  /** Saved first (the native side reads it when it starts), then the app starts again in that language. */
-  const applyLanguage = async () => {
-    if (language === null) return;
-    await settings.update({ language });
-    await invoke("restart_app").catch(() => setLanguage(null));
   };
 
   const resetLook = () => {
@@ -227,17 +209,6 @@ export function GeneralPage() {
       <Section title={x.desktop} description={g.arrangeHint}>
         <Row label={g.lockLayout} hint={g.lockLayoutHint}>
           <Switch checked={s.lockLayout} onChange={(on) => void settings.update({ lockLayout: on })} ariaLabel={g.lockLayout} />
-        </Row>
-      </Section>
-
-      <Section title={x.language}>
-        <Row label={x.languageLabel} hint={x.languageHint}>
-          <Select
-            options={LANGUAGE_OPTIONS}
-            value={s.language}
-            onChange={(v) => (v === s.language ? undefined : setLanguage(v))}
-            ariaLabel={x.languageLabel}
-          />
         </Row>
       </Section>
 
@@ -285,22 +256,6 @@ export function GeneralPage() {
         <p className="reset-text">{ru.common.resetAllText}</p>
       </Dialog>
 
-      <Dialog
-        open={language !== null}
-        title={x.languageTitle}
-        onClose={closeLanguage}
-        width="440px"
-        footer={
-          <>
-            <Button onClick={closeLanguage}>{ru.common.cancel}</Button>
-            <Button variant="accent" onClick={() => void applyLanguage()}>
-              {x.languageRestart}
-            </Button>
-          </>
-        }
-      >
-        <p className="reset-text">{x.languageText}</p>
-      </Dialog>
     </Page>
   );
 }

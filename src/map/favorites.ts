@@ -46,6 +46,39 @@ export function unmarkRoom(room: string): Promise<void> {
   return change((cur) => (cur.some((f) => f.room === room) ? cur.filter((f) => f.room !== room) : null));
 }
 
+/** A room's mark as it was (null: not marked) and its place in the list: what «Отменить» in paint mode puts back. */
+export interface RoomState {
+  room: string;
+  mark: MapFavorite | null;
+  index: number;
+}
+
+export function roomState(room: string): RoomState {
+  const cur = settings.get().map.favorites;
+  const index = cur.findIndex((f) => f.room === room);
+  return { room, mark: index < 0 ? null : cur[index], index };
+}
+
+const sameMark = (a: MapFavorite, b: MapFavorite) => same(a.color, b.color) && (a.note ?? "") === (b.note ?? "");
+
+/** Puts a room back as `state` recorded it: unmarked, or with its colour and note at its old place in the list. */
+export function restoreRoom(state: RoomState): Promise<void> {
+  const { room, mark, index } = state;
+  return change((cur) => {
+    const i = cur.findIndex((f) => f.room === room);
+    if (!mark) return i < 0 ? null : cur.filter((f) => f.room !== room);
+    if (i >= 0) {
+      if (sameMark(cur[i], mark)) return null;
+      const next = cur.slice();
+      next[i] = mark;
+      return next;
+    }
+    const next = cur.slice();
+    next.splice(Math.min(index, next.length), 0, mark);
+    return next;
+  });
+}
+
 /** Sets or clears the note of a marked room. */
 export function setRoomNote(room: string, note: string): Promise<void> {
   const text = note.trim();

@@ -81,23 +81,6 @@ pub fn apply_tile_scale(app: AppHandle) -> f64 {
     zoom
 }
 
-/// Zoom of the tile pages now, and the one «Авто» picks for this screen.
-#[derive(serde::Serialize)]
-pub struct TileZoom {
-    zoom: f64,
-    auto: f64,
-}
-
-/// For the settings: «Размер виджетов» says what «Авто» picks here, the clock preview takes the widget's size.
-#[tauri::command]
-pub fn get_tile_zoom(app: AppHandle) -> TileZoom {
-    let auto = crate::TILES
-        .iter()
-        .find_map(|l| app.get_webview_window(l))
-        .map_or(1.0, |w| crate::zoom::auto_for(&layout::work_area(&w)));
-    TileZoom { zoom: crate::zoom::current(), auto }
-}
-
 /// The interface language changed in «Общие» (already saved): start again, so every window, the tray menu and
 /// the notifications use it. The exit is a normal one (the single-instance lock is released before the new
 /// process starts), and the new process opens the settings window on «Общие» again.

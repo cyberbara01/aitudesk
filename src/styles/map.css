@@ -249,6 +249,7 @@
   to { opacity: 1; transform: none; }
 }
 .map-paint-colors { display: flex; align-items: center; gap: var(--s2); padding: var(--s1) 0; }
+.map-paint-undo { display: inline-flex; }
 /* Kit swatches without the hover zoom: nothing in a tile changes scale. */
 .map-paint .cp-swatch { flex: 0 0 auto; }
 .map-paint .cp-swatch:hover { transform: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25), 0 0 0 1px var(--ctl-stroke-strong); }
@@ -653,7 +654,8 @@
 }
 
 /* =====================================================================================
-   Level of detail (src/map/lod.ts): codes under 6.5 px and pictograms under 9 px on screen get .lod-off
+   Level of detail (src/map/lod.ts): codes under about 4.5 device px of cap height, other lettering under 6.5 px
+   and pictograms under 9 px on screen get .lod-off
    (on the room group for its code, on the element itself otherwise). They fade out in 83 ms and back in 167 ms;
    visibility keeps hidden ones out of painting.
    ===================================================================================== */

@@ -1,8 +1,8 @@
 // Room codes as real text. The drawing sets every code as glyph paths in one small size; set as text they are
-// drawn by the font rasteriser (hinted where upright, in the style's own numeric face and weight) and sized to
-// their room: as large as the room allows along and across the code, never smaller than the drawing's glyphs and
-// at most MAX_GROWTH times them. Big rooms so keep their numbers even on the whole-floor view (lod.ts measures
-// the text, not the glyphs), and close up every code sits centred in its room at a size that suits it.
+// drawn by the font rasteriser (hinted where upright, in the style's own numeric face and weight). Every code
+// gets one size, CODE_SIZE, a little larger than the drawing's, so the plan reads as one calm set of numbers; a
+// room too small for it gets as much as it holds, never less than the drawing's own size. lod.ts shows codes
+// from CODE_MIN_PX of cap height on screen, so the whole-floor view of a widget already shows nearly every one.
 // Each code keeps the drawing's place: centre and reading direction come from the glyph paths (geometry.ts),
 // the text is the number part of data-name ("C1.2.223K" → "223K"). The <text> is appended to its room group
 // once per floor mount (the drawings never re-render), the group gets .has-code and map.css hides the glyph
@@ -19,22 +19,19 @@ const ADVANCE = 0.62;
 /** Share of the room's length along the code, and of its depth across it, that the code may take. */
 const FILL_ALONG = 0.84;
 const FILL_ACROSS = 0.6;
-/** A code grows to fit its room up to this many times the drawing's glyph size. */
-const MAX_GROWTH = 2.4;
+/** Size of every code (font-size in user units of the drawing, whose own codes are 8 to 10.5). */
+const CODE_SIZE = 11;
 /** Room groups that carry a code (named areas, the coworking curves and the Mediker logo are not codes). */
 const ROOM_GROUPS = 'g[data-name]:not([data-name*="|"]):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"])';
 const CODE = /^\d{3}[A-Z]?$/;
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-/**
- * Sizes a code can take, in steps of the drawing's glyph size: rooms of one kind get the same size instead of
- * sizes a few percent apart, so a row of rooms reads as a row.
- */
-const STEPS = [1, 1.15, 1.3, 1.5, 1.7, 1.95, 2.2, MAX_GROWTH];
 /** Space kept between two codes, in units of the smaller cap height. */
 const GAP = 0.5;
-/** A step may exceed the room's fit by this share: the fill margins above already leave room for it. */
-const STEP_SLACK = 1.06;
+/** A code may exceed the room's fit by this share: the fill margins above already leave room for it. */
+const FIT_SLACK = 1.06;
+/** Two codes that would touch shrink by this factor at a time, the one grown most first. */
+const SHRINK = 0.92;
 
 interface Code {
   text: string;
@@ -43,14 +40,14 @@ interface Code {
   size: string;
 }
 
-/** A code before its size is settled: where it sits and how far it may grow (an index into STEPS). */
+/** A code before its size is settled: where it sits, the drawing's size and the size it gets. */
 interface Draft {
   text: string;
   cx: number;
   cy: number;
   angle: number;
   base: number;
-  step: number;
+  size: number;
 }
 
 /** Placements per floor (in the order of the room groups), computed on the first mount of that floor. */
@@ -119,18 +116,16 @@ function measure(g: SVGGElement): Draft | null {
   const base = p.height / CAP_HEIGHT;
   const perChar = p.length / base / text.length;
   if (perChar < EM_PER_CHAR.min || perChar > EM_PER_CHAR.max) return null;
-  // As large as the room allows: the largest step that fits, never below the drawing's size.
+  // The common size where the room holds it, otherwise as much as it holds, never below the drawing's size.
   const room = roomRoom(roomPoints(g), p.cx, p.cy, p.angle);
-  const fits = room ? Math.min((room.along * FILL_ALONG) / (text.length * ADVANCE), (room.across * FILL_ACROSS) / CAP_HEIGHT) : base;
-  let step = 0;
-  while (step + 1 < STEPS.length && base * STEPS[step + 1] <= fits * STEP_SLACK) step++;
-  return { text, cx: p.cx, cy: p.cy, angle: p.angle, base, step };
+  const fits = room ? Math.min((room.along * FILL_ALONG) / (text.length * ADVANCE), (room.across * FILL_ACROSS) / CAP_HEIGHT) : 0;
+  const size = Math.max(base, Math.min(CODE_SIZE, fits * FIT_SLACK));
+  return { text, cx: p.cx, cy: p.cy, angle: p.angle, base, size };
 }
 
-/** Half extents of a code at its current step, along and across its reading direction. */
+/** Half extents of a code at its size, along and across its reading direction. */
 function halves(d: Draft): { a: number; c: number } {
-  const size = d.base * STEPS[d.step];
-  return { a: (d.text.length * ADVANCE * size) / 2, c: (CAP_HEIGHT * size) / 2 };
+  return { a: (d.text.length * ADVANCE * d.size) / 2, c: (CAP_HEIGHT * d.size) / 2 };
 }
 
 /** Whether two codes (rotated boxes, with GAP around them) overlap: separating axis test on their four axes. */
@@ -159,22 +154,20 @@ function overlap(p: Draft, q: Draft): boolean {
   return true;
 }
 
-/** Codes that would run into each other step down, the larger one first, until they clear or are at base size. */
+/** Codes that would run into each other shrink a step at a time, the one grown most first, down to the drawing's
+ * size at the least. */
 function settle(drafts: readonly (Draft | null)[]): void {
   const list = drafts.filter((d): d is Draft => d !== null);
-  for (let round = 0; round < STEPS.length * 2; round++) {
+  for (let round = 0; round < 12; round++) {
     let changed = false;
     for (let i = 0; i < list.length; i++) {
       for (let j = i + 1; j < list.length; j++) {
         const p = list[i];
         const q = list[j];
-        if ((p.step === 0 && q.step === 0) || !overlap(p, q)) continue;
-        const bigger = p.base * STEPS[p.step] >= q.base * STEPS[q.step] ? p : q;
-        const shrink = bigger.step > 0 ? bigger : bigger === p ? q : p;
-        if (shrink.step > 0) {
-          shrink.step--;
-          changed = true;
-        }
+        if ((p.size <= p.base && q.size <= q.base) || !overlap(p, q)) continue;
+        const shrink = p.size / p.base >= q.size / q.base ? p : q;
+        shrink.size = Math.max(shrink.base, shrink.size * SHRINK);
+        changed = true;
       }
     }
     if (!changed) return;
@@ -182,7 +175,7 @@ function settle(drafts: readonly (Draft | null)[]): void {
 }
 
 function toCode(d: Draft): Code {
-  const size = d.base * STEPS[d.step];
+  const size = d.size;
   return {
     text: d.text,
     transform: `translate(${d.cx.toFixed(2)} ${d.cy.toFixed(2)}) rotate(${d.angle.toFixed(2)})`,

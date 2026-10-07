@@ -32,7 +32,7 @@ fn setting(app: &AppHandle) -> Option<f64> {
 }
 
 /// "Auto": full size when the default column (about 1016 logical px) fits the screen's height, smaller below.
-pub fn auto_for(wa: &WorkArea) -> f64 {
+fn auto_for(wa: &WorkArea) -> f64 {
     let height = wa.h as f64 / wa.scale.max(0.5);
     if height >= 980.0 {
         1.0

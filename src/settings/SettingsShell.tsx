@@ -21,6 +21,7 @@ import { RemindersPage } from "./RemindersPage";
 import { SystemPage } from "./SystemPage";
 import { TransferPage } from "./TransferPage";
 import { useRootAttribute, useSettled } from "./shell/hooks";
+import { LanguageSwitch } from "./shell/LanguageSwitch";
 import { NavigateContext, TABS, acceptsEdit, readInitialRoute, type PageId, type Route, type TabId } from "./shell/nav";
 import { useNavigateEvent } from "./shell/useNavigateEvent";
 import { WelcomePage } from "./shell/WelcomePage";
@@ -111,6 +112,8 @@ export function SettingsWindow() {
 
   const onNavKey = (e: KeyboardEvent<HTMLElement>) => {
     if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    // The language button has its own keys (its menu and its dialog).
+    if ((e.target as HTMLElement).closest(".lang-switch")) return;
     const i = NAV_ORDER.indexOf(route.tab);
     const n = NAV_ORDER.length;
     let next: number;
@@ -159,7 +162,10 @@ export function SettingsWindow() {
         <nav ref={navRef} className="sidebar-nav" aria-label={extra.shell.navLabel} onKeyDown={onNavKey}>
           {TABS.map((t) => navButton(t.id, t.icon, ru.settings.nav[t.id]))}
           <div className="sidebar-spacer" />
-          {navButton("welcome", "book_open", extra.shell.help)}
+          <div className="sidebar-foot">
+            {navButton("welcome", "book_open", extra.shell.help)}
+            <LanguageSwitch />
+          </div>
         </nav>
       </aside>
 

@@ -14,8 +14,16 @@ export const MAX_ZOOM = 6;
 /** Width kept free beside the plan for the always-visible floor switch: the 36 px switch plus an 8 px gap (map.css). */
 export const SWITCH_COLUMN_PX = 44;
 
-/** Level of detail: a room code is drawn once its glyphs are at least this tall on screen (CSS px). */
+/** Level of detail: lettering outside the rooms (atrium, hall names) is drawn once its glyphs are at least this
+ * tall on screen (CSS px). */
 export const LABEL_MIN_PX = 6.5;
+/**
+ * Level of detail: a room code is drawn once its cap height on screen is at least CODE_MIN_DEVICE_PX device
+ * pixels and CODE_MIN_PX CSS px. Semibold hinted digits stay legible from about 4.5 pixels, and a sharp screen
+ * draws a small code with more of them, so the whole-floor view of a widget shows nearly every number there.
+ */
+export const CODE_MIN_DEVICE_PX = 4.5;
+export const CODE_MIN_PX = 3.6;
 /** Level of detail: a pictogram (toilet, exit, stairs) is drawn once it is at least this large on screen. */
 export const PICTOGRAM_MIN_PX = 9;
 
