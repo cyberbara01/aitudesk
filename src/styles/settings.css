@@ -337,9 +337,11 @@
 .mark-link { cursor: default; }
 .mark-link .icon { display: grid; place-items: center; }
 .mark-link .icon svg { width: 18px; height: 18px; }
-/* «Автор»: the marks follow the caption on its line, like a byline, instead of sitting at the far edge. */
+/* «Автор»: the marks follow the caption on its line, like a byline, instead of sitting at the far edge; the
+   feedback form is the line's action, at the right end. */
 .row.about-author { justify-content: flex-start; gap: var(--s3); }
 .about-links { display: flex; align-items: center; gap: var(--s1); }
+.about-feedback { display: inline-flex; margin-left: auto; }
 /* «Карта AITU» in the credits: the map author's GitHub mark, then the button to the map's repository. */
 .about-credit-links { flex-wrap: nowrap; }
 .about-p { margin: 0; color: var(--text-2); }

@@ -331,6 +331,8 @@ export const ru = {
       author1Telegram: "capybara205",
       author: "Автор",
       telegramUrl: "https://t.me/capybara205",
+      /** Google Форма: оценка от 0 до 10 и предложения. */
+      feedbackUrl: "https://forms.gle/LV7BYCqeveRyRm9YA",
       github: "GitHub",
       telegram: "Telegram",
       credits: "Благодарности",
@@ -344,7 +346,8 @@ export const ru = {
       fontsCredit: "Inter и JetBrains Mono, лицензия SIL OFL 1.1",
       stackTitle: "Технологии",
       stackCredit: "Tauri 2, React и Rust",
-      license: "Лицензия карты",
+      license: "Лицензии",
+      licenseName: "Лицензия MIT",
       versionLabel: "Версия",
       openSource: "Открытый исходный код",
       privacy: "Приватность",

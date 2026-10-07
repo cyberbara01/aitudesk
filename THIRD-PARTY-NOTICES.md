@@ -1,0 +1,13 @@
+# Third-party notices
+
+AITU Desk includes these third-party components. Their licence texts are kept in this repository and ship with
+the source code.
+
+| Component | Author | Licence | Licence text |
+| --- | --- | --- | --- |
+| [aitumap](https://github.com/Yuujiso/aitumap): the AITU map | Yuujiso | MIT | [src/map/LICENSE.md](src/map/LICENSE.md) |
+| [Fluent UI System Icons](https://github.com/microsoft/fluentui-system-icons) | Microsoft Corporation | MIT | [src/icons/LICENSE-FluentIcons.txt](src/icons/LICENSE-FluentIcons.txt) |
+| [Inter](https://github.com/rsms/inter) | Rasmus Andersson | SIL Open Font License 1.1 | [src/fonts/LICENSE-Inter.txt](src/fonts/LICENSE-Inter.txt) |
+| [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | JetBrains | SIL Open Font License 1.1 | [src/fonts/LICENSE-JetBrainsMono.txt](src/fonts/LICENSE-JetBrainsMono.txt) |
+
+Libraries installed by npm and Cargo (Tauri, React and others) come with their own licences in their packages.

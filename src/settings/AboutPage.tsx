@@ -1,6 +1,7 @@
-// «О программе»: app header, help and the author, credits, privacy, the map's licence. Below the header everything
-// is kit sections with one alignment rule: label and hint on the left edge of the card, actions on the right. The
-// one exception is «Автор»: the author's GitHub and Telegram follow the caption on its line, like a byline.
+// «О программе»: app header, help and the author, credits, privacy, licences. Below the header everything is
+// kit sections with one alignment rule: label and hint on the left edge of the card, actions on the right. The
+// one exception is «Автор»: the author's GitHub and Telegram follow the caption on its line, like a byline,
+// and the feedback form is the action at the right end of that line.
 // The only marks are the ones that are links: GitHub (the author, the map's author) and Telegram.
 import { useId, useState, type MouseEvent, type ReactNode } from "react";
 import { appDataDir, join } from "@tauri-apps/api/path";
@@ -11,7 +12,8 @@ import { Page, Row, Section } from "../components/Section";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
-import licence from "../map/LICENSE.md?raw";
+import appLicence from "../../LICENSE?raw";
+import mapLicence from "../map/LICENSE.md?raw";
 import { useNavigate } from "./shell/nav";
 
 const ab = ru.settings.about;
@@ -26,12 +28,16 @@ const openDataFolder = () =>
     .then((file) => revealItemInDir(file))
     .catch(() => undefined);
 
-/** The licence file is hard-wrapped at 80 columns; reflowed into paragraphs it wraps cleanly at any width. */
-const licenceParagraphs = licence
-  .replace(/\r\n?/g, "\n")
-  .trim()
-  .split(/\n\s*\n/)
-  .map((p) => p.replace(/\s*\n\s*/g, " "));
+/** Licence files are hard-wrapped at 80 columns; reflowed into paragraphs they wrap cleanly at any width. */
+const paragraphs = (text: string) =>
+  text
+    .replace(/\r\n?/g, "\n")
+    .trim()
+    .split(/\n\s*\n/)
+    .map((p) => p.replace(/\s*\n\s*/g, " "));
+
+const appLicenceParagraphs = paragraphs(appLicence);
+const mapLicenceParagraphs = paragraphs(mapLicence);
 
 /** GitHub's mark (Primer Octicons «mark-github»). */
 function GitHubMark() {
@@ -73,9 +79,28 @@ function MarkLink({ href, name, children }: { href: string; name: string; childr
   );
 }
 
+/** A licence's name with «Показать» / «Скрыть», and its full text under them. */
+function LicenceText({ label, text }: { label: string; text: readonly string[] }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <>
+      <div className="inline between">
+        <span className="row-label">{label}</span>
+        <Button aria-expanded={open} aria-controls={id} onClick={() => setOpen((v) => !v)}>
+          {open ? x.hide : x.show}
+        </Button>
+      </div>
+      <div id={id} className="licence-box" hidden={!open}>
+        {text.map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export function AboutPage() {
-  const [licenceOpen, setLicenceOpen] = useState(false);
-  const licenceId = useId();
   const navigate = useNavigate();
 
   return (
@@ -93,6 +118,8 @@ export function AboutPage() {
             </span>
             <span className="about-dot" aria-hidden="true" />
             <span>{ab.openSource}</span>
+            <span className="about-dot" aria-hidden="true" />
+            <span>{ab.licenseName}</span>
           </div>
         </div>
       </header>
@@ -111,6 +138,11 @@ export function AboutPage() {
               <TelegramMark />
             </MarkLink>
           </span>
+          <Tooltip text={x.feedbackHint} className="about-feedback">
+            <Button icon="form" onClick={() => open(ab.feedbackUrl)}>
+              {x.feedback}
+            </Button>
+          </Tooltip>
         </div>
       </Section>
 
@@ -142,17 +174,9 @@ export function AboutPage() {
       </Section>
 
       <Section title={ab.license} padded>
-        <div className="inline between">
-          <span className="row-label">{x.mapLicence}</span>
-          <Button aria-expanded={licenceOpen} aria-controls={licenceId} onClick={() => setLicenceOpen((v) => !v)}>
-            {licenceOpen ? x.hide : x.show}
-          </Button>
-        </div>
-        <div id={licenceId} className="licence-box" hidden={!licenceOpen}>
-          {licenceParagraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-        </div>
+        <p className="about-p">{x.appLicenceText}</p>
+        <LicenceText label={x.appLicence} text={appLicenceParagraphs} />
+        <LicenceText label={x.mapLicence} text={mapLicenceParagraphs} />
       </Section>
     </Page>
   );

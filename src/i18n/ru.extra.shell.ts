@@ -54,6 +54,11 @@ export const extra = {
     open: "Открыть",
     mapTitle: "Карта AITU",
     mapLicence: "Текст лицензии aitumap",
+    appLicence: "Текст лицензии AITU Desk",
+    appLicenceText:
+      "AITU Desk распространяется по лицензии MIT: приложением можно свободно пользоваться, менять его и делиться им, сохраняя имя автора и текст лицензии.",
+    feedback: "Форма отзыва",
+    feedbackHint: "Оценка от 0 до 10 и ваши предложения",
     mapRepoLabel: "Репозиторий карты",
     show: "Показать",
     hide: "Скрыть",
