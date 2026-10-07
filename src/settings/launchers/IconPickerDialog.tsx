@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Dialog } from "../../components/Dialog";
 import { ALL_ICON_NAMES, Icon } from "../../components/Icon";
+import catalog from "../../icons/catalog.json";
 import { TextField } from "../../components/TextField";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.launchers";
@@ -31,7 +32,7 @@ type IconSet = Record<string, string>;
 
 let iconSet: Promise<IconSet> | null = null;
 
-/** The full 20 px set: the same lazy chunk the Icon component uses, loaded once per window. */
+/** The launcher icons (src/icons/catalog.json): the same lazy chunk the Icon component uses, loaded once per window. */
 function loadIconSet(): Promise<IconSet> {
   iconSet ??= import("../../icons/generated/all-icons.json").then(
     (m) => (m.default ?? m) as IconSet,
@@ -46,6 +47,11 @@ function loadIconSet(): Promise<IconSet> {
 // ---------------------------------------------------------------------------------------------
 // Search
 // ---------------------------------------------------------------------------------------------
+
+/** Russian search words of every icon (src/icons/catalog.json), «ё» read as «е». */
+const WORDS = new Map<string, string>(
+  (catalog as { name: string; ru: string }[]).map((c) => [c.name, c.ru.replace(/ё/g, "е")]),
+);
 
 const RU_KEYS = "йцукенгшщзхъфывапролджэячсмитьбюё";
 const EN_KEYS = "qwertyuiop[]asdfghjkl;'zxcvbnm,.`";
@@ -70,23 +76,39 @@ function normalizeQuery(text: string): string {
     .replace(/^_|_$/g, "");
 }
 
+/** The typed text as Russian words: lower case, «ё» as «е», single spaces. */
+function russianQuery(text: string): string {
+  return text.trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
+}
+
 /**
- * Names matching `q`, best first: the exact name, names starting with it, names with a word starting with
- * it, names containing it, then (several words) names containing every word in any order. The set is
- * sorted, so every group stays alphabetical.
+ * Icons matching the typed text, best first: the exact English name, a Russian word starting with the text
+ * («поч» finds «почта»), names starting with it, names with a word starting with it, names or Russian words
+ * containing it, then (several words) names containing every word in any order. `q` is the text as an icon
+ * name (normalizeQuery), `ru` the text as Russian words (russianQuery); either may be empty. Within a group
+ * the catalog order stays, so related icons stay together.
  */
-function searchIcons(q: string): string[] {
+function searchIcons(q: string, ru: string): string[] {
   const words = q.split("_").filter(Boolean);
   const wordStart = `_${q}`;
-  const groups: string[][] = [[], [], [], [], []];
+  const groups: string[][] = [[], [], [], [], [], []];
   for (const n of ALL_ICON_NAMES) {
-    if (n === q) groups[0].push(n);
-    else if (n.startsWith(q)) groups[1].push(n);
-    else if (n.includes(wordStart)) groups[2].push(n);
-    else if (n.includes(q)) groups[3].push(n);
-    else if (words.length > 1 && words.every((w) => n.includes(w))) groups[4].push(n);
+    const said = WORDS.get(n) ?? "";
+    if (q && n === q) groups[0].push(n);
+    else if (ru && ` ${said}`.includes(` ${ru}`)) groups[1].push(n);
+    else if (q && n.startsWith(q)) groups[2].push(n);
+    else if (q && n.includes(wordStart)) groups[3].push(n);
+    else if ((q && n.includes(q)) || (ru && said.includes(ru))) groups[4].push(n);
+    else if (words.length > 1 && words.every((w) => n.includes(w))) groups[5].push(n);
   }
   return groups.flat();
+}
+
+/** Results for typed text, or null when the text holds nothing to search for. */
+function resultsFor(text: string): string[] | null {
+  const q = normalizeQuery(text);
+  const ru = russianQuery(text);
+  return q || ru ? searchIcons(q, ru) : null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -143,12 +165,13 @@ interface Props {
 }
 
 /**
- * «Смотреть все»: the whole Fluent 20 px set (about 2830 icons) in a scrollable modal window with search.
+ * «Смотреть все»: the launcher icons (100, src/icons/catalog.json) in a scrollable modal window with search.
  * - Windowing: only the rows in view (plus a few) are mounted, every cell absolutely positioned and memoised,
  *   so scrolling mounts and unmounts a row at a time. The markup comes straight from the set's chunk, with
  *   no per-icon loading. The focused cell stays mounted while scrolled away, so the keyboard keeps working.
- * - Search: 100 ms debounce, English names, ranked (exact, prefix, word, substring, all words in any order);
- *   text typed with the Russian layout on is read as the same keys in English. Enter picks the first match.
+ * - Search: 100 ms debounce, Russian words from the catalog («почта», «код», «музыка») and English names,
+ *   ranked (exact name, Russian word start, prefix, word, substring, all words in any order); English typed
+ *   with the Russian layout on is read as the same keys in English too. Enter picks the first match.
  * - Keyboard: the kit Dialog focuses the search field; Down or Tab enters the grid (one tab stop); arrows,
  *   PageUp/PageDown, Home/End move; Up from the first row returns to the search, a typed letter continues
  *   it; Enter or Space picks; Esc closes only this dialog (kit Dialog stack).
@@ -156,7 +179,8 @@ interface Props {
 export function IconPickerDialog({ value, onSelect, onClose }: Props) {
   const [set, setSet] = useState<IconSet | null>(null);
   const [query, setQuery] = useState("");
-  const [q, setQ] = useState("");
+  /** The text the list follows: the query after the debounce. */
+  const [term, setTerm] = useState("");
   const [box, setBox] = useState({ w: 588, h: 352 });
   const [row, setRow] = useState(0);
   const [focusIdx, setFocusIdx] = useState<number | null>(null);
@@ -180,11 +204,14 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    const t = window.setTimeout(() => setQ(normalizeQuery(query)), SEARCH_DEBOUNCE_MS);
+    const t = window.setTimeout(() => setTerm(query), SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(t);
   }, [query]);
 
-  const names: readonly string[] = useMemo(() => (q ? searchIcons(q) : ALL_ICON_NAMES), [q]);
+  const found = useMemo(() => resultsFor(term), [term]);
+  const names: readonly string[] = found ?? ALL_ICON_NAMES;
+  /** A search is on: the list starts at the top and the header counts the matches. */
+  const searching = found !== null;
 
   // Geometry follows the scroll area's content box (the scrollbar gutter is reserved, so it does not jump).
   useLayoutEffect(() => {
@@ -207,7 +234,7 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
     const el = scrollRef.current;
     if (!el) return;
     let top = 0;
-    const i = q ? -1 : ALL_ICON_NAMES.indexOf(value);
+    const i = searching ? -1 : ALL_ICON_NAMES.indexOf(value);
     if (i >= 0) {
       const r = Math.floor(i / colsFor(contentBox(el).w));
       top = Math.max(0, PAD + r * PITCH - Math.floor((el.clientHeight - CELL) / 2));
@@ -216,7 +243,7 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
     setRow(rowAt(el.scrollTop));
     setFocusIdx(null);
     wantFocus.current = false;
-  }, [q, value]);
+  }, [found, searching, value]);
 
   const cols = colsFor(box.w);
   const colStep = cols > 1 ? (box.w - CELL) / (cols - 1) : 0;
@@ -330,8 +357,7 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
   const onSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       // The current text, not the debounced list: a quick Enter after typing still picks the right icon.
-      const fresh = normalizeQuery(query);
-      const list = fresh ? searchIcons(fresh) : [];
+      const list = resultsFor(query) ?? [];
       if (list.length) {
         e.preventDefault();
         pick(list[0]);
@@ -354,7 +380,7 @@ export function IconPickerDialog({ value, onSelect, onClose }: Props) {
         />
         {/* One message per state, announced politely: all icons, the result count, or nothing found. */}
         <div className="ln-picker-head caption" aria-live="polite">
-          {!q ? extra.allIconsCount(ALL_ICON_NAMES.length) : names.length ? extra.iconsFound(names.length) : ru.common.nothingFound}
+          {!searching ? extra.allIconsCount(ALL_ICON_NAMES.length) : names.length ? extra.iconsFound(names.length) : ru.common.nothingFound}
         </div>
         <div
           ref={scrollRef}

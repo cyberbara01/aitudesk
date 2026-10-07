@@ -2,8 +2,8 @@ import { memo, useEffect, useState, type CSSProperties } from "react";
 import iconNames from "../icons/generated/icon-names.json";
 
 // Fluent UI System Icons, bundled (no network at runtime).
-// The small set in src/icons/*.svg is inlined; the full 20 px set (regular + filled) is one JSON chunk,
-// loaded on demand by the icon picker and by custom launcher icons.
+// The small set in src/icons/*.svg is inlined; the launcher icons (src/icons/catalog.json, 20 px, regular +
+// filled) are one JSON chunk, loaded on demand by the icon picker and by launcher icons.
 const eager = import.meta.glob<string>("../icons/*.svg", { query: "?raw", import: "default", eager: true });
 
 const byName = new Map<string, string>();
@@ -20,7 +20,7 @@ function loadAll(): Promise<Record<string, string>> {
 
 export type IconVariant = "regular" | "filled";
 
-/** Every icon name available at 20 px (regular), sorted, for pickers. */
+/** The launcher icon names at 20 px (regular), in catalog order, for the picker. */
 export const ALL_ICON_NAMES: readonly string[] = iconNames as string[];
 
 export function hasIcon(name: string, size: 16 | 20 = 20, variant: IconVariant = "regular"): boolean {

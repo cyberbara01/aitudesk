@@ -13,7 +13,7 @@ export const ru = {
   app: {
     name: "AITU Desk",
     version: "1.0",
-    tagline: "Виджеты рабочего стола для студентов AITU",
+    tagline: "Виджеты рабочего стола для студентов Astana IT University",
   },
   tiles: {
     clock: "Часы",
@@ -169,11 +169,11 @@ export const ru = {
       styleHint: "Меняет форму, шрифты и материалы всех виджетов и этого окна",
       styles: {
         fluent: "Windows 11",
-        fluentHint: "Fluent 2: акрил, строгие радиусы, Segoe UI",
+        fluentHint: "Акрил, строгие радиусы, Segoe UI",
         aqua: "Aqua",
-        aquaHint: "Как на macOS: мягкие формы, Inter, светлое стекло",
+        aquaHint: "Мягкие формы, Inter, светлое стекло",
         rice: "Rice",
-        riceHint: "Как в Linux, настроенном под себя: моноширинные цифры, цветные рамки",
+        riceHint: "Моноширинные цифры, цветные рамки",
       },
       theme: "Тема",
       themes: {
@@ -287,7 +287,7 @@ export const ru = {
       iconFailed: "Не удалось получить иконку сайта, поэтому показана первая буква",
       pickIcon: "Выбрать иконку",
       allIcons: "Все иконки",
-      searchIcons: "Поиск по названию (на английском)",
+      searchIcons: "Поиск: почта, код, музыка…",
       color: "Цвет",
       showLabels: "Подписи под ярлыками",
       background: "Фон виджета",

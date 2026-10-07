@@ -1,10 +1,10 @@
 name: Release
 
+# A tag like v1.0.0 builds the installer and publishes the release with it and its checksums.
 on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -45,7 +45,7 @@ jobs:
             Проверка файла: контрольные суммы лежат в `SHA256SUMS.txt`. В PowerShell: `Get-FileHash ".\AITU Desk_<версия>_x64-setup.exe" -Algorithm SHA256`, значение должно совпасть.
 
             Что делает установщик, где хранятся настройки и как удалить приложение: раздел «Что делает установщик» в README.
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
 
       # SHA256 of every published file, so anyone can check the download matches this build.

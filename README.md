@@ -7,6 +7,9 @@
 Код полностью открыт, приложение ничего не отправляет в интернет само и ставится без прав администратора. Ниже
 подробно написано, что именно делает установщик и где лежат ваши данные.
 
+**[Скачать AITU Desk](../../releases/latest)**: на странице релиза файл `AITU Desk_<версия>_x64-setup.exe`, его нужно
+просто запустить. Подробности в разделе [Установка](#установка).
+
 <p align="center">
   <img src="docs/screenshots/desktop-dark.png" alt="AITU Desk на рабочем столе, тёмная тема" width="620">
 </p>
@@ -48,12 +51,12 @@
   <img src="docs/screenshots/settings-reminders.png" alt="Окно настроек: напоминания" width="49%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/settings-transfer.png" alt="Окно настроек: конфиги" width="49%">
+  <img src="docs/screenshots/settings-configs.png" alt="Окно настроек: конфиги" width="49%">
 </p>
 
 ## Установка
 
-1. Скачайте `AITU Desk_<версия>_x64-setup.exe` со страницы [Releases](../../releases).
+1. Откройте [последний релиз](../../releases/latest) и скачайте `AITU Desk_<версия>_x64-setup.exe`.
 2. Запустите его. Права администратора не нужны: приложение ставится только для вашей учётной записи.
 3. Windows SmartScreen может показать «Система Windows защитила ваш компьютер», потому что сборка не подписана платным
    сертификатом. Нажмите «Подробнее», затем «Выполнить в любом случае». Если сомневаетесь, сверьте контрольную сумму
@@ -79,7 +82,7 @@ Get-FileHash ".\AITU Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 
 | Что | Где |
 | --- | --- |
-| Программа: `aitudesk.exe`, `WebView2Loader.dll`, `uninstall.exe` | `%LOCALAPPDATA%\AITU Desk\` |
+| Программа `aitudesk.exe` и деинсталлятор `uninstall.exe` | `%LOCALAPPDATA%\AITU Desk\` |
 | Ярлык в меню «Пуск» и, если оставить галочку, на рабочем столе | меню «Пуск», рабочий стол |
 | Запись для удаления в разделе «Установленные приложения» | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\AITU Desk` |
 

@@ -1,18 +1,17 @@
 // Fluent icon markup cached inside a launcher (icon.svg of a custom launcher or of a built-in's edit). The
-// desktop tile draws the cached copy directly, so it never has to load the full icon set (a 3 MB chunk); the
-// settings window fills the cache when a launcher is saved, and once for launchers saved before the cache
-// existed.
+// desktop widget draws the cached copy directly, so it never has to load the icon set; the settings window
+// fills the cache when a launcher is saved, and once for launchers saved before the cache existed.
 import { hasIcon, loadIcon } from "../../components/Icon";
 import { isIconMarkup } from "../../lib/launchers";
 import type { LauncherIcon } from "../../lib/settings";
 
 /**
- * The cached markup of a Fluent launcher icon, only when it can be trusted: the name is one of our icons and
- * the string has exactly the shape of our icon files (isIconMarkup). Anything else returns undefined and the
- * caller falls back to the icon set by name.
+ * The cached markup of a Fluent launcher icon, only when it can be trusted: the string has exactly the shape of
+ * our icon files (isIconMarkup). The name need not be in today's set: a launcher keeps an icon chosen when the
+ * set was bigger. Anything else returns undefined and the caller falls back to the icon set by name.
  */
 export function trustedIconSvg(icon: LauncherIcon): string | undefined {
-  if (icon.kind !== "fluent" || !icon.svg || !hasIcon(icon.name)) return undefined;
+  if (icon.kind !== "fluent" || !icon.svg) return undefined;
   return isIconMarkup(icon.svg) ? icon.svg : undefined;
 }
 
