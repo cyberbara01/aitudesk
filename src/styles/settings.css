@@ -62,6 +62,17 @@
   background: var(--frost);
   backdrop-filter: blur(16px) saturate(160%);
 }
+/* The language menu opens over the sidebar: on glass it is frosted like the window, and the sidebar items under it
+   blur and fade while it is open (WebView2 draws no backdrop blur on a transparent window, so the menu cannot
+   blur them itself). */
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) .popover.lang-menu { background: var(--frost); }
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) :is(.sidebar-nav > .nav-item, .sidebar-foot > .nav-item) {
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in), filter var(--t-base) var(--ease-in), opacity var(--t-base) var(--ease-in);
+}
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) .sidebar-nav:has(.lang-menu) :is(.sidebar-nav > .nav-item, .sidebar-foot > .nav-item) {
+  filter: blur(3px);
+  opacity: .3;
+}
 
 /* =====================================================================================
    Rows: leading icon in a tinted square, error hint, result of an action
@@ -382,10 +393,7 @@
 .mark-link { cursor: default; }
 .mark-link .icon { display: grid; place-items: center; }
 .mark-link .icon svg { width: 18px; height: 18px; }
-/* «Автор»: the marks follow the caption on its line, like a byline, instead of sitting at the far edge; the
-   feedback row's button follows its text the same way. */
-.row.about-feedback { justify-content: flex-start; }
-.row.about-author { justify-content: flex-start; gap: var(--s3); }
+/* «Автор»: the author's GitHub and Telegram side by side at the right edge, like every row's action. */
 .about-links { display: flex; align-items: center; gap: var(--s1); }
 /* GitHub and Google marks inside a button: the optical size of a Fluent icon in its 20 px slot. */
 .btn-mark { display: grid; place-items: center; }

@@ -1,8 +1,6 @@
 // «О программе»: app header, help, the author and the feedback form, credits, privacy, licences. Below the
 // header everything is kit sections with one alignment rule: label and hint on the left edge of the card,
-// actions on the right. The exceptions are «Автор», whose GitHub and Telegram follow the caption on its line like
-// a byline, and the feedback row, whose «Форма» follows its text; that row says up front that the form is
-// anonymous and a rating alone will do.
+// actions on the right. The feedback row says up front that the form is anonymous and a rating alone will do.
 // The only marks are the ones that are links: GitHub (the author, the map's author, the map's repository),
 // Telegram and Google (the feedback form is a Google Form).
 import { useId, useState, type MouseEvent, type ReactNode } from "react";
@@ -148,8 +146,7 @@ export function AboutPage() {
         <Row label={extra.shell.help} hint={x.helpHint}>
           <Button onClick={() => navigate("welcome")}>{x.open}</Button>
         </Row>
-        <div className="row about-author">
-          <span className="row-label">{ab.author}</span>
+        <Row label={ab.author}>
           <span className="about-links">
             <MarkLink href={ab.author1Github} name={`${ab.github}: ${ab.author1}`}>
               <GitHubMark />
@@ -158,19 +155,15 @@ export function AboutPage() {
               <TelegramMark />
             </MarkLink>
           </span>
-        </div>
-        <div className="row about-feedback">
-          <div className="row-text">
-            <span className="row-label">{x.feedback}</span>
-            <span className="row-hint">{x.feedbackHint}</span>
-          </div>
+        </Row>
+        <Row label={x.feedback} hint={x.feedbackHint}>
           <Button onClick={() => open(ab.feedbackUrl)}>
             <ButtonMark>
               <GoogleMark />
             </ButtonMark>
             {x.feedbackButton}
           </Button>
-        </div>
+        </Row>
       </Section>
 
       <Section title={ab.credits}>

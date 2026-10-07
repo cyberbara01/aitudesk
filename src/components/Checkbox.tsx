@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { Icon } from "./Icon";
+import CHECK_MARK from "../icons/checkmark_12_filled.svg?raw";
 
 interface CheckboxProps {
   checked: boolean;
@@ -9,7 +9,7 @@ interface CheckboxProps {
   className?: string;
 }
 
-/** 20x20 checkbox with a 12 px check mark that fades in (167 ms). */
+/** 20x20 checkbox with Fluent's 12 px check mark, drawn at its own size in the middle, fading in (167 ms). */
 export function Checkbox({ checked, onChange, label, disabled, className }: CheckboxProps) {
   const id = useId();
   const cls = ["checkbox", disabled ? "disabled" : "", className ?? ""].filter(Boolean).join(" ");
@@ -24,9 +24,7 @@ export function Checkbox({ checked, onChange, label, disabled, className }: Chec
         onChange={(e) => onChange(e.target.checked)}
       />
       <span className="checkbox-box" aria-hidden="true">
-        <span className="checkbox-mark">
-          <Icon name="checkmark" variant="filled" size={16} className="icon-16" />
-        </span>
+        <span className="checkbox-mark" dangerouslySetInnerHTML={{ __html: CHECK_MARK }} />
       </span>
       <span className="body">{label}</span>
     </label>
