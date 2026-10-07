@@ -10,8 +10,9 @@
 //
 // Level of detail (lod.ts): labels and pictograms too small to read are hidden; the check runs at most once per
 // animation frame after a zoom or resize and synchronously when a floor mounts, so a floor never shows a frame of
-// unreadable text. Search highlight, marked rooms and the paint hover are classes and attributes on the room
-// groups, written here. Floor changes keep the view and play the 250 ms slide (12 screen px).
+// unreadable text. Search highlight, marked rooms, the lesson marker (lessonMarker.ts) and the paint hover are
+// classes and attributes on the room groups, written here. Floor changes keep the view and play the 250 ms slide
+// (12 screen px).
 //
 // Paint mode: a press that moves less than 4 px is a click and paints the room under it; more is a drag that pans.
 import {
@@ -30,12 +31,15 @@ import {
 } from "react";
 import { onColor } from "../lib/design";
 import type { MapFavorite } from "../lib/settings";
+import { placeCodes } from "./codes";
 import { Floor1 } from "./floors/Floor1";
 import { Floor2 } from "./floors/Floor2";
 import { Floor3 } from "./floors/Floor3";
+import { markRooms } from "./lessonMarker";
 import { applyLod, lodItems, type LodItem } from "./lod";
 import { IconsCommon } from "./parts/IconsCommon";
 import { Wallpaper } from "./parts/Wallpaper";
+import { checkRoomIndex } from "./roomIndex";
 import { roomAt, roomGroupAt } from "./rooms";
 import { MAX_ZOOM, MIN_ZOOM, SWITCH_COLUMN_PX, VIEWBOX, type Floor } from "./types";
 import { highlightRooms } from "./useRoomSearch";
@@ -58,7 +62,19 @@ interface Props {
   onPaint: (room: string) => void;
   /** Side where the always-visible floor switch stands: the fitted view keeps that column free. Null: none. */
   reserve: "left" | "right" | null;
+  /** Number of rooms the query matches on the shown floor, reported after every highlight. */
+  onMatches: (count: number) => void;
+  /** Each new value asks to centre and zoom on the found rooms once the floor with them is shown. */
+  focusSeq: number;
+  /** Outcome of a focus request: false when nothing on the floor matches the query. */
+  onFocusResult: (found: boolean) => void;
+  /** Rooms of the lesson to mark (nextLesson.ts); drawn while their floor is shown. Null: no marker. */
+  mark: { floor: Floor; rooms: readonly string[] } | null;
+  /** The pointer came over a marked room (its box in window px) or left it (null); never while painting or pressing. */
+  onMarkHover: (box: DOMRect | null) => void;
 }
+
+const NO_ROOMS: readonly string[] = [];
 
 /** How a view change is shown: at once (wheel, drag, resize) or with the base / slow motion token. */
 type Motion = "none" | "base" | "slow";
@@ -121,6 +137,9 @@ const LINE_PX = 16;
 const PAGE_PX = 100;
 /** Paint mode: a press that travels less than this (CSS px) is a click, further is a drag. */
 const CLICK_SLOP = 4;
+/** Focus on found rooms: they fill at most this share of the host, and the zoom stops here (codes read from ~2×). */
+const FOCUS_FILL = 0.35;
+const FOCUS_MAX_ZOOM = 3.5;
 const DURATION: Record<Motion, string> = { none: "0ms", base: "var(--t-base)", slow: "var(--t-slow)" };
 
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
@@ -145,7 +164,10 @@ function readMs(name: string): number {
 }
 
 export const MapCanvas = memo(
-  forwardRef<MapCanvasHandle, Props>(function MapCanvas({ floor, query, favorites, painting, onPaint, reserve }, ref) {
+  forwardRef<MapCanvasHandle, Props>(function MapCanvas(
+    { floor, query, favorites, painting, onPaint, reserve, onMatches, focusSeq, onFocusResult, mark, onMarkHover },
+    ref,
+  ) {
     const hostRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement>(null);
     const box = useRef<Box>({ hostW: 0, hostH: 0, fitW: 0, fitH: 0, left: 0, top: 0, biasX: 0 });
@@ -156,9 +178,39 @@ export const MapCanvas = memo(
     const lod = useRef<{ shared: LodItem[]; floor: LodItem[] }>({ shared: [], floor: [] });
     const lodFrame = useRef(0);
     const hovered = useRef<Element | null>(null);
+    const markHovered = useRef<Element | null>(null);
     // The pointer handlers read the latest props from here.
-    const live = useRef({ floor, painting, onPaint });
-    live.current = { floor, painting, onPaint };
+    const live = useRef({ floor, painting, onPaint, onMarkHover });
+    live.current = { floor, painting, onPaint, onMarkHover };
+
+    // ---- Marked rooms and the lesson marker. The first layout effects: their attributes are on the rooms before
+    // anything below makes the browser compute styles, so a floor (and the tile at start) never fades them in. ----
+
+    // Marked rooms: data-fav (the colour) plus --fav / --fav-on on the room groups; map.css paints them.
+    useLayoutEffect(() => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const byRoom = new Map(favorites.map((f) => [f.room.toUpperCase(), f.color.toUpperCase()]));
+      for (const g of svg.querySelectorAll<SVGGElement>("g.floor g[data-name]")) {
+        const want = byRoom.get((g.getAttribute("data-name") ?? "").trim().toUpperCase()) ?? null;
+        if (g.getAttribute("data-fav") === want) continue;
+        if (want) {
+          g.setAttribute("data-fav", want);
+          g.style.setProperty("--fav", want);
+          g.style.setProperty("--fav-on", onColor(want));
+        } else {
+          g.removeAttribute("data-fav");
+          g.style.removeProperty("--fav");
+          g.style.removeProperty("--fav-on");
+        }
+      }
+    }, [favorites, floor]);
+
+    // Lesson marker: on the shown floor only; a leaving floor keeps its ring and fades out with it.
+    useLayoutEffect(() => {
+      const layer = svgRef.current?.querySelector<SVGGElement>(`g.floor[data-floor="${floor}"]`);
+      if (layer) markRooms(layer, mark && mark.floor === floor ? mark.rooms : NO_ROOMS);
+    }, [floor, mark]);
 
     // ---- Level of detail: at most once per frame after a view change, at once when a floor mounts ----
     const runLod = useCallback(() => {
@@ -184,11 +236,20 @@ export const MapCanvas = memo(
       [],
     );
 
+    // ---- Lesson marker hover: entering and leaving a marked room is reported (the tile shows the lesson in a bubble) ----
+    const setMarkHover = useCallback((g: Element | null) => {
+      if (markHovered.current === g) return;
+      markHovered.current = g;
+      live.current.onMarkHover(g ? g.getBoundingClientRect() : null);
+    }, []);
+
     /** Writes the view to the element: real size, translate snapped to device pixels, transition for `motion`. */
     const apply = useCallback(
       (motion: Motion) => {
         const svg = svgRef.current;
         if (!svg) return;
+        // The room under a lesson bubble moves: the bubble goes (the next pointer move brings it back).
+        setMarkHover(null);
         const { fitW, fitH, left, top } = box.current;
         const { zoom, x, y } = view.current;
         const dpr = window.devicePixelRatio || 1;
@@ -201,7 +262,7 @@ export const MapCanvas = memo(
         st.transform = `translate(${tx}px, ${ty}px)`;
         scheduleLod();
       },
-      [scheduleLod],
+      [scheduleLod, setMarkHover],
     );
 
     const setView = useCallback(
@@ -297,8 +358,13 @@ export const MapCanvas = memo(
       setHover(null);
     }, [painting, floor, setHover]);
 
+    useEffect(() => {
+      setMarkHover(null);
+    }, [painting, floor, mark, setMarkHover]);
+
     // ---- Pointer: drag pans; in paint mode a short press is a click on a room ----
     const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+      setMarkHover(null);
       if (e.button !== 0 || press.current) return;
       const { painting: paint, floor: shown } = live.current;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -327,6 +393,7 @@ export const MapCanvas = memo(
         return;
       }
       if (live.current.painting) setHover(roomGroupAt(e.target as Element, live.current.floor));
+      else setMarkHover((e.target as Element).closest("g.room-next"));
     };
 
     const endPress = (e: ReactPointerEvent<HTMLDivElement>, cancelled: boolean) => {
@@ -367,6 +434,8 @@ export const MapCanvas = memo(
 
     useLayoutEffect(() => {
       const layer = svgRef.current?.querySelector(`g.floor[data-floor="${floor}"]`);
+      if (layer) placeCodes(layer, `floor-${floor}`);
+      if (import.meta.env.DEV && layer) checkRoomIndex(layer, floor);
       lod.current.floor = layer ? lodItems(layer, `floor-${floor}`) : [];
       runLod();
     }, [floor, runLod]);
@@ -375,30 +444,49 @@ export const MapCanvas = memo(
     useLayoutEffect(() => {
       const svg = svgRef.current;
       if (!svg) return;
+      let count = 0;
       for (const layer of svg.querySelectorAll("g.floor")) {
-        highlightRooms(layer, layer.getAttribute("data-floor") === String(floor) ? query : "");
+        const shown = layer.getAttribute("data-floor") === String(floor);
+        const n = highlightRooms(layer, shown ? query : "");
+        if (shown) count = n;
       }
-    }, [floor, query]);
+      // The other rooms dim only around a hit: a query that matches nothing leaves the plan as it is.
+      svg.classList.toggle("searching", count > 0);
+      onMatches(count);
+    }, [floor, query, onMatches]);
 
-    // ---- Marked rooms: data-fav (the colour) plus --fav / --fav-on on the room groups; map.css paints them ----
+    // ---- Focus: centre and zoom on the found rooms (Enter in the search field, the schedule tile) ----
+    const focusDone = useRef(focusSeq);
     useLayoutEffect(() => {
-      const svg = svgRef.current;
-      if (!svg) return;
-      const byRoom = new Map(favorites.map((f) => [f.room.toUpperCase(), f.color.toUpperCase()]));
-      for (const g of svg.querySelectorAll<SVGGElement>("g.floor g[data-name]")) {
-        const want = byRoom.get((g.getAttribute("data-name") ?? "").trim().toUpperCase()) ?? null;
-        if (g.getAttribute("data-fav") === want) continue;
-        if (want) {
-          g.setAttribute("data-fav", want);
-          g.style.setProperty("--fav", want);
-          g.style.setProperty("--fav-on", onColor(want));
-        } else {
-          g.removeAttribute("data-fav");
-          g.style.removeProperty("--fav");
-          g.style.removeProperty("--fav-on");
-        }
+      if (focusSeq === focusDone.current) return;
+      focusDone.current = focusSeq;
+      const layer = svgRef.current?.querySelector(`g.floor[data-floor="${floor}"]`);
+      const hits = layer ? Array.from(layer.querySelectorAll<SVGGElement>("g[data-name].room-found")) : [];
+      const b = box.current;
+      if (!hits.length || b.fitW <= 0) {
+        onFocusResult(false);
+        return;
       }
-    }, [favorites, floor]);
+      let x0 = Infinity;
+      let y0 = Infinity;
+      let x1 = -Infinity;
+      let y1 = -Infinity;
+      for (const g of hits) {
+        const r = g.getBBox();
+        x0 = Math.min(x0, r.x);
+        y0 = Math.min(y0, r.y);
+        x1 = Math.max(x1, r.x + r.width);
+        y1 = Math.max(y1, r.y + r.height);
+      }
+      // Big enough to read the codes with the plan around them; several rooms far apart all stay in view.
+      const unit = b.fitW / VIEWBOX.w;
+      const fill = Math.min((b.hostW * FOCUS_FILL) / Math.max(1, (x1 - x0) * unit), (b.hostH * FOCUS_FILL) / Math.max(1, (y1 - y0) * unit));
+      const z = clampZoom(Math.min(FOCUS_MAX_ZOOM, fill));
+      const cx = ((x0 + x1) / 2) * unit * z;
+      const cy = ((y0 + y1) / 2) * unit * z;
+      setView(z, b.hostW / 2 - cx, b.hostH / 2 - cy, "slow");
+      onFocusResult(true);
+    }, [focusSeq, floor, query, setView, onFocusResult]);
 
     useImperativeHandle(
       ref,
@@ -433,6 +521,7 @@ export const MapCanvas = memo(
         onLostPointerCapture={(e) => endPress(e, true)}
         onPointerLeave={() => {
           if (!press.current) setHover(null);
+          setMarkHover(null);
         }}
         onDoubleClick={() => {
           // Quick clicks while painting must not refit the map.
@@ -441,7 +530,7 @@ export const MapCanvas = memo(
       >
         <svg
           ref={svgRef}
-          className={query ? "map-svg searching" : "map-svg"}
+          className="map-svg"
           xmlns="http://www.w3.org/2000/svg"
           viewBox={`0 0 ${VIEWBOX.w} ${VIEWBOX.h}`}
           preserveAspectRatio="xMidYMid meet"

@@ -1,7 +1,11 @@
-// Navigation model of the settings window: tab ids, icons, URL parsing.
+// Navigation model of the settings window: tab ids, icons, URL parsing, and the navigate function pages use.
+import { createContext, useContext } from "react";
 import type { TileId } from "../../lib/settings";
 
 export type TabId = "general" | "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "notes" | "about";
+
+/** A page of the content column: a sidebar tab, or the welcome page (it has no sidebar entry). */
+export type PageId = TabId | "welcome";
 
 export interface TabSpec {
   id: TabId;
@@ -33,7 +37,7 @@ export const TILE_ICONS: Record<TileId, string> = {
 };
 
 /** Tabs whose page opens an editor for `edit`. */
-export function acceptsEdit(tab: TabId): boolean {
+export function acceptsEdit(tab: PageId): boolean {
   return tab === "launchers" || tab === "notes" || tab === "schedule";
 }
 
@@ -47,7 +51,7 @@ export function parseTab(v: unknown): TabId {
 }
 
 export interface Route {
-  tab: TabId;
+  tab: PageId;
   /** Item to open in the editor: a launcher id or built-in key (launchers tab) or a note id (notes tab). */
   edit: string | null;
   /** Bumped on every navigate-with-edit so the page can react to the same id twice. */
@@ -60,4 +64,14 @@ export function readInitialRoute(): Route {
   const tab = parseTab(q.get("tab"));
   const edit = acceptsEdit(tab) ? q.get("edit") : null;
   return { tab, edit: edit ? edit : null, nonce: 0 };
+}
+
+/** Opens another page of this window (with an editor item where the page takes one). */
+export type Navigate = (tab: PageId, edit?: string | null) => void;
+
+export const NavigateContext = createContext<Navigate>(() => undefined);
+
+/** The shell's navigate function, for pages that link to other pages. */
+export function useNavigate(): Navigate {
+  return useContext(NavigateContext);
 }

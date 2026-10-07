@@ -8,9 +8,12 @@ import { load, type Store } from "@tauri-apps/plugin-store";
 // Design
 // ---------------------------------------------------------------------------------------------
 
-/** Base palette. "system" follows the Windows app theme (light → light, dark → dark). */
-export type ThemeId = "system" | "light" | "gray" | "dark" | "darker" | "black";
-export const THEME_IDS: readonly ThemeId[] = ["system", "light", "gray", "dark", "darker", "black"];
+/**
+ * Base palette. "system" follows the Windows app theme (light → light, dark → dark); "glass" is the frosted,
+ * translucent palette whose light or dark scheme also follows Windows.
+ */
+export type ThemeId = "system" | "light" | "gray" | "dark" | "darker" | "black" | "glass";
+export const THEME_IDS: readonly ThemeId[] = ["system", "light", "gray", "dark", "darker", "black", "glass"];
 
 /** Design language: Windows 11 (fluent), macOS-like (aqua), Linux-rice (rice). */
 export type StyleId = "fluent" | "aqua" | "rice";
@@ -137,6 +140,8 @@ export interface MapSettings {
   showZoom: boolean;
   showLabels: boolean;
   showIcons: boolean;
+  /** Mark the room of the lesson running now or starting within 30 minutes (from settings.schedule.lessons). */
+  showNextLesson: boolean;
   favorites: MapFavorite[];
 }
 
@@ -196,6 +201,8 @@ export interface Settings {
   tiles: Record<TileId, boolean>;
   /** "Закрепить расположение": tiles cannot enter edit mode. */
   lockLayout: boolean;
+  /** The welcome page of the settings window has been seen («Начать»). Not part of any reset. */
+  onboarded: boolean;
   clock: ClockSettings;
   system: SystemSettings;
   launchers: LaunchersSettings;
@@ -247,7 +254,7 @@ export const DEFAULT_LAUNCHERS: LaunchersSettings = {
 };
 
 export const DEFAULT_MAP: MapSettings = {
-  scheme: "pastel",
+  scheme: "glass",
   background: true,
   silhouette: true,
   defaultFloor: 1,
@@ -259,6 +266,7 @@ export const DEFAULT_MAP: MapSettings = {
   showZoom: true,
   showLabels: true,
   showIcons: true,
+  showNextLesson: true,
   favorites: [],
 };
 
@@ -282,9 +290,10 @@ export const DEFAULT_SETTINGS: Settings = {
   version: 2,
   theme: "system",
   style: "fluent",
-  accent: { mode: "windows", preset: "fluent-blue", custom: "#60CDFF" },
+  accent: { mode: "preset", preset: "graphite", custom: "#60CDFF" },
   tiles: { clock: true, system: true, launchers: true, map: true, schedule: true, notes: true },
   lockLayout: false,
+  onboarded: false,
   clock: DEFAULT_CLOCK,
   system: DEFAULT_SYSTEM,
   launchers: DEFAULT_LAUNCHERS,
@@ -460,6 +469,7 @@ export function normalize(saved: unknown): Settings {
     showZoom: bool(m.showZoom, d.map.showZoom),
     showLabels: bool(m.showLabels, d.map.showLabels),
     showIcons: bool(m.showIcons, d.map.showIcons),
+    showNextLesson: bool(m.showNextLesson, d.map.showNextLesson),
     favorites: favRaw
       .map((f): MapFavorite | null =>
         isObj(f) && typeof f.room === "string" && f.room
@@ -498,6 +508,7 @@ export function normalize(saved: unknown): Settings {
     accent,
     tiles,
     lockLayout: bool(s.lockLayout, d.lockLayout),
+    onboarded: bool(s.onboarded, d.onboarded),
     clock,
     system,
     launchers,
@@ -517,7 +528,7 @@ export const RESET_SECTIONS: readonly ResetSection[] = ["appearance", "clock", "
  * Defaults for the customization of one section. User data stays: lessons, notes, custom launchers and
  * which built-ins are on, marked rooms, the custom label text of the system tile. Privacy choices stay too
  * (hidden schedule and note texts, hidden network and device names): a reset of the look must never put
- * private text on the desktop.
+ * private text on the desktop. `onboarded` belongs to no section, so no reset brings the welcome page back.
  */
 function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
   const d = DEFAULT_SETTINGS;

@@ -19,14 +19,17 @@ const root = document.documentElement;
 
 /**
  * The surface an accent has to stand out from in each palette: the lightest card on dark palettes, the
- * darkest card on light ones (worst case for contrast).
+ * darkest card on light ones (worst case for contrast). Glass has one per scheme: its frost lets the
+ * wallpaper through, so the worst case is a lighter dark frost and a darker light one.
  */
-const ACCENT_BACKDROP: Record<ResolvedTheme, string> = {
+const ACCENT_BACKDROP: Record<ResolvedTheme | "glass-light", string> = {
   dark: "#2A2B32",
   darker: "#1F2025",
   black: "#141414",
   light: "#ECECEF",
   gray: "#DDDEE3",
+  glass: "#3A3C45",
+  "glass-light": "#D3D6DE",
 };
 
 function applyAppearance(a: Appearance) {
@@ -35,15 +38,16 @@ function applyAppearance(a: Appearance) {
   root.setAttribute("data-scheme", a.dark ? "dark" : "light");
   // Any accent (a custom one above all) is nudged lighter or darker until it reads on this palette:
   // 3:1 for fills and selection marks, 4.5:1 for accent text. Curated presets already pass and stay as is.
-  const bg = ACCENT_BACKDROP[a.theme];
+  const bg = ACCENT_BACKDROP[a.theme === "glass" && !a.dark ? "glass-light" : a.theme];
   const fill = readableOn(a.accent, bg, 3);
   root.style.setProperty("--accent", fill);
   root.style.setProperty("--on-accent", onColor(fill));
   root.style.setProperty("--accent-soft", withAlpha(fill, a.dark ? 0.18 : 0.14));
   root.style.setProperty("--accent-text", readableOn(a.accent, bg, 4.5));
-  // Native side: light or dark system backdrop for this window; the settings window also switches its
-  // material by style (Mica for Windows 11, acrylic for Aqua, a solid surface for Rice).
-  const material = a.style === "aqua" ? "acrylic" : a.style === "rice" ? "none" : "mica";
+  // Native side: light or dark system backdrop for this window (for tiles: the tint of their acrylic); the
+  // settings window also switches its material by style (Mica for Windows 11, acrylic for Aqua, a solid
+  // surface for Rice). The glass palette is acrylic in every style.
+  const material = a.theme === "glass" || a.style === "aqua" ? "acrylic" : a.style === "rice" ? "none" : "mica";
   const isSettingsWindow = getCurrentWindow().label === "settings";
   invoke("set_window_theme", isSettingsWindow ? { dark: a.dark, material } : { dark: a.dark }).catch(() => undefined);
 }
@@ -108,7 +112,8 @@ export function useTheme(): Appearance {
   }, []);
 
   const theme = resolveTheme(s.theme, windowsDark ?? true);
-  const dark = isDarkTheme(theme);
+  // Glass keeps its own tokens in both schemes and takes light or dark from Windows, as "system" does.
+  const dark = theme === "glass" ? (windowsDark ?? true) : isDarkTheme(theme);
   const accentKey = `${s.accent.mode}|${s.accent.preset}|${s.accent.custom}`;
   const known = loaded && windowsDark !== null;
 

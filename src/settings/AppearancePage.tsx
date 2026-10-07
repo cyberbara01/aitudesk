@@ -1,4 +1,5 @@
-// «Оформление»: live preview, design language (3), palette (6), accent (Windows / presets / custom), reset.
+// «Оформление»: live preview, design language (3), palette (7, glass included), accent (Windows / presets /
+// custom), reset.
 import { useEffect, useState, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ColorPicker } from "../components/ColorPicker";
@@ -25,6 +26,8 @@ const STYLE_TEXT: Record<StyleId, { title: string; hint: string }> = {
 
 const accentName = (id: string): string => (a.accents as Record<string, string>)[id] ?? id;
 const themeMeta = (id: string | null): ThemeMeta => THEMES.find((t) => t.id === id) ?? THEMES[0];
+const THEME_NAMES: Record<ThemeId, string> = { ...a.themes, glass: x.glassName };
+const THEME_HINTS: Partial<Record<ThemeId, string>> = { system: x.themeSystemHint, glass: x.glassHint };
 
 /** Title row of a card; the selected card gets a check after its title (never over the preview it shows). */
 function CardHead({ title, selected }: { title: string; selected: boolean }) {
@@ -50,6 +53,17 @@ function MiniTile() {
   );
 }
 
+/** A list tile (schedule, notes) sketched with bars, for the wide glass card. */
+function MiniList() {
+  return (
+    <span className="tp-tile tp-list">
+      <span className="tp-bar" />
+      <span className="tp-bar long" />
+      <span className="tp-bar" />
+    </span>
+  );
+}
+
 interface ThemeCardProps {
   meta: ThemeMeta;
   selected: boolean;
@@ -57,16 +71,11 @@ interface ThemeCardProps {
 }
 
 function ThemeCard({ meta, selected, onSelect }: ThemeCardProps) {
-  const hint = meta.id === "system" ? x.themeSystemHint : undefined;
+  const hint = THEME_HINTS[meta.id];
+  // Glass gets the whole last row: its frost needs a wide, colourful wallpaper to read as glass.
+  const cls = ["option-card", meta.id === "glass" ? "wide" : "", selected ? "selected" : ""].filter(Boolean).join(" ");
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      tabIndex={selected ? 0 : -1}
-      className={selected ? "option-card selected" : "option-card"}
-      onClick={onSelect}
-    >
+    <button type="button" role="radio" aria-checked={selected} tabIndex={selected ? 0 : -1} className={cls} onClick={onSelect}>
       {meta.id === "system" ? (
         <div className="card-preview tp split" aria-hidden="true">
           <div className="tp-half" style={swatchVars(themeMeta("light").swatch)}>
@@ -76,13 +85,18 @@ function ThemeCard({ meta, selected, onSelect }: ThemeCardProps) {
             <MiniTile />
           </div>
         </div>
+      ) : meta.id === "glass" ? (
+        <div className="card-preview tp glass" style={swatchVars(meta.swatch)} aria-hidden="true">
+          <MiniTile />
+          <MiniList />
+        </div>
       ) : (
         <div className="card-preview tp" style={swatchVars(meta.swatch)} aria-hidden="true">
           <MiniTile />
         </div>
       )}
       <div className="card-text">
-        <CardHead title={a.themes[meta.id]} selected={selected} />
+        <CardHead title={THEME_NAMES[meta.id]} selected={selected} />
         {hint && <div className="card-hint">{hint}</div>}
       </div>
     </button>
@@ -155,7 +169,7 @@ export function AppearancePage() {
       </Section>
 
       <Section title={a.style} description={a.styleHint} padded>
-        <div className="grid-3 choice" role="radiogroup" aria-label={a.style} onKeyDown={onRadioGroupKeyDown}>
+        <div className="grid-3" role="radiogroup" aria-label={a.style} onKeyDown={onRadioGroupKeyDown}>
           {STYLES.map(({ id }) => {
             const selected = s.style === id;
             return (
@@ -187,7 +201,7 @@ export function AppearancePage() {
       </Section>
 
       <Section title={a.theme} description={x.themeHint} padded>
-        <div className="grid-3 choice" role="radiogroup" aria-label={a.theme} onKeyDown={onRadioGroupKeyDown}>
+        <div className="grid-3" role="radiogroup" aria-label={a.theme} onKeyDown={onRadioGroupKeyDown}>
           {THEMES.map((t) => (
             <ThemeCard key={t.id} meta={t} selected={s.theme === t.id} onSelect={() => setTheme(t.id)} />
           ))}
@@ -196,7 +210,7 @@ export function AppearancePage() {
 
       <Section title={a.accent} description={x.accentHint} padded>
         {/* One choice, one radio group: «Как в Windows», the presets and «Свой цвет». */}
-        <div className="acc-group choice" role="radiogroup" aria-label={a.accent} onKeyDown={onRadioGroupKeyDown}>
+        <div className="acc-group" role="radiogroup" aria-label={a.accent} onKeyDown={onRadioGroupKeyDown}>
           <button
             type="button"
             role="radio"
@@ -250,7 +264,7 @@ export function AppearancePage() {
             {mode === "custom" && <Icon name="checkmark" variant="filled" className="card-tick" />}
           </button>
         </div>
-        {mode === "custom" && <ColorPicker className="accent-picker" value={draft ?? s.accent.custom} onChange={onCustomColor} customOpen />}
+        {mode === "custom" && <ColorPicker value={draft ?? s.accent.custom} onChange={onCustomColor} customOpen />}
       </Section>
 
       <ResetSection section="appearance" />

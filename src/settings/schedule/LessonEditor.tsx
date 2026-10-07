@@ -28,6 +28,7 @@ import {
   type LessonErrors,
 } from "../../lib/schedule";
 import type { Lesson, Weekday } from "../../lib/settings";
+import { useSettings } from "../../lib/useSettings";
 import { LessonRow } from "../../tiles/Schedule";
 
 type DayKey = `${Weekday}`;
@@ -60,6 +61,7 @@ const ROOM_MAX = 24;
 /** Mount a fresh instance (via `key`) for every open: the form state is initialised from the props once. */
 export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose }: LessonEditorProps) {
   const editing = lesson !== null;
+  const mapOn = useSettings().tiles.map;
   const [day, setDay] = useState<Weekday>(lesson?.day ?? initialDay);
   const [initialTimes] = useState(() => suggestTimes(lessonsForDay(lessons, lesson?.day ?? initialDay)));
   const [start, setStart] = useState(lesson?.start ?? initialTimes.start);
@@ -232,9 +234,13 @@ export function LessonEditor({ lesson, day: initialDay, lessons, onSave, onClose
           )}
         </div>
 
-        <div className="grid-2">
-          <TextField label={ru.schedule.teacher} value={teacher} onChange={setTeacher} onKeyDown={onEnter} placeholder={ru.schedule.teacherPlaceholder} maxLength={TEACHER_MAX} />
-          <TextField label={ru.schedule.room} value={room} onChange={setRoom} onKeyDown={onEnter} placeholder={ru.schedule.roomPlaceholder} mono maxLength={ROOM_MAX} />
+        <div className="sched-field">
+          <div className="grid-2">
+            <TextField label={ru.schedule.teacher} value={teacher} onChange={setTeacher} onKeyDown={onEnter} placeholder={ru.schedule.teacherPlaceholder} maxLength={TEACHER_MAX} />
+            <TextField label={ru.schedule.room} value={room} onChange={setRoom} onKeyDown={onEnter} placeholder={ru.schedule.roomPlaceholder} mono maxLength={ROOM_MAX} />
+          </div>
+          {/* Teaches the room format the map understands and the link on the tile (only while the map tile is on). */}
+          {mapOn && <span className="hint">{extra.roomHint}</span>}
         </div>
 
         <div className="sched-field">

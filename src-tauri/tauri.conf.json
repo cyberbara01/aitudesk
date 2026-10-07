@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "AITU Desk",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "identifier": "kz.edu.astanait.aitudesk",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -23,7 +23,6 @@
         "height": 120,
         "decorations": false,
         "transparent": true,
-        "alwaysOnBottom": true,
         "skipTaskbar": true,
         "shadow": false,
         "resizable": false,
@@ -45,7 +44,6 @@
         "height": 144,
         "decorations": false,
         "transparent": true,
-        "alwaysOnBottom": true,
         "skipTaskbar": true,
         "shadow": false,
         "resizable": false,
@@ -67,7 +65,6 @@
         "height": 184,
         "decorations": false,
         "transparent": true,
-        "alwaysOnBottom": true,
         "skipTaskbar": true,
         "shadow": false,
         "resizable": false,
@@ -89,7 +86,6 @@
         "height": 320,
         "decorations": false,
         "transparent": true,
-        "alwaysOnBottom": true,
         "skipTaskbar": true,
         "shadow": false,
         "resizable": false,
@@ -111,7 +107,6 @@
         "height": 256,
         "decorations": false,
         "transparent": true,
-        "alwaysOnBottom": true,
         "skipTaskbar": true,
         "shadow": false,
         "resizable": false,
@@ -133,7 +128,6 @@
         "height": 200,
         "decorations": false,
         "transparent": true,
-        "alwaysOnBottom": true,
         "skipTaskbar": true,
         "shadow": false,
         "resizable": false,
@@ -172,6 +166,6 @@
     },
     "publisher": "AITU Desk",
     "shortDescription": "Виджеты рабочего стола для студентов AITU",
-    "copyright": "MIT. Карта корпуса C1: aitumap (Yuujiso, MIT). Иконки: Fluent UI System Icons (Microsoft, MIT)"
+    "copyright": "MIT. Карта AITU: aitumap (Yuujiso, MIT). Иконки: Fluent UI System Icons (Microsoft, MIT)"
   }
 }

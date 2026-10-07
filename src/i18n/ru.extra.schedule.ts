@@ -12,10 +12,13 @@ const lessonsCount = (n: number) => `${n} ${lessonsWord(n)}`;
 export const extra = {
   // ---- Плитка ----
   emptyTitle: "Расписание пустое",
-  emptyHint: "Добавьте пары в настройках",
+  /** Says what the tile will do once there are lessons (the button below adds the first one). */
+  emptyHint: "Добавьте пары, и плитка покажет текущую и следующую",
   /** «через 25 мин», «через 1 ч», «через 1 ч 5 мин» (ru.schedule.startsIn yields «через 1 ч 0 мин»). */
   startsIn: (m: number) => (m < 60 ? `через ${m} мин` : m % 60 === 0 ? `через ${m / 60} ч` : `через ${Math.floor(m / 60)} ч ${m % 60} мин`),
   tomorrow: "завтра",
+  /** Tooltip of a room that the map knows (the room text is a link to the map tile). */
+  showOnMap: "Показать на карте",
   /** «Ближайшая пара завтра в 08:00», «Ближайшая пара в среду в 08:00»; prepositions stay with their word. */
   nextLesson: (when: string, time: string) => `Ближайшая пара ${when.replace(/ /g, NBSP)} в${NBSP}${time}`,
 
@@ -46,6 +49,8 @@ export const extra = {
   colorOwn: "Свой цвет",
   colorHint: "Полоса слева от пары и подпись «Сейчас»",
   overlaps: (title: string, range: string) => `Пересекается с «${title}» (${range})`,
+  /** Under «Аудитория» while the map tile is on: the format the map understands and what it gives. */
+  roomHint: "Например, C1.2.223 или 223. Нажмите на аудиторию на плитке, и карта покажет этот кабинет",
   endAfterStart: "Конец должен быть позже начала",
   previewHint: "Так пара будет выглядеть на плитке",
 } as const;

@@ -1,11 +1,13 @@
 // Settings window (label "settings"): sidebar with brand + navigation, scrolling content with one page.
 // Initial tab from ?tab=&edit=, later from the "settings-navigate" event; arrow keys move within the sidebar.
 // The window starts hidden and is shown once its first real frame is ready (src/lib/ready.ts); pages render
-// only after the stored settings are loaded.
+// only after the stored settings are loaded. The first time the window opens on «Общие», it shows the
+// welcome page instead; «Как пользоваться» at the bottom of the sidebar opens it again later.
 import { Fragment, useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "../components/Icon";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
+import { settings } from "../lib/settings";
 import { useSettingsLoaded } from "../lib/useSettings";
 import { AboutPage } from "./AboutPage";
 import { AppearancePage } from "./AppearancePage";
@@ -17,11 +19,14 @@ import { SchedulePage } from "./SchedulePage";
 import { NotesPage } from "./NotesPage";
 import { SystemPage } from "./SystemPage";
 import { useRootAttribute, useSettled } from "./shell/hooks";
-import { TABS, acceptsEdit, readInitialRoute, type Route, type TabId } from "./shell/nav";
+import { NavigateContext, TABS, acceptsEdit, readInitialRoute, type PageId, type Route, type TabId } from "./shell/nav";
 import { useNavigateEvent } from "./shell/useNavigateEvent";
+import { WelcomePage } from "./shell/WelcomePage";
 
 function renderPage(route: Route) {
   switch (route.tab) {
+    case "welcome":
+      return <WelcomePage />;
     case "general":
       return <GeneralPage />;
     case "appearance":
@@ -44,6 +49,9 @@ function renderPage(route: Route) {
   }
 }
 
+/** Sidebar order for the arrow keys: the tabs, then «Как пользоваться» at the bottom. */
+const NAV_ORDER: readonly PageId[] = [...TABS.map((t) => t.id), "welcome"];
+
 export function SettingsWindow() {
   const [route, setRoute] = useState<Route>(readInitialRoute);
   // Page fade only after the first user-driven switch (nothing animates at startup).
@@ -55,7 +63,25 @@ export function SettingsWindow() {
   const contentRef = useRef<HTMLElement>(null);
   const navRef = useRef<HTMLElement>(null);
 
-  const go = useCallback((tab: TabId, edit: string | null = null) => {
+  // First open on «Общие» (a manual launch or the tray) before the welcome page was ever finished: show it
+  // instead. Decided once, while rendering the first frame with the stored settings, so «Общие» never
+  // flashes first. A window opened on a tile's own page (its menu) shows that page.
+  const [welcomeChecked, setWelcomeChecked] = useState(false);
+  if (loaded && !welcomeChecked) {
+    setWelcomeChecked(true);
+    if (!settings.get().onboarded && route.tab === "general") setRoute({ tab: "welcome", edit: null, nonce: route.nonce });
+  }
+
+  const current = useRef(route);
+  useLayoutEffect(() => {
+    current.current = route;
+  });
+
+  const go = useCallback((tab: PageId, edit: string | null = null) => {
+    // Leaving the welcome page in any way («Начать», a shortcut, the sidebar) means it has been seen.
+    if (current.current.tab === "welcome" && tab !== "welcome" && !settings.get().onboarded) {
+      void settings.update({ onboarded: true });
+    }
     setAnimate(true);
     setRoute((prev) => {
       const e = acceptsEdit(tab) ? edit : null;
@@ -63,7 +89,15 @@ export function SettingsWindow() {
     });
   }, []);
 
-  useNavigateEvent(go);
+  // Launching the app again while the welcome page is open asks for «Общие»: the welcome page stays.
+  const onNavigateEvent = useCallback(
+    (tab: TabId, edit: string | null) => {
+      if (current.current.tab === "welcome" && tab === "general" && !edit) return;
+      go(tab, edit);
+    },
+    [go],
+  );
+  useNavigateEvent(onNavigateEvent);
 
   useLayoutEffect(() => {
     contentRef.current?.scrollTo(0, 0);
@@ -71,17 +105,36 @@ export function SettingsWindow() {
 
   const onNavKey = (e: KeyboardEvent<HTMLElement>) => {
     if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-    const i = TABS.findIndex((t) => t.id === route.tab);
+    const i = NAV_ORDER.indexOf(route.tab);
+    const n = NAV_ORDER.length;
     let next: number;
-    if (e.key === "ArrowDown") next = (i + 1) % TABS.length;
-    else if (e.key === "ArrowUp") next = (i - 1 + TABS.length) % TABS.length;
+    if (e.key === "ArrowDown") next = (i + 1) % n;
+    else if (e.key === "ArrowUp") next = (i - 1 + n) % n;
     else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = TABS.length - 1;
+    else if (e.key === "End") next = n - 1;
     else return;
     e.preventDefault();
-    const id = TABS[next].id;
+    const id = NAV_ORDER[next];
     go(id);
     navRef.current?.querySelector<HTMLElement>(`[data-tab="${id}"]`)?.focus();
+  };
+
+  const navButton = (id: PageId, icon: string, label: string) => {
+    const selected = id === route.tab;
+    return (
+      <button
+        key={id}
+        type="button"
+        data-tab={id}
+        className={selected ? "nav-item selected" : "nav-item"}
+        aria-current={selected ? "page" : undefined}
+        tabIndex={selected ? 0 : -1}
+        onClick={() => go(id)}
+      >
+        <Icon name={icon} variant={selected ? "filled" : "regular"} />
+        <span className="ellipsis">{label}</span>
+      </button>
+    );
   };
 
   return (
@@ -98,30 +151,16 @@ export function SettingsWindow() {
         </div>
 
         <nav ref={navRef} className="sidebar-nav" aria-label={extra.shell.navLabel} onKeyDown={onNavKey}>
-          {TABS.map((t) => {
-            const selected = t.id === route.tab;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                data-tab={t.id}
-                className={selected ? "nav-item selected" : "nav-item"}
-                aria-current={selected ? "page" : undefined}
-                tabIndex={selected ? 0 : -1}
-                onClick={() => go(t.id)}
-              >
-                <Icon name={t.icon} variant={selected ? "filled" : "regular"} />
-                <span className="ellipsis">{ru.settings.nav[t.id]}</span>
-              </button>
-            );
-          })}
+          {TABS.map((t) => navButton(t.id, t.icon, ru.settings.nav[t.id]))}
+          <div className="sidebar-spacer" />
+          {navButton("welcome", "book_open", extra.shell.help)}
         </nav>
-
-        <div className="sidebar-spacer" />
       </aside>
 
       <main ref={contentRef} className={animate ? "content anim" : "content"}>
-        {loaded && <Fragment key={route.tab}>{renderPage(route)}</Fragment>}
+        <NavigateContext.Provider value={go}>
+          {loaded && <Fragment key={route.tab}>{renderPage(route)}</Fragment>}
+        </NavigateContext.Provider>
       </main>
     </div>
   );

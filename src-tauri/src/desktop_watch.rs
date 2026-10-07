@@ -1,21 +1,20 @@
-//! Keeps the tiles visible after Win+D / "Show desktop" (Rainmeter's "OnDesktop" technique).
+//! Keeps the tiles on the desktop: always directly above the desktop window, through Win+D / "Show desktop",
+//! "Peek", clicks on a tile and clicks on the wallpaper, without a single frame in which a tile is missing.
 //!
-//! "Show desktop" minimizes what it can and then raises the desktop window (class `Progman` on
-//! Windows 11 24H2+, otherwise a `WorkerW` hosting `SHELLDLL_DefView`) to the top of the non-topmost band.
-//! Windows that cannot be minimized, like our tiles, are simply covered by it.
+//! The tiles are owned windows of the desktop host (class `Progman` on Windows 11 24H2+, otherwise the
+//! `WorkerW` that hosts `SHELLDLL_DefView`). Windows always keeps an owned window above its owner, so when
+//! "Show desktop" raises the host to the top, the tiles rise with it in the same z-order change. The tiles
+//! are also WS_EX_NOACTIVATE: a click does not activate them, so their acrylic never switches between the
+//! active and the inactive look and they never jump in the z-order. A tile can still be activated on purpose
+//! (typing in the map search, see `activate`).
 //!
-//! Detection uses a hidden sentinel window that is always pinned to HWND_BOTTOM and never lifted:
-//! the desktop counts as "shown" exactly when the sentinel sits below the desktop host. Testing the tiles
-//! themselves would oscillate, because lifting them changes the very order being tested.
-//!
-//! Reaction: desktop shown, place the tiles directly above the desktop host, right under the backmost topmost
-//! window above it (they join the topmost band while the desktop is shown, so Explorer re-raising the desktop
-//! a few milliseconds later cannot cover them); while shown, every poll re-checks that no tile slipped below
-//! the host. Desktop lowered: push them back to the bottom, which also drops the topmost state.
-//! All moves use SWP_NOSENDCHANGING so tao's always-on-bottom hook does not undo them, and none touches tao's
-//! window flags: flag changes make tao re-apply styles and call ShowWindow(SW_SHOW), which activates the
-//! tile, makes Explorer lower the desktop again and flickers. The windows stay top-level, so acrylic and
-//! DWM rounding are untouched.
+//! The one direction Windows does not handle: when the desktop is lowered again (Win+D a second time, a window
+//! restored), only the host moves down and the tiles would stay above the restored windows. A hidden sentinel
+//! window pinned to HWND_BOTTOM tells the two states apart (desktop shown <=> the sentinel is below the host).
+//! When the desktop is not shown and a tile is anywhere but in the group right above the host, the tiles are
+//! pinned back there. Owner and styles are re-checked on every poll: after an Explorer restart the old host
+//! is gone (owned windows of other processes survive that) and the tiles are attached to the new one.
+//! Nothing here touches tao's window flags: they re-apply styles and call ShowWindow, which activates a tile.
 
 use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicU32, AtomicU64, AtomicUsize, Ordering};
@@ -27,12 +26,12 @@ use windows::core::{w, BOOL};
 use windows::Win32::Foundation::{HWND, LPARAM};
 use windows::Win32::UI::Accessibility::{SetWinEventHook, HWINEVENTHOOK};
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, EnumWindows, FindWindowExW, GetClassNameW, GetShellWindow, GetWindow, GetWindowLongW,
-    IsWindowVisible, SetTimer, SetWindowPos, EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND,
-    EVENT_SYSTEM_MINIMIZESTART, GWL_EXSTYLE, GW_HWNDNEXT, GW_HWNDPREV,
-    HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOPMOST, SET_WINDOW_POS_FLAGS, SWP_NOACTIVATE, SWP_NOMOVE,
-    SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, WINEVENT_OUTOFCONTEXT, WS_DISABLED, WS_EX_NOACTIVATE,
-    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    CreateWindowExW, EnumWindows, FindWindowExW, GetClassNameW, GetShellWindow, GetWindow, GetWindowLongPtrW,
+    GetWindowLongW, IsWindowVisible, SetForegroundWindow, SetTimer, SetWindowLongPtrW, SetWindowPos,
+    EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, GWLP_HWNDPARENT, GWL_EXSTYLE,
+    GW_HWNDNEXT, GW_HWNDPREV, GW_OWNER, HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOPMOST, SET_WINDOW_POS_FLAGS,
+    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, WINEVENT_OUTOFCONTEXT,
+    WS_DISABLED, WS_EX_APPWINDOW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
@@ -41,16 +40,16 @@ static DESKTOP_SHOWN: AtomicBool = AtomicBool::new(false);
 static SENTINEL: AtomicIsize = AtomicIsize::new(0);
 
 /// Poll interval for a moment after any foreground change or window minimize/restore (the hooks react at
-/// once; this poll catches Explorer's late re-raise of the desktop or its late lowering). Each poll is one
-/// walk down the z-order from the desktop host.
-const FAST_MS: u32 = 150;
-/// While the desktop is shown and nothing happens: the tiles are in view, a late re-raise is caught quickly.
+/// once; this poll catches Explorer settling the z-order a little later). Each poll is one or two walks over
+/// the z-order next to the desktop host.
+const FAST_MS: u32 = 50;
+/// While the desktop is shown and nothing happens.
 const SHOWN_MS: u32 = 500;
 /// Idle safety net for shell paths without any of the hooked events (an Explorer restart, for one). Keeps the
 /// process from waking several times a second while nothing happens.
 const SLOW_MS: u32 = 1000;
 /// How long the fast poll stays on after a hooked event.
-const FAST_AFTER_EVENT_MS: u64 = 3000;
+const FAST_AFTER_EVENT_MS: u64 = 1500;
 
 /// All state below is touched only on the main thread (hook and timer callbacks arrive through its loop).
 static TIMER_ID: AtomicUsize = AtomicUsize::new(0);
@@ -138,6 +137,7 @@ fn create_sentinel() {
     }
 }
 
+/// HWND_BOTTOM. For an owned tile that means right above its owner, the desktop host.
 fn pin_bottom(h: HWND) {
     unsafe {
         let _ = SetWindowPos(h, Some(HWND_BOTTOM), 0, 0, 0, 0, ZPOS);
@@ -180,6 +180,27 @@ fn below_host(host: HWND, sentinel: HWND, tiles: &[HWND]) -> (bool, bool) {
     (sentinel_below, tile_below)
 }
 
+/// True when every tile sits in the group right above the host: walking up from the host, the tiles come
+/// before any other visible window.
+fn tiles_right_above(host: HWND, tiles: &[HWND]) -> bool {
+    let mut seen = 0;
+    let mut h = unsafe { GetWindow(host, GW_HWNDPREV) };
+    let mut guard = 0;
+    while let Ok(hwnd) = h {
+        if hwnd.0.is_null() || guard > 8192 || seen == tiles.len() {
+            break;
+        }
+        if tiles.contains(&hwnd) {
+            seen += 1;
+        } else if unsafe { IsWindowVisible(hwnd) }.as_bool() {
+            break;
+        }
+        h = unsafe { GetWindow(hwnd, GW_HWNDPREV) };
+        guard += 1;
+    }
+    seen == tiles.len()
+}
+
 fn tile_hwnds(app: &AppHandle) -> Vec<HWND> {
     crate::TILES
         .iter()
@@ -187,6 +208,29 @@ fn tile_hwnds(app: &AppHandle) -> Vec<HWND> {
         .filter_map(|w| w.hwnd().ok())
         .map(|h| HWND(h.0))
         .collect()
+}
+
+/// Tool window (never in the taskbar or Alt+Tab) and not activated by clicks. Cheap when already set.
+pub fn ensure_tile_style(h: HWND) {
+    unsafe {
+        let ex = GetWindowLongPtrW(h, GWL_EXSTYLE);
+        let want = (ex | WS_EX_TOOLWINDOW.0 as isize | WS_EX_NOACTIVATE.0 as isize) & !(WS_EX_APPWINDOW.0 as isize);
+        if want != ex {
+            SetWindowLongPtrW(h, GWL_EXSTYLE, want);
+        }
+    }
+}
+
+/// Make `host` the owner of every tile (a no-op for tiles already attached to it).
+fn ensure_owner(tiles: &[HWND], host: HWND) {
+    for &t in tiles {
+        let owner = unsafe { GetWindow(t, GW_OWNER) }.unwrap_or_default();
+        if owner != host {
+            unsafe {
+                SetWindowLongPtrW(t, GWLP_HWNDPARENT, host.0 as isize);
+            }
+        }
+    }
 }
 
 /// The backmost topmost window above `host` (Rainmeter: inserting after it puts a window directly above the
@@ -208,6 +252,8 @@ fn backmost_topmost_above(host: HWND, skip: &[HWND]) -> Option<HWND> {
     None
 }
 
+/// Rescue for a tile that ended up below the raised desktop although it should be attached to it (the owner
+/// could not be set yet): lift it right above the host.
 fn lift(tiles: &[HWND], host: HWND) {
     let anchor = backmost_topmost_above(host, tiles);
     for &h in tiles {
@@ -217,7 +263,6 @@ fn lift(tiles: &[HWND], host: HWND) {
                     let _ = SetWindowPos(h, Some(a), 0, 0, 0, 0, ZPOS);
                 }
                 None => {
-                    // No topmost window above the host: the top of the normal band is above it.
                     let _ = SetWindowPos(h, Some(HWND_TOPMOST), 0, 0, 0, 0, ZPOS);
                     let _ = SetWindowPos(h, Some(HWND_NOTOPMOST), 0, 0, 0, 0, ZPOS);
                 }
@@ -228,7 +273,7 @@ fn lift(tiles: &[HWND], host: HWND) {
 
 fn pin_tiles(tiles: &[HWND]) {
     for &h in tiles {
-        // HWND_BOTTOM also clears the topmost state a lift may have given the tile.
+        // HWND_BOTTOM also clears a topmost state a rescue lift may have given the tile.
         pin_bottom(h);
     }
 }
@@ -239,6 +284,10 @@ fn check() {
     let Some(host) = desktop_host() else { return };
     keep_sentinel_down(s, host);
     let tiles = tile_hwnds(app);
+    for &t in &tiles {
+        ensure_tile_style(t);
+    }
+    ensure_owner(&tiles, host);
     let (sentinel_below, tile_below) = below_host(host, s, &tiles);
     let shown = unsafe { IsWindowVisible(host) }.as_bool() && sentinel_below;
     let was = DESKTOP_SHOWN.swap(shown, Ordering::SeqCst);
@@ -247,11 +296,10 @@ fn check() {
         FAST_UNTIL_MS.fetch_max(now_ms() + FAST_AFTER_EVENT_MS, Ordering::Relaxed);
     }
     if shown {
-        // Explorer may raise the desktop again shortly after the first lift: keep the tiles above it.
-        if !was || tile_below {
+        if tile_below {
             lift(&tiles, host);
         }
-    } else if was {
+    } else if !tiles_right_above(host, &tiles) {
         pin_tiles(&tiles);
     }
 }
@@ -271,7 +319,7 @@ fn schedule_poll() {
     }
     let id = unsafe { SetTimer(None, TIMER_ID.load(Ordering::Relaxed), want, Some(on_timer)) };
     if id == 0 {
-        eprintln!("[desktop] SetTimer failed; Win+D protection limited to the foreground hook");
+        eprintln!("[desktop] SetTimer failed; Win+D protection limited to the hooks");
         return;
     }
     TIMER_ID.store(id, Ordering::Relaxed);
@@ -300,7 +348,40 @@ unsafe extern "system" fn on_timer(_hwnd: HWND, _msg: u32, _id: usize, _time: u3
     schedule_poll();
 }
 
-/// Install the sentinel, the hook and the poll timer. Must run on the main (message-pumping) thread:
+/// Attach one tile right away (startup, before it is revealed): style, owner, place right above the desktop.
+pub fn attach(h: HWND) {
+    ensure_tile_style(h);
+    if let Some(host) = desktop_host() {
+        ensure_owner(&[h], host);
+    }
+    pin_bottom(h);
+}
+
+/// Move a tile to (x, y) physical px and keep it right above the desktop, in one call.
+pub fn move_tile(h: HWND, x: i32, y: i32) {
+    unsafe {
+        let _ = SetWindowPos(
+            h,
+            Some(HWND_BOTTOM),
+            x,
+            y,
+            0,
+            0,
+            SET_WINDOW_POS_FLAGS(SWP_NOSIZE.0 | SWP_NOACTIVATE.0 | SWP_NOOWNERZORDER.0),
+        );
+    }
+}
+
+/// Activate a tile on purpose, so a text field in it gets the keyboard (the map search). Clicks alone never
+/// activate a tile; this runs while the click is being handled, so Windows lets the app take the foreground.
+/// The next foreground change puts the tile back right above the desktop (`check`).
+pub fn activate(h: HWND) {
+    unsafe {
+        let _ = SetForegroundWindow(h);
+    }
+}
+
+/// Install the sentinel, the hooks and the poll timer. Must run on the main (message-pumping) thread:
 /// the sentinel window belongs to that thread and WINEVENT_OUTOFCONTEXT callbacks arrive through its loop.
 pub fn install(app: &AppHandle) {
     if APP.set(app.clone()).is_err() {
@@ -319,5 +400,6 @@ pub fn install(app: &AppHandle) {
         // Without the hooks only the poll notices "Show desktop": keep it fast.
         FAST_UNTIL_MS.store(u64::MAX, Ordering::Relaxed);
     }
+    check();
     schedule_poll();
 }

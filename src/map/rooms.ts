@@ -15,6 +15,18 @@ export function floorOfRoom(code: string): Floor | null {
   return null;
 }
 
+/**
+ * data-name of every named area in the drawing, all on floor 1. A search by words («Библиотека», «столовая»)
+ * matches these aliases, so the floor can be chosen before that floor is drawn.
+ */
+export const AREA_NAMES: readonly string[] = [
+  "LIBRARY|BIBLIOTEKA|БИБЛИОТЕКА|МЕДИАТЕКА|MEDIATEKA|KITAPHANA|КІТАПХАНА",
+  "DININGHALL|АСХАНА|СТОЛОВАЯ|СТОЛОВКА",
+  "ASSEMBLYHALL|АКТОВЫЙ ЗАЛ",
+  "ATAMEKEN|АТАМЕКЕН",
+  "MEDIKER|МЕДИКЕР",
+];
+
 /** True for a plain room code (shown in the mono font); false for a named area. */
 export function isRoomCode(code: string): boolean {
   return !code.includes("|");

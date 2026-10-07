@@ -48,6 +48,9 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
 
   const onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
+    // The menu needs the keyboard (arrows, Esc) and must close when the user clicks elsewhere: take the focus
+    // for this interaction (the tile keeps its look, see glass.rs; it returns below other windows afterwards).
+    invoke("activate_tile").catch(() => undefined);
     if (edit.editing) {
       // While moving or resizing, the menu offers the way out.
       setMenu({ x: e.clientX, y: e.clientY, items: [{ id: "done", label: ru.common.done, icon: "checkmark", onSelect: edit.stop }] });
@@ -62,9 +65,22 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     setMenu({ x: e.clientX, y: e.clientY, items: extra.length ? [...extra, { id: "sep", label: "", separator: true, onSelect: () => undefined }, ...standard] : standard });
   };
 
+  // Tiles are not activated by clicks (no jump in the z-order). A text field (the map search) needs the
+  // keyboard, so pressing on one activates this tile on purpose.
+  const onPointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest("input, textarea, [contenteditable='true']")) {
+      invoke("activate_tile").catch(() => undefined);
+    }
+  };
+
   const cls = ["tile", className ?? "", background ? "" : "no-bg", edit.editing ? "editing" : ""].filter(Boolean).join(" ");
   return (
-    <div className={cls} onContextMenu={onContextMenu} onPointerDown={edit.editing ? edit.onDragStart : undefined}>
+    <div
+      className={cls}
+      onContextMenu={onContextMenu}
+      onPointerDownCapture={onPointerDownCapture}
+      onPointerDown={edit.editing ? edit.onDragStart : undefined}
+    >
       {children}
       {edit.editing && (
         <div className="edit-pill" onPointerDown={(e) => e.stopPropagation()}>

@@ -2,8 +2,9 @@
 // (tile layout, the whole customization).
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
-import { Button } from "../components/Button";
+import { Button, IconButton } from "../components/Button";
 import { Dialog } from "../components/Dialog";
 import { Page, Row, Section } from "../components/Section";
 import { Switch } from "../components/Switch";
@@ -13,7 +14,7 @@ import { TILE_IDS, settings, type TileId } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { useSettled, useTransient } from "./shell/hooks";
 import { IconRow } from "./shell/IconRow";
-import { TILE_ICONS } from "./shell/nav";
+import { TILE_ICONS, useNavigate } from "./shell/nav";
 
 const g = ru.settings.general;
 const x = extra.general;
@@ -89,6 +90,19 @@ function ResultText({ outcome, done, failed }: { outcome: Outcome; done: string;
 export function GeneralPage() {
   const s = useSettings();
   const [visible, setVisible] = useExternal(tilesVisible);
+  // The app can show the tiles again on its own (launching it a second time): follow it.
+  useEffect(() => {
+    let off: (() => void) | undefined;
+    let alive = true;
+    void listen<boolean>("tiles-hidden", (e) => setVisible(!e.payload)).then((u) => {
+      if (alive) off = u;
+      else u();
+    });
+    return () => {
+      alive = false;
+      off?.();
+    };
+  }, [setVisible]);
   const [autostart, setAutostart] = useExternal(autostartOn);
   const visibleSettled = useSettled(visible !== null);
   const autostartSettled = useSettled(autostart !== null);
@@ -97,6 +111,7 @@ export function GeneralPage() {
   const [lookReset, flashLookReset] = useTransient<Outcome>("idle");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const closeConfirm = useCallback(() => setConfirmOpen(false), []);
+  const navigate = useNavigate();
 
   const toggleTile = (id: TileId, enabled: boolean) => {
     void settings.update((cur) => ({ tiles: { ...cur.tiles, [id]: enabled } }));
@@ -133,10 +148,12 @@ export function GeneralPage() {
 
   return (
     <Page title={ru.settings.nav.general} description={x.desc}>
+      {/* Each tile: what it shows, on or off, and a way into its own settings (switch plus chevron, as in Windows). */}
       <Section title={g.tiles} description={g.tilesHint}>
         {TILE_IDS.map((id) => (
-          <IconRow key={id} icon={TILE_ICONS[id]} label={ru.tiles[id]}>
+          <IconRow key={id} icon={TILE_ICONS[id]} label={ru.tiles[id]} hint={x.tileHints[id]}>
             <Switch checked={s.tiles[id]} onChange={(on) => toggleTile(id, on)} ariaLabel={ru.tiles[id]} />
+            <IconButton icon="chevron_right" variant="subtle" label={x.tileSettings(ru.tiles[id])} onClick={() => navigate(id)} />
           </IconRow>
         ))}
       </Section>

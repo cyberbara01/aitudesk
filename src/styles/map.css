@@ -66,19 +66,24 @@
 }
 .tile-map:hover .map-root > :is(.map-search, .map-zoom, .map-paint-dock, .floor-switch),
 .map-root:has(:focus-visible) > :is(.map-search, .map-zoom, .map-paint-dock, .floor-switch),
-.map-root > .map-search:focus,
+.map-root > .map-search:focus-within,
+.map-root > .map-search.pinned,
 .map-root > .map-paint-dock.painting { opacity: 1; }
 
 /* =====================================================================================
-   Search field: the kit text field (tokens + per-style variants) at width 200, mono (it holds a room code)
+   Search field: the kit text field (tokens + per-style variants) at width 200, mono (it holds a room code), a
+   clear button inside it while it has text, and the critical state with «Ничего не найдено» under it.
    ===================================================================================== */
-.map-root > .map-search {
-  width: 200px;
+.map-root > .map-search { width: 200px; }
+.map-search-input {
+  display: block;
+  width: 100%;
   height: var(--ctl-h);
-  padding: 0 var(--s3);
+  padding: 0 calc(var(--s1) + 24px + var(--s1)) 0 var(--s3);
   border-radius: var(--r-ctl);
   border: var(--ctl-border-w) solid var(--ctl-stroke);
   border-bottom-color: var(--ctl-stroke-strong);
+  background: var(--map-ctl);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: var(--body-size);
@@ -88,17 +93,50 @@
   user-select: text;
   -webkit-user-select: text;
   transition:
-    opacity var(--t-base) var(--ease-in),
     background-color var(--t-fast) var(--ease-in),
     border-color var(--t-fast) var(--ease-in),
     box-shadow var(--t-fast) var(--ease-in);
 }
-.map-root > .map-search::placeholder { color: var(--text-3); }
-.map-root > .map-search:focus { border-bottom-color: var(--accent); box-shadow: inset 0 -1px 0 var(--accent); }
-:root[data-style="aqua"] .map-root > .map-search { box-shadow: 0 1px 0 rgba(0, 0, 0, .05); }
-:root[data-style="aqua"] .map-root > .map-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-:root[data-style="rice"] .map-root > .map-search { border-color: var(--accent-soft); }
-:root[data-style="rice"] .map-root > .map-search:focus { border-color: var(--accent); box-shadow: none; }
+.map-search-input::placeholder { color: var(--text-3); }
+.map-search-input:hover { background: var(--map-ctl-hover); }
+.map-search-input:focus { border-bottom-color: var(--accent); box-shadow: inset 0 -1px 0 var(--accent); }
+.map-search[data-state="empty"] .map-search-input { border-bottom-color: var(--critical); box-shadow: inset 0 -1px 0 var(--critical); }
+:root[data-style="aqua"] .map-search-input { box-shadow: 0 1px 0 rgba(0, 0, 0, .05); }
+:root[data-style="aqua"] .map-search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+:root[data-style="aqua"] .map-search[data-state="empty"] .map-search-input { border-color: var(--critical); box-shadow: 0 0 0 3px color-mix(in srgb, var(--critical) 18%, transparent); }
+:root[data-style="rice"] .map-search-input { border-color: var(--accent-soft); }
+:root[data-style="rice"] .map-search-input:focus { border-color: var(--accent); box-shadow: none; }
+:root[data-style="rice"] .map-search[data-state="empty"] .map-search-input { border-color: var(--critical); box-shadow: none; }
+.map-search-clear {
+  position: absolute;
+  top: calc((var(--ctl-h) - 24px) / 2);
+  right: var(--s1);
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.map-search-clear:hover { background: var(--ctl-fill-hover); color: var(--text); }
+.map-search-clear:active { background: var(--ctl-fill-pressed); color: var(--text-2); }
+.map-search-clear:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -1px; }
+.map-search-msg {
+  position: absolute;
+  top: calc(100% + var(--s1));
+  left: 0;
+  padding: 2px var(--s2);
+  border-radius: var(--r-sm);
+  background: var(--map-ctl);
+  border: var(--ctl-border-w) solid var(--ctl-stroke);
+  color: var(--critical);
+  font-size: var(--caption-size);
+  line-height: var(--caption-lh);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.map-root[data-switch="left"] .map-search-msg { left: auto; right: 0; }
 
 /* =====================================================================================
    Floor switch: three 36×32 items («3» on top) on a shared control fill with a sliding indicator (167 ms,
@@ -163,6 +201,18 @@
 }
 :root[data-style="aqua"][data-scheme="light"] .map-root > .floor-switch {
   background: color-mix(in srgb, color-mix(in srgb, var(--surface-base) 94%, black) 88%, transparent);
+}
+/* The floor with the next lesson's room while another floor is shown: a 6 px accent dot at the top right of its
+   number, like a superscript (src/map/nextLesson.ts). */
+.floor-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  pointer-events: none;
 }
 :root[data-style="rice"] .floor-item.selected { background: transparent; color: var(--accent-text); }
 :root[data-style="rice"] .floor-indicator {
@@ -236,11 +286,10 @@
   --map-ctl-hover: color-mix(in srgb, color-mix(in srgb, var(--surface-base) 92%, var(--text)) 90%, transparent);
   --map-ctl-pressed: color-mix(in srgb, var(--surface-base) 76%, transparent);
 }
-.map-root > :is(.floor-switch, .map-search),
+.map-root > .floor-switch,
 .map-zoom > .icon-btn,
 .map-paint-dock > .icon-btn,
 .map-paint { background: var(--map-ctl); }
-.map-root > .map-search:hover,
 .map-zoom > .icon-btn:hover,
 .map-paint-dock > .icon-btn:hover { background: var(--map-ctl-hover); }
 .map-zoom > .icon-btn:active,
@@ -442,10 +491,33 @@
   --mp-pict-stairs: var(--text-2);
 }
 
-/* Without the glass: the silhouette (on by default) is a 35 % surface fill under the building outline, so the
-   plan reads on any wallpaper; without it only the plan itself remains. */
-.tile.no-bg .map-root[data-silhouette="on"] { --mp-bg-fill: color-mix(in srgb, var(--surface-base) 35%, transparent); }
-.tile.no-bg .map-root[data-silhouette="off"] { --mp-bg-fill: none; }
+/* «Фон карты» without the glass. «Подложка»: a 60 % surface silhouette under the building outline (the wallpaper
+   still shows through, a busy one no longer swallows the room lines), slightly stronger room lines in the
+   line-carried schemes. «Нет»: nothing behind the plan at all. The building base, the atrium voids, the
+   stairwells and the technical areas (up to 16 000 units² on floor 1) become outlines, so no filled block reads as
+   a backdrop; rooms and halls keep their scheme fills. Lines are drawn stronger in the line-carried schemes and
+   the whole plan gets a thin contrast halo (dark around light lines, light around dark ones), so it stays legible
+   on a busy wallpaper. The halo is a compositor filter on the plan's own layer: zoom and pan do not repaint it. */
+.tile.no-bg .map-root[data-silhouette="on"] { --mp-bg-fill: color-mix(in srgb, var(--surface-base) 60%, transparent); }
+.tile.no-bg .map-root:is([data-map-scheme="glass"], [data-map-scheme="outline"])[data-silhouette="on"] {
+  --mp-stroke: color-mix(in srgb, var(--text) 30%, transparent);
+}
+.tile.no-bg .map-root[data-silhouette="off"] {
+  --mp-bg-fill: none;
+  --mp-stairs: none;
+  --mp-void: none;
+  --mp-fill-tech: none;
+  --mp-wall: color-mix(in srgb, var(--text) 52%, transparent);
+  --mp-outline: color-mix(in srgb, var(--text) 75%, transparent);
+  --mp-line-halo: rgb(0 0 0 / .72);
+}
+.tile.no-bg .map-root:is([data-map-scheme="glass"], [data-map-scheme="outline"])[data-silhouette="off"] {
+  --mp-stroke: color-mix(in srgb, var(--text) 62%, transparent);
+}
+:root[data-scheme="light"] .tile.no-bg .map-root[data-silhouette="off"] { --mp-line-halo: rgb(255 255 255 / .85); }
+.tile.no-bg .map-root[data-silhouette="off"] .map-svg {
+  filter: drop-shadow(0 0 1px var(--mp-line-halo)) drop-shadow(0 0 .5px var(--mp-line-halo));
+}
 
 /* =====================================================================================
    The drawing (geometry from aitumap; every colour comes from the scheme variables above). Strokes do not
@@ -525,6 +597,17 @@
   stroke: none;
   pointer-events: none;
 }
+/* Codes set as real text (codes.ts) in the style's numeric face: the drawing's glyph paths of those rooms hide.
+   Semibold keeps 6 to 9 px codes solid on every fill; text-rendering stays auto so upright codes are hinted. */
+.map-svg g[data-name].has-code > path { display: none; }
+.map-svg text.map-code {
+  fill: var(--mp-label);
+  font-family: var(--font-num);
+  font-weight: 600;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
 /* Lettering outside the rooms (atrium, coworking, the hall, open space): it lies on the glass, not on a fill. */
 .map-svg path.label,
 .map-svg g.label path,
@@ -553,18 +636,19 @@
 .map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path:nth-child(1) { fill: var(--mp-pict-stairs); }
 .map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path:nth-child(2) { fill: var(--mp-glyph-stairs); }
 
-/* Lettering on the wallpaper (no glass): a halo under the glyphs, 2.5 screen px. */
+/* Lettering on the wallpaper (no glass): a halo under the glyphs, 2.5 screen px. Not on rooms painted in a solid
+   colour (marked, found, the next lesson): their codes take the colour that reads on that fill. */
 .tile.no-bg .map-svg .label-huge,
 .tile.no-bg .map-svg :is(path.label, g.label path),
 .tile.no-bg .map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) > g:not([data-name]) > path,
-.tile.no-bg .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path {
+.tile.no-bg .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.room-next):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) {
   paint-order: stroke fill;
   stroke: var(--mp-halo);
   stroke-width: 2.5;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-.tile.no-bg .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path {
+.tile.no-bg .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.room-next):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) {
   stroke: var(--mp-label-halo);
 }
 
@@ -573,14 +657,14 @@
    (on the room group for its code, on the element itself otherwise). They fade out in 83 ms and back in 167 ms;
    visibility keeps hidden ones out of painting.
    ===================================================================================== */
-.map-svg g[data-name]:not(.map-groups-coworking-atameken) > path,
+.map-svg g[data-name]:not(.map-groups-coworking-atameken) > :is(path, text.map-code),
 .map-svg :is(.label, .map-groups-wcs-icon, .map-groups-escapes-icon),
 .map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) > g,
 .map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) > g:not([data-name]),
 .map-svg g[data-name] > g:not([data-name]) {
   transition: fill var(--t-base) var(--ease-in), opacity var(--t-base) var(--ease-in), visibility 0s;
 }
-.map-svg g[data-name].lod-off > path,
+.map-svg g[data-name].lod-off > :is(path, text.map-code),
 .map-svg .lod-off:not(g[data-name]) {
   opacity: 0;
   visibility: hidden;
@@ -592,6 +676,7 @@
   .map-groups-rooms path,
   .map-groups-rooms-vk path,
   g[data-name]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path,
+  text.map-code,
   path.label,
   g.label path
 ) { display: none; }
@@ -609,7 +694,7 @@
   fill: var(--fav);
   stroke: color-mix(in srgb, var(--fav) 55%, var(--text));
 }
-.map-svg g[data-name][data-fav]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path { fill: var(--fav-on); }
+.map-svg g[data-name][data-fav]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) { fill: var(--fav-on); }
 .map-svg g.map-groups-coworking-atameken[data-name][data-fav] > path { stroke: var(--fav); }
 .map-svg g[data-name^="MEDIKER"][data-fav] > path:nth-of-type(1) { fill: var(--fav-on); }
 .map-svg g[data-name^="MEDIKER"][data-fav] > path:nth-of-type(2) { fill: var(--fav); }
@@ -621,12 +706,45 @@
   stroke: var(--accent);
   stroke-width: 2;
 }
-.map-svg g[data-name].room-found:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path { fill: var(--on-accent); }
+.map-svg g[data-name].room-found:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) { fill: var(--on-accent); }
 .map-svg g.map-groups-coworking-atameken[data-name].room-found > path { stroke: var(--accent); }
 .map-svg g[data-name^="MEDIKER"].room-found > path:nth-of-type(1) { fill: var(--on-accent); }
 .map-svg g[data-name^="MEDIKER"].room-found > path:nth-of-type(2) { fill: var(--accent); }
 /* Room groups can nest (1.352K inside C1.1.353P): an unmatched parent of a found room must not dim it. */
 .map-svg.searching g[data-name]:not(.room-found):not(:has(.room-found)) { opacity: .35; }
+
+/* ---- Next lesson (src/map/nextLesson.ts, lessonMarker.ts): the room in the accent with its code in on-accent, like
+   a search hit (a room with a colour mark keeps its colour), and a static ring drawn over the floor: a 7 px accent
+   stroke under a 3 px surface stroke along the outline, which leaves a 2 px accent ring outside a 1.5 px gap. The
+   gap tells the room apart from neighbours of a similar hue (the sky rooms of «Пастель» and a blue accent). ---- */
+.map-svg g[data-name].room-next:not([data-fav]) > :is(polygon, polyline, line, rect) {
+  fill: var(--accent);
+  fill-opacity: .9;
+  stroke: var(--accent);
+}
+.map-svg g[data-name].room-next:not([data-fav]):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) { fill: var(--on-accent); }
+.map-svg .map-next-ring { pointer-events: none; }
+.map-svg .map-next-ring :is(polygon, rect) {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.map-svg .map-next-ring .ring { stroke-width: 7; }
+.map-svg .map-next-ring .gap { stroke: var(--surface-base); stroke-width: 3; }
+/* A search dims the ring with its room, unless it found that room; in paint mode its gap shows the hover colour. */
+.map-svg.searching .floor:not(:has(g.room-next.room-found)) > .map-next-ring { opacity: .35; }
+.map-svg .floor:has(g.room-next.paint-hover) > .map-next-ring .gap { stroke: var(--text); }
+
+/* Bubble over the next lesson's room (src/map/LessonTip.tsx): the kit tooltip, the title above the time, wrapping. */
+.tooltip.map-next-tip {
+  display: flex;
+  flex-direction: column;
+  max-width: min(320px, calc(100vw - 2 * var(--s1)));
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.map-next-tip-title { font-weight: 600; }
 
 /* ---- Paint mode: a 2 px outline in the text colour on the room under the pointer ---- */
 .map-svg g[data-name].paint-hover > :is(polygon, polyline, line, rect) {

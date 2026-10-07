@@ -1,4 +1,4 @@
-/* AITU Desk: settings window, the shell and the pages «Общие», «Оформление», «О программе».
+/* AITU Desk: settings window, the shell and the pages «Общие», «Оформление», «О программе», «Как пользоваться».
    The layout kit (.shell .sidebar .nav-item .content .page .section .row .option-card) lives in base.css. This
    file only adds what these pages need on top of it and never restyles a kit control. Tokens only. */
 
@@ -15,13 +15,25 @@
 .shell { min-height: 0; overflow: hidden; }
 .content { height: 100%; min-height: 0; overflow-x: hidden; overscroll-behavior: contain; }
 .page-title { margin: 0; }
-.sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+/* The tabs, then a spacer, then «Как пользоваться» at the bottom of the sidebar. */
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; }
 .nav-item { width: 100%; }
 .nav-item > .ellipsis { min-width: 0; }
 .nav-item:not(.selected):active { background: var(--ctl-fill-pressed); color: var(--text-2); }
 /* Page fade on tab switch (opacity only, so fixed-position dialogs are never re-parented). */
 .content.anim > * { animation: page-in var(--t-base) var(--ease-in); }
 @keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* =====================================================================================
+   Glass palette: the settings window is acrylic in every style (Rice too), so its body stays clear.
+   Tiles drawn inside the window (previews, pictures) have no acrylic of their own: they borrow the frost,
+   the average tint of the acrylic plus a blur of what lies behind them.
+   ===================================================================================== */
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) body { background: transparent; }
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) :is(.tile, .pv-tile, .sp-tile, .ob-tile):not(.no-bg) {
+  background: var(--frost);
+  backdrop-filter: blur(16px) saturate(160%);
+}
 
 /* =====================================================================================
    Rows: leading icon in a tinted square, error hint, result of an action
@@ -44,16 +56,16 @@
 .status-text.fail { color: var(--critical); }
 
 /* =====================================================================================
-   «Оформление»: option cards (text block, selected check, horizontal variant, pressed state)
+   «Оформление»: option cards (text block, selected check, horizontal and wide variants)
    ===================================================================================== */
 /* Text starts on the preview's left edge, as in the kit's own cards. */
 .card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-bottom: var(--s1); }
 /* The selected card shows a check after its title, so nothing covers the preview it depicts. */
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s1); min-width: 0; }
 .card-tick { flex: none; color: var(--accent-text); }
-.choice .option-card:not(.selected):active { background: var(--ctl-fill-pressed); }
 .option-card.horizontal { flex-direction: row; align-items: center; gap: var(--s3); width: 100%; padding: var(--s3) var(--s4); }
 .option-card.horizontal .card-text { flex: 1 1 auto; padding: 0; }
+.option-card.wide { grid-column: 1 / -1; }
 .sub-label { padding-top: var(--s1); color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); font-weight: 600; }
 
 /* ---- Style cards: a mini tile drawn in THAT design language, on the wallpaper of the current palette ---- */
@@ -108,6 +120,15 @@
 .split .tp-tile { width: 44px; padding: 6px; gap: var(--s1); border-radius: var(--r-sm); }
 .split .tp-time { font-size: var(--caption-size); }
 .split .tp-bar { width: 20px; }
+/* Glass: frosted tiles on a colourful wallpaper, light top edge, the wallpaper blurred through them. */
+.tp.glass { display: flex; justify-content: center; gap: var(--s4); }
+.tp.glass .tp-tile {
+  border-color: color-mix(in srgb, var(--tp-text) 30%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--tp-text) 60%, transparent);
+  backdrop-filter: blur(10px) saturate(160%);
+}
+.tp-list { width: 128px; justify-content: center; gap: var(--s2); align-self: stretch; margin: var(--s4) 0; }
+.tp-bar.long { width: 72px; }
 
 /* ---- Accent: one radio group: «Как в Windows», two-tone preset dots (left half = tone for dark
         palettes, right half = for light ones), «Свой цвет» ---- */
@@ -146,9 +167,6 @@
 /* Rice marks the selection with an accent outline (V2-BRIEF §1). */
 :root[data-style="rice"] .acc-dot { border-radius: var(--r-sm); }
 :root[data-style="rice"] .acc-item.selected .acc-dot { outline-color: var(--accent); }
-/* The accent picker's R/G/B fields are 48 px wide: a tighter inset and no spin buttons, so «255» fits. */
-.accent-picker .cp-fields .textfield-input { padding: 0 var(--s2); }
-.accent-picker .cp-fields .textfield-input::-webkit-inner-spin-button { display: none; }
 
 /* =====================================================================================
    Live preview («Так будут выглядеть плитки»): wallpaper-coloured desk with two mini tiles
@@ -189,6 +207,72 @@
 }
 
 /* =====================================================================================
+   «Как пользоваться» (the welcome page): numbered steps, each with a small picture drawn with the kit
+   ===================================================================================== */
+.ob-steps { display: flex; flex-direction: column; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
+.ob-step { flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: var(--s4); padding: var(--s4) var(--s5); }
+/* The number in a gutter on the title's 24 px line; text and buttons align with the title. */
+.ob-step-text {
+  flex: 1 1 240px; min-width: 0;
+  display: grid; grid-template-columns: var(--s6) minmax(0, 1fr); column-gap: var(--s3); row-gap: var(--s1); align-content: start;
+}
+.ob-step-text > :not(.ob-num) { grid-column: 2; }
+.ob-num {
+  grid-column: 1; grid-row: 1;
+  display: grid; place-items: center;
+  width: var(--s6); height: var(--s6);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--caption-size); line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+:root[data-style="rice"] .ob-num { border-radius: var(--r-sm); }
+.ob-step-title { margin: 0; font-size: var(--body-size); line-height: var(--s6); font-weight: 600; }
+.ob-p { margin: 0; color: var(--text-2); }
+.ob-actions { padding-top: var(--s2); }
+/* Pictures are 224 px wide, so the text keeps about 250 px beside them at the default window size. */
+.ob-picture { flex: 0 0 auto; align-self: center; display: grid; place-items: center; width: 224px; max-width: 100%; margin-left: auto; }
+
+/* A corner of the desktop: wallpaper of the palette in use, tiles in its tokens (clock and a list on the
+   right, the map along the bottom). */
+.ob-desk { position: relative; width: 224px; max-width: 100%; height: 112px; border-radius: var(--r-card); background: var(--desk); overflow: hidden; }
+.ob-tile {
+  position: absolute;
+  display: flex; flex-direction: column; justify-content: center; gap: var(--s1);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-ctl);
+  background: var(--tile-fill);
+  border: 1px solid var(--tile-border);
+  box-shadow: inset 0 1px 0 var(--tile-edge);
+}
+.ob-clock { right: var(--s3); top: var(--s3); width: 88px; height: 36px; }
+.ob-time { color: var(--text); font-family: var(--font-display); font-size: var(--subtitle-size); line-height: 1; font-weight: 300; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ob-list { right: var(--s3); top: 56px; width: 88px; height: 44px; }
+.ob-map { left: var(--s3); bottom: var(--s3); width: 100px; height: 52px; flex-direction: row; flex-wrap: wrap; align-content: center; justify-content: flex-start; }
+.ob-room { width: 24px; height: 12px; border-radius: var(--r2); background: var(--map-room-fill); border: 1px solid var(--map-room-stroke); }
+.ob-room.wide { width: 40px; }
+.ob-bar { display: block; flex: none; width: 70%; height: var(--s1); border-radius: var(--r2); background: var(--text-3); }
+.ob-bar.accent { background: var(--accent); }
+.ob-bar.short { width: 48%; }
+/* The tile menu: the kit's own menu, laid out in place instead of floating over a tile, at 80 % so the
+   longest item fits the picture column in every font. */
+.ctx-menu.ob-menu { position: static; width: max-content; min-width: 0; max-width: none; max-height: none; animation: none; zoom: .8; }
+.ob-menu .ctx-item.ob-hot { background: var(--ctl-fill-hover); }
+/* Shortcuts to the pages where lessons, notes and links are added: real buttons, one per line */
+.ob-links { display: flex; flex-direction: column; gap: var(--s2); width: 100%; }
+.ob-links .btn { justify-content: flex-start; }
+/* The three design languages, as on the style cards */
+.ob-styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); width: 224px; max-width: 100%; }
+.ob-style { display: flex; flex-direction: column; align-items: center; gap: var(--s1); min-width: 0; }
+.ob-style .sp { width: 100%; height: 56px; border-radius: var(--r-sm); overflow: hidden; }
+.ob-style .sp-tile { zoom: .64; }
+.ob-style-name { max-width: 100%; color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The note on the left, «Начать» on the right of the same line. */
+.ob-foot { display: flex; align-items: center; gap: var(--s3) var(--s4); flex-wrap: wrap; }
+.ob-foot-text { flex: 1 1 240px; margin: 0; }
+.ob-foot .btn { flex: none; }
+
+/* =====================================================================================
    «О программе»: the app header; everything below it is kit sections and rows
    ===================================================================================== */
 /* Mark and text block are both 72 px tall: name 28 + tagline 20 + meta 4 + 16, two 2 px gaps. */
@@ -196,7 +280,7 @@
 .about-mark {
   display: grid; place-items: center; flex: none;
   width: 72px; height: 72px;
-  border-radius: var(--r-card);
+  border-radius: var(--r-tile);
   background: var(--accent);
   color: var(--on-accent);
   box-shadow: inset 0 1px 0 var(--tile-edge);
@@ -213,6 +297,11 @@
   white-space: nowrap;
 }
 .about-dot { width: var(--s1); height: var(--s1); border-radius: 50%; background: currentColor; flex: none; }
+/* GitHub and Telegram: links shaped as the kit's icon button, the mark at the optical size of a Fluent icon. */
+.mark-anchor { display: inline-flex; }
+.mark-link { cursor: default; }
+.mark-link .icon { display: grid; place-items: center; }
+.mark-link .icon svg { width: 18px; height: 18px; }
 .about-p { margin: 0; color: var(--text-2); }
 .inline.between { justify-content: space-between; }
 .licence-box {

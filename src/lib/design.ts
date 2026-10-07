@@ -10,7 +10,7 @@ export interface ThemeMeta {
   id: ThemeId;
   /** null = follows Windows. */
   dark: boolean | null;
-  /** Colours for the preview card in settings. */
+  /** Colours for the preview card in settings; `bg` (the wallpaper) may be any CSS background. */
   swatch: { bg: string; fill: string; text: string; muted: string };
 }
 
@@ -21,6 +21,18 @@ export const THEMES: readonly ThemeMeta[] = [
   { id: "dark", dark: true, swatch: { bg: "#4C5663", fill: "#2A2C34", text: "#FFFFFF", muted: "#C9CDD6" } },
   { id: "darker", dark: true, swatch: { bg: "#2E343C", fill: "#15161B", text: "#FFFFFF", muted: "#B8BCC6" } },
   { id: "black", dark: true, swatch: { bg: "#22262C", fill: "#000000", text: "#FFFFFF", muted: "#A9ADB7" } },
+  // Frosted glass shows what lies behind it, so its preview needs a colourful wallpaper.
+  {
+    id: "glass",
+    dark: null,
+    swatch: {
+      // A hard-edged sun among soft colour fields: where it passes behind a tile, the frost shows.
+      bg: "radial-gradient(circle at 36% 78%, #FFD27A 0 9%, transparent 9.6%), radial-gradient(circle at 16% 24%, #8CCBFF 0, transparent 55%), radial-gradient(circle at 86% 80%, #F7A3CF 0, transparent 52%), radial-gradient(circle at 74% 14%, #B7A4FF 0, transparent 46%), linear-gradient(135deg, #4F6FD8, #6A4FC4)",
+      fill: "rgba(255, 255, 255, .26)",
+      text: "#FFFFFF",
+      muted: "rgba(255, 255, 255, .78)",
+    },
+  },
 ];
 
 export const STYLES: readonly { id: StyleId }[] = [{ id: "fluent" }, { id: "aqua" }, { id: "rice" }];

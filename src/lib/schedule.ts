@@ -126,6 +126,28 @@ export function timeRange(l: Pick<Lesson, "start" | "end">): string {
   return `${l.start}${TIME_SEP}${l.end}`;
 }
 
+// ---------------------------------------------------------------------------------------------
+// Room on the map
+// ---------------------------------------------------------------------------------------------
+
+/** Event the schedule tile sends to the map window: payload { room } (a room code, see mapRoomCode). */
+export const MAP_FOCUS_EVENT = "map-focus-room";
+
+/** Cyrillic letters typed instead of the Latin ones of a room code («С1.2.223К»). */
+const LOOKALIKES: Record<string, string> = { "С": "C", "с": "C", "Р": "P", "р": "P", "К": "K", "к": "K" };
+/** A C1 room: optional block and section, a number on floors 1 to 3, optional type letter ("C1.2.223K", "223"). */
+const ROOM_CODE = /(?<!\d)(?:C1\.)?(?:\d\.)?[1-3]\d{2}[CPLK]?(?!\w)/i;
+
+/**
+ * The room code in a lesson's room text, the way the map searches it ("C1.2.223", "223", "1.352K",
+ * upper-case), or null when the text names no room of the map («Спортзал», «Онлайн»): then no link is shown.
+ */
+export function mapRoomCode(room: string): string | null {
+  const latin = room.trim().replace(/[СсРрКк]/g, (c) => LOOKALIKES[c] ?? c);
+  const m = ROOM_CODE.exec(latin);
+  return m ? m[0].toUpperCase() : null;
+}
+
 /** Lesson count per weekday, index 0 = Monday. */
 export function weekCounts(lessons: readonly Lesson[]): number[] {
   const counts = [0, 0, 0, 0, 0, 0, 0];

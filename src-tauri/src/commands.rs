@@ -60,6 +60,17 @@ pub fn window_ready(app: AppHandle, window: WebviewWindow) {
     }
 }
 
+/// A text field in a tile got the pointer (the map search): let that tile take the keyboard. Tiles are not
+/// activated by clicks otherwise (see desktop_watch).
+#[tauri::command]
+pub fn activate_tile(window: WebviewWindow) {
+    if crate::TILES.contains(&window.label()) {
+        if let Ok(h) = window.hwnd() {
+            crate::desktop_watch::activate(windows::Win32::Foundation::HWND(h.0));
+        }
+    }
+}
+
 #[tauri::command]
 pub fn open_settings(app: AppHandle, tab: Option<String>, edit: Option<String>) {
     crate::settings_window::open(&app, tab.as_deref().unwrap_or("general"), edit.as_deref());

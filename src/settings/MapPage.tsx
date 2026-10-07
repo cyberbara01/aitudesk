@@ -1,5 +1,5 @@
-// Settings → «Карта» (brief §3.4, 6.3): «Внешний вид» (scheme cards with legends, glass, silhouette, codes,
-// pictograms), «Элементы управления» (floor switch side and visibility, search field, zoom buttons), «Этажи»,
+// Settings → «Карта» (brief §3.4, 6.3): «Внешний вид» (scheme cards with legends, «Фон карты», codes, pictograms,
+// the next lesson's room), «Элементы управления» (floor switch side and visibility, search field, zoom buttons), «Этажи»,
 // «Отмеченные кабинеты» (colour, code, note, remove) and the section reset. The tile on the desktop is the
 // live preview. Marked-room edits go through src/map/favorites.ts (functional updates of the store).
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
@@ -34,6 +34,26 @@ const SIDE_OPTIONS: readonly SegmentedOption<MapSettings["switchSide"]>[] = [
   { value: "right", label: ru.common.right },
 ];
 
+/**
+ * «Фон карты»: one choice over the two stored flags. Стекло = the glass tile; Подложка = no glass, a soft
+ * silhouette under the building; Нет = nothing behind the plan at all.
+ */
+type Backdrop = "glass" | "silhouette" | "none";
+
+const BACKDROP_OPTIONS: readonly SegmentedOption<Backdrop>[] = [
+  { value: "glass", label: extra.backdropGlass },
+  { value: "silhouette", label: extra.backdropSilhouette },
+  { value: "none", label: extra.backdropNone },
+];
+
+const BACKDROP_PATCH: Record<Backdrop, Partial<MapSettings>> = {
+  glass: { background: true },
+  silhouette: { background: false, silhouette: true },
+  none: { background: false, silhouette: false },
+};
+
+const backdropOf = (m: MapSettings): Backdrop => (m.background ? "glass" : m.silhouette ? "silhouette" : "none");
+
 const MODE_OPTIONS: readonly SegmentedOption<MapSettings["switchMode"]>[] = [
   { value: "always", label: extra.switchAlways },
   { value: "hover", label: extra.switchHover },
@@ -58,9 +78,12 @@ const byFloorThenCode = (a: MapFavorite, b: MapFavorite) =>
   (floorOfRoom(a.room) ?? 9) - (floorOfRoom(b.room) ?? 9) || a.room.localeCompare(b.room, "ru");
 
 export function MapPage() {
-  const m = useSettings().map;
+  const all = useSettings();
+  const m = all.map;
+  const schedulePrivate = all.schedule.privacy;
   const update = (p: Partial<MapSettings>) => void settings.updateMap(p);
   const marked = [...m.favorites].sort(byFloorThenCode);
+  const backdrop = backdropOf(m);
 
   return (
     <Page title={ru.settings.nav.map} description={extra.pageDesc}>
@@ -72,22 +95,22 @@ export function MapPage() {
             ))}
           </div>
         </Row>
-        <Row label={T.background} hint={extra.backgroundHint}>
-          <Switch checked={m.background} onChange={(v) => update({ background: v })} ariaLabel={T.background} />
-        </Row>
-        <Row label={extra.silhouette} hint={m.background ? extra.silhouetteOff : extra.silhouetteHint}>
-          <Switch
-            checked={m.silhouette}
-            disabled={m.background}
-            onChange={(v) => update({ silhouette: v })}
-            ariaLabel={extra.silhouette}
-          />
+        <Row label={extra.backdrop} hint={extra.backdropHints[backdrop]}>
+          <Segmented options={BACKDROP_OPTIONS} value={backdrop} onChange={(v) => update(BACKDROP_PATCH[v])} ariaLabel={extra.backdrop} />
         </Row>
         <Row label={T.labels} hint={extra.labelsHint}>
           <Switch checked={m.showLabels} onChange={(v) => update({ showLabels: v })} ariaLabel={T.labels} />
         </Row>
         <Row label={T.icons} hint={extra.iconsHint}>
           <Switch checked={m.showIcons} onChange={(v) => update({ showIcons: v })} ariaLabel={T.icons} />
+        </Row>
+        <Row label={extra.nextLesson} hint={schedulePrivate ? extra.nextLessonPrivate : extra.nextLessonHint}>
+          <Switch
+            checked={m.showNextLesson && !schedulePrivate}
+            disabled={schedulePrivate}
+            onChange={(v) => update({ showNextLesson: v })}
+            ariaLabel={extra.nextLesson}
+          />
         </Row>
       </Section>
 

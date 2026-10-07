@@ -18,6 +18,7 @@ import {
   clearLessons,
   lessonInkStyle,
   lessonsForDay,
+  mapRoomCode,
   msUntilMidnight,
   removeLesson,
   TIME_SEP,
@@ -180,7 +181,7 @@ export function SchedulePage({ editId }: { editId?: string | null }) {
                       <span className="sched-item-meta caption ellipsis">
                         {teacher}
                         {teacher && room ? " · " : ""}
-                        {room && <span className="mono">{room}</span>}
+                        {room && <span className={mapRoomCode(room) ? "mono" : undefined}>{room}</span>}
                       </span>
                     )}
                   </div>

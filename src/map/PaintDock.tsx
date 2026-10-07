@@ -2,6 +2,7 @@
 // painting, the palette opens next to it: the six FAVORITE_COLORS, «Свой цвет» (ColorPicker in a small popover),
 // the eraser and «Готово». The palette only picks the tool; MapCanvas turns a click on a room into a paint call.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Button, IconButton } from "../components/Button";
 import { ColorPicker } from "../components/ColorPicker";
 import { ru } from "../i18n/ru";
@@ -66,6 +67,9 @@ function Palette({ tool, onToolChange, custom, onCustomChange, onDone, restoreFo
   // loses focus. The custom swatch toggles it itself.
   useEffect(() => {
     if (!popOpen) return;
+    // Tiles are not activated by clicks: take the focus while the popover is open, so a click anywhere else
+    // (another window, the wallpaper) blurs this window and closes it, and Esc reaches it.
+    invoke("activate_tile").catch(() => undefined);
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node;
       if (popRef.current?.contains(t) || customRef.current?.contains(t)) return;

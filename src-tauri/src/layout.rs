@@ -6,7 +6,7 @@ use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, Position, Size, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size, WebviewWindow};
 use tauri_plugin_store::StoreExt;
 
 pub const STORE_FILE: &str = "settings.json";
@@ -171,7 +171,17 @@ fn resolve_rect(app: &AppHandle, win: &WebviewWindow, label: &str) -> Rect {
 fn place(win: &WebviewWindow, _label: &str, rect: Rect) {
     // Every tile is resizable in edit mode, so the saved size is restored for all of them.
     let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
-    let _ = win.set_position(Position::Physical(PhysicalPosition::new(rect.x, rect.y)));
+    move_to(win, rect.x, rect.y);
+}
+
+/// Position and z-order in one SetWindowPos: on screen, right above the desktop (never on top of other windows).
+fn move_to(win: &WebviewWindow, x: i32, y: i32) {
+    match win.hwnd() {
+        Ok(h) => crate::desktop_watch::move_tile(windows::Win32::Foundation::HWND(h.0), x, y),
+        Err(_) => {
+            let _ = win.set_position(Position::Physical(PhysicalPosition::new(x, y)));
+        }
+    }
 }
 
 fn park(win: &WebviewWindow) {
@@ -258,7 +268,7 @@ pub fn reveal(app: &AppHandle, label: &str) {
         return;
     }
     if let Some(win) = app.get_webview_window(label) {
-        let _ = win.set_position(Position::Physical(PhysicalPosition::new(rect.x, rect.y)));
+        move_to(&win, rect.x, rect.y);
     }
 }
 
@@ -314,6 +324,9 @@ pub fn set_hidden(app: &AppHandle, hidden: bool) {
         }
     }
     *vis.hidden.lock().unwrap() = hidden;
+    drop(disabled);
+    // The settings window shows this state («Показывать виджеты»); a second launch can change it too.
+    let _ = app.emit("tiles-hidden", hidden);
 }
 
 pub fn is_hidden(app: &AppHandle) -> bool {

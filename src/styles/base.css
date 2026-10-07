@@ -637,20 +637,23 @@ a { color: var(--accent-text); text-decoration: none; }
 @keyframes ctx-in { from { opacity: 0; } to { opacity: 1; } }
 .ctx-item {
   display: flex; align-items: center; gap: var(--s2);
-  height: 32px;
-  padding: 0 var(--s2);
+  min-height: 32px;
+  padding: 6px var(--s2);
   border-radius: var(--r-sm);
   width: 100%;
   text-align: left;
   color: var(--text);
-  white-space: nowrap;
+  line-height: 18px;
   transition: background-color var(--t-fast) var(--ease-in);
 }
 .ctx-item:hover,
 .ctx-item:focus-visible { background: var(--ctl-fill-hover); outline: none; }
-.ctx-item > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* One line where it fits; in a narrow tile a long item wraps to a second line instead of being cut. */
+.ctx-item > span:last-child { min-width: 0; white-space: nowrap; }
+@media (max-width: 300px) { .ctx-item > span:last-child { white-space: normal; } }
+.ctx-item > .icon, .ctx-item > .ctx-swatch { flex: none; }
 /* Short windows (a tile at its minimum): denser items, so more of the menu fits. */
-@media (max-height: 200px) { .ctx-item { height: 28px; } }
+@media (max-height: 200px) { .ctx-item { min-height: 28px; padding-block: 4px; } }
 .ctx-item:disabled { color: var(--text-disabled); }
 .ctx-item .icon { color: var(--text-2); }
 .ctx-item .ctx-swatch { flex: none; width: 14px; height: 14px; border-radius: 4px; margin: 0 1px; }

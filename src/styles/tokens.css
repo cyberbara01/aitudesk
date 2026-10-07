@@ -1,5 +1,5 @@
 /* AITU Desk: design tokens.
-   Palettes:  :root (dark) · [data-theme=light|gray|darker|black]
+   Palettes:  :root (dark) · [data-theme=light|gray|darker|black] · [data-theme=glass] (+ [data-scheme=light])
    Styles:    [data-style=fluent] (default) · [data-style=aqua] · [data-style=rice]
    Accent:    --accent / --on-accent / --accent-soft are written at runtime by src/lib/theme.ts. */
 
@@ -179,6 +179,72 @@
   --tooltip-fill: #FFFFFF;
 }
 
+/* ---- Palette: glass. Frosted acrylic like the Aqua settings window; light or dark follows Windows.
+   The tile is nearly bare acrylic, so the wallpaper's colour shows through and light edges outline it.
+   The solid values (surface-base, fallback, raised) are what the frost averages to: menus, dialogs, thumbs.
+   --frost stands in for the acrylic where a tile is drawn without it (previews inside the settings window). */
+:root[data-theme="glass"] {
+  --surface-base: #2A2B31;
+  --tile-fill: rgba(255, 255, 255, .03);
+  --tile-fallback: #2A2B31;
+  --tile-border: rgba(255, 255, 255, .16);
+  --tile-edge: rgba(255, 255, 255, .30);
+  --surface: #26272D;
+  --surface-raised: #303139;
+  --surface-2: rgba(255, 255, 255, .06);
+  --surface-3: rgba(255, 255, 255, .10);
+  --text-2: rgba(255, 255, 255, .82);
+  --text-3: rgba(255, 255, 255, .62);
+  --ctl-fill: rgba(255, 255, 255, .08);
+  --ctl-fill-hover: rgba(255, 255, 255, .12);
+  --ctl-fill-pressed: rgba(255, 255, 255, .05);
+  --ctl-stroke: rgba(255, 255, 255, .10);
+  --divider: rgba(255, 255, 255, .10);
+  --tooltip-fill: #34353D;
+  --map-void: rgba(0, 0, 0, .28);
+  --frost: rgba(34, 35, 42, .50);
+}
+
+:root[data-theme="glass"][data-scheme="light"] {
+  color-scheme: light;
+  --surface-base: #EEEFF3;
+  --tile-fill: rgba(255, 255, 255, .24);
+  --tile-fallback: #ECEDF1;
+  --tile-border: rgba(0, 0, 0, .08);
+  --tile-edge: rgba(255, 255, 255, .90);
+  --surface: #EBECF0;
+  --surface-raised: #FAFAFC;
+  --scrim: rgba(0, 0, 0, .28);
+  --surface-2: rgba(255, 255, 255, .34);
+  --surface-3: rgba(255, 255, 255, .52);
+
+  --text: rgba(0, 0, 0, .90);
+  --text-2: rgba(0, 0, 0, .64);
+  --text-3: rgba(0, 0, 0, .58);
+  --text-disabled: rgba(0, 0, 0, .36);
+
+  --success: #0F7B0F;
+  --caution: #9D5D00;
+  --critical: #C42B1C;
+
+  --ctl-fill: rgba(255, 255, 255, .62);
+  --ctl-fill-hover: rgba(255, 255, 255, .82);
+  --ctl-fill-pressed: rgba(255, 255, 255, .42);
+  --ctl-stroke: rgba(0, 0, 0, .07);
+  --ctl-stroke-strong: rgba(0, 0, 0, .45);
+  --divider: rgba(0, 0, 0, .08);
+  --focus-ring: #000000;
+  --tooltip-fill: #F7F7F9;
+
+  --map-room-fill: rgba(0, 0, 0, .06);
+  --map-room-stroke: rgba(0, 0, 0, .25);
+  --map-void: rgba(0, 0, 0, .30);
+  --map-label: rgba(0, 0, 0, .62);
+
+  --tint-alpha: 28%;
+  --frost: rgba(248, 248, 250, .55);
+}
+
 /* ---- Style: aqua (macOS-like) ---- */
 :root[data-style="aqua"] {
   --font-text: var(--font-inter);
@@ -203,6 +269,14 @@
   --ctl-fill-pressed: rgba(255, 255, 255, .55);
   --ctl-stroke: rgba(0, 0, 0, .08);
 }
+/* Light glass outranks the style blocks above, so Aqua's light controls are restated for it. */
+:root[data-style="aqua"][data-theme="glass"][data-scheme="light"] {
+  --tile-edge: rgba(255, 255, 255, .95);
+  --ctl-fill: rgba(255, 255, 255, .80);
+  --ctl-fill-hover: rgba(255, 255, 255, 1);
+  --ctl-fill-pressed: rgba(255, 255, 255, .55);
+  --ctl-stroke: rgba(0, 0, 0, .08);
+}
 
 /* ---- Style: rice (Linux-rice: mono numbers, accent-tinted borders) ---- */
 :root[data-style="rice"] {
@@ -216,6 +290,13 @@
   --tile-pad: 16px;
   --ctl-h: 32px;
   --ctl-border-w: 1.5px;
+  --tile-border: var(--accent-soft);
+  --tile-edge: transparent;
+  --ctl-stroke: var(--accent-soft);
+  --divider: var(--accent-soft);
+}
+/* Rice keeps its accent-tinted lines on light glass too (that block outranks the one above). */
+:root[data-style="rice"][data-theme="glass"][data-scheme="light"] {
   --tile-border: var(--accent-soft);
   --tile-edge: transparent;
   --ctl-stroke: var(--accent-soft);

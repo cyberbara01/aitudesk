@@ -142,6 +142,16 @@
   overflow-wrap: anywhere;
 }
 .sched-meta { color: var(--text-2); }
+/* A room the map knows (map tile on, text not masked): plain at rest; on hover an accent underline and,
+   after the usual delay, «Показать на карте»; a click shows the room on the map tile. */
+.sched-room {
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color var(--t-fast) var(--ease-in), text-decoration-color var(--t-fast) var(--ease-in);
+}
+.sched-room:hover { color: var(--text); text-decoration-color: var(--accent); }
 /* Privacy: the eye sits at the right end of the row, centred on it. */
 .sched-row > .reveal-btn { align-self: center; }
 

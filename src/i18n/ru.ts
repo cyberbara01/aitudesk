@@ -12,7 +12,7 @@ export function plural(n: number, one: string, few: string, many: string): strin
 export const ru = {
   app: {
     name: "AITU Desk",
-    version: "0.1.0",
+    version: "1.0",
     tagline: "Виджеты рабочего стола для студентов AITU",
   },
   tiles: {
@@ -24,7 +24,7 @@ export const ru = {
     notes: "Заметки",
   },
   menu: {
-    moveResize: "Переместить",
+    moveResize: "Переместить и изменить размер",
     edit: "Изменить",
     remove: "Удалить",
     settings: "Настройки плитки",
@@ -160,7 +160,7 @@ export const ru = {
       lockLayoutHint: "Плитки нельзя будет перетащить или изменить их размер",
       autostart: "Запускать вместе с Windows",
       autostartHint: "Виджеты появятся сразу после входа в систему",
-      arrangeHint: "Чтобы переставить плитку или изменить её размер, нажмите на ней правой кнопкой мыши и выберите «Переместить». Размер меняется за правый нижний угол, «Готово» или Esc завершает",
+      arrangeHint: "Чтобы переставить плитку или изменить её размер, нажмите на ней правой кнопкой мыши и выберите «Переместить и изменить размер». Размер меняется за правый нижний угол, кнопка «Готово» завершает",
       resetLayout: "Вернуть раскладку по умолчанию",
       resetLayoutDone: "Раскладка сброшена",
     },
@@ -305,7 +305,6 @@ export const ru = {
         outline: "Контур",
         outlineHint: "Только линии и подписи",
       },
-      background: "Фон плитки",
       labels: "Номера кабинетов",
       icons: "Пиктограммы (лестницы, туалеты, выходы)",
       controls: "Элементы управления",
@@ -324,18 +323,14 @@ export const ru = {
       perDay: "по дням",
     },
     about: {
-      authors: "Автор",
       author1: "cyberbara01",
-      author1Role: "Идея, дизайн и разработка",
       author1Github: "https://github.com/cyberbara01",
       author1Telegram: "capybara205",
       feedback: "Идеи и баги",
-      feedbackHint: "Пишите в Telegram, отвечаю лично",
       telegramUrl: "https://t.me/capybara205",
       github: "GitHub",
       telegram: "Telegram",
       credits: "Благодарности",
-      mapTitle: "Карта корпуса C1",
       mapCredit: "Проект aitumap, автор Yuujiso, лицензия MIT",
       mapRepo: "https://github.com/Yuujiso/aitumap",
       iconsTitle: "Иконки",
