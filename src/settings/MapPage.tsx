@@ -1,4 +1,4 @@
-// Settings → «Карта» (brief §3.4, 6.3): «Внешний вид» (scheme cards with legends, «Фон карты», codes, pictograms,
+// Settings → «Карта»: «Внешний вид» (scheme cards with legends, «Фон карты», codes, pictograms,
 // the next lesson's room), «Элементы управления» (floor switch side and visibility, search field, zoom buttons), «Этажи»,
 // «Отмеченные кабинеты» (colour, code, note, remove) and the section reset. The tile on the desktop is the
 // live preview. Marked-room edits go through src/map/favorites.ts (functional updates of the store).

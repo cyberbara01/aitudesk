@@ -249,7 +249,7 @@
   to { opacity: 1; transform: none; }
 }
 .map-paint-colors { display: flex; align-items: center; gap: var(--s2); padding: var(--s1) 0; }
-/* Kit swatches without the hover zoom: nothing in a tile changes scale (SPEC §3). */
+/* Kit swatches without the hover zoom: nothing in a tile changes scale. */
 .map-paint .cp-swatch { flex: 0 0 auto; }
 .map-paint .cp-swatch:hover { transform: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25), 0 0 0 1px var(--ctl-stroke-strong); }
 .map-paint .cp-swatch.custom { display: grid; place-items: center; }
@@ -297,7 +297,7 @@
 .map-paint-dock > .icon-btn.selected { background: color-mix(in srgb, var(--accent) 22%, var(--surface-base)); }
 
 /* =====================================================================================
-   Floor change (SPEC §3): the old floor slides 12 px and fades out, the new one arrives from the opposite
+   Floor change: the old floor slides 12 px and fades out, the new one arrives from the opposite
    12 px; 250 ms. --floor-shift is set per layer in SVG user units (12 screen px / current px-per-unit).
    ===================================================================================== */
 .floor-in { animation: map-floor-in var(--t-slow) var(--ease-move) both; }
@@ -699,7 +699,7 @@
 .map-svg g[data-name^="MEDIKER"][data-fav] > path:nth-of-type(1) { fill: var(--fav-on); }
 .map-svg g[data-name^="MEDIKER"][data-fav] > path:nth-of-type(2) { fill: var(--fav); }
 
-/* ---- Search (SPEC §3): found room = accent fill .9, code in on-accent, 2 px accent edge; the rest at .35 ---- */
+/* ---- Search: found room = accent fill .9, code in on-accent, 2 px accent edge; the rest at .35 ---- */
 .map-svg g[data-name].room-found > :is(polygon, polyline, line, rect) {
   fill: var(--accent);
   fill-opacity: .9;

@@ -1,5 +1,5 @@
 /* =====================================================================================
-   System tile «Система» (SPEC §3 «Плитка „Система“», V2-BRIEF §3.2)
+   System tile «Система»
    Rows of 36 px: icon · label · value. With spare height the rows are centred with even gaps
    (auto margins: n + 1 equal gaps); with too little they squeeze down to --sys-row-min instead of
    overflowing. The tile's minimum size and the grow-to-fit in System.tsx keep it from going further.

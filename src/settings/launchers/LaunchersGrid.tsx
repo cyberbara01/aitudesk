@@ -28,7 +28,7 @@ const MIN_SLOTS_FOR_MORE = 3;
  * Overflow rule, per cell budget `slots = cols × rows` (at least 1, cellsThatFit clamps):
  *  1. items.length <  slots: every launcher, then «Добавить» in the next free cell.
  *  2. items.length === slots: every launcher, no add cell. Only the add cell overflows, and a real
- *     launcher is never sacrificed for it; adding stays reachable via ПКМ, «Настройки плитки».
+ *     launcher is never sacrificed for it; adding stays reachable via the right-click menu, «Настройки виджета».
  *  3. items.length >  slots, slots >= 3: the first slots-1 launchers, then «+N» in the LAST cell, N = hidden
  *     launchers (the add cell is never counted). «+N» opens the settings page, where «Добавить» lives.
  *  4. items.length >  slots, slots < 3 (a tile near its 120 x 136 minimum): only the first launchers, no

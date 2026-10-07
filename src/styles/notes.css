@@ -1,5 +1,5 @@
 /* =====================================================================================
-   Notes: «Заметки» (V2-BRIEF §6.4)
+   Notes: «Заметки»
    Tile: round «выполнено» toggle, text (two lines), countdown chip; the list scrolls without a scrollbar.
    Plus the settings page, the note editor and two kit components that live here for now: TextArea and
    DatePicker. Tokens only, so the three styles and every palette apply by themselves.

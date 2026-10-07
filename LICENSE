@@ -24,7 +24,7 @@ SOFTWARE.
 
 Third-party components:
 
-- Map of block C1 — aitumap by Yuujiso, MIT License (src/map/LICENSE.md).
-- Fluent UI System Icons — Microsoft Corporation, MIT License (src/icons/LICENSE-FluentIcons.txt).
-- Inter — Rasmus Andersson, SIL Open Font License 1.1 (src/fonts/LICENSE-Inter.txt).
-- JetBrains Mono — JetBrains, SIL Open Font License 1.1 (src/fonts/LICENSE-JetBrainsMono.txt).
+- Map of block C1: aitumap by Yuujiso, MIT License (src/map/LICENSE.md).
+- Fluent UI System Icons: Microsoft Corporation, MIT License (src/icons/LICENSE-FluentIcons.txt).
+- Inter: Rasmus Andersson, SIL Open Font License 1.1 (src/fonts/LICENSE-Inter.txt).
+- JetBrains Mono: JetBrains, SIL Open Font License 1.1 (src/fonts/LICENSE-JetBrainsMono.txt).

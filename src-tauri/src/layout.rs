@@ -1,4 +1,4 @@
-//! Tile positions: defaults (§3 "Сетка и размеры"), persistence in settings.json, show/hide, per-tile enable.
+//! Tile positions: defaults (the column layout below), persistence in settings.json, show/hide, per-tile enable.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -12,7 +12,7 @@ use tauri_plugin_store::StoreExt;
 pub const STORE_FILE: &str = "settings.json";
 const LAYOUT_KEY: &str = "layout";
 const SETTINGS_KEY: &str = "settings";
-/// «Все плитки» switched off in «Общие»: kept across restarts.
+/// «Все виджеты» switched off in «Общие»: kept across restarts.
 const HIDDEN_KEY: &str = "tilesHidden";
 /// Far enough that no monitor arrangement reaches it (Windows itself parks minimized windows at -32000).
 const PARK: i32 = -32000;
@@ -38,7 +38,7 @@ pub struct WorkArea {
 /// Which tiles are parked off-screen and why.
 #[derive(Default)]
 pub struct Visibility {
-    /// «Все плитки» switched off in «Общие» (persisted as `tilesHidden`).
+    /// «Все виджеты» switched off in «Общие» (persisted as `tilesHidden`).
     pub hidden: Mutex<bool>,
     /// Tiles switched off in settings.
     pub disabled: Mutex<HashSet<String>>,
@@ -339,7 +339,7 @@ fn unpark(app: &AppHandle, win: &WebviewWindow, label: &str) {
     vis.pending.lock().unwrap().remove(label);
     set_page_visible(win, true);
     // A page that was hidden draws a fresh frame first, off-screen, then the tile moves into view, unless it
-    // was hidden or switched off again meanwhile (a quick double click on «Показать все плитки»).
+    // was hidden or switched off again meanwhile (a quick double click on «Показать все виджеты»).
     let app = app.clone();
     let win = win.clone();
     let label = label.to_string();
@@ -372,7 +372,7 @@ pub fn set_hidden(app: &AppHandle, hidden: bool) {
         store.set(HIDDEN_KEY, json!(hidden));
         let _ = store.save();
     }
-    // The settings window shows this state («Все плитки» in «Общие»).
+    // The settings window shows this state («Все виджеты» in «Общие»).
     let _ = app.emit("tiles-hidden", hidden);
 }
 
@@ -443,7 +443,7 @@ pub struct LayoutFile {
     pub defaults: Vec<String>,
 }
 
-/// «Импорт и экспорт»: the saved rect of every tile that has one (on this screen), the rest as defaults.
+/// «Конфиги»: the saved rect of every tile that has one (on this screen), the rest as defaults.
 pub fn export(app: &AppHandle) -> Option<LayoutFile> {
     let first = crate::TILES.iter().find_map(|l| app.get_webview_window(l))?;
     let screen = work_area(&first);

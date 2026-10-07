@@ -56,9 +56,9 @@
 .status-text.fail { color: var(--critical); }
 
 /* =====================================================================================
-   «Общие»: «Все плитки», the card at the top of the page. A kit card laid out as one row: the mark (lit while
+   «Общие»: «Все виджеты», the card at the top of the page. A kit card laid out as one row: the mark (lit while
    the tiles are shown, out while they are hidden), title and state, one button. While the tiles are hidden the
-   card takes a touch of the accent and «Показать все плитки» is the accent button.
+   card takes a touch of the accent and «Показать все виджеты» is the accent button.
    ===================================================================================== */
 .all-tiles { flex-direction: row; align-items: center; gap: var(--s4); padding: var(--s4) var(--s5); }
 .all-tiles-mark {
@@ -195,12 +195,12 @@
 .acc-dot.cp-swatch:hover { transform: none; }
 .acc-dot.cp-swatch::before, .acc-dot.cp-swatch::after { content: none; }
 .acc-item.selected .acc-dot { outline: 2px solid var(--text); outline-offset: 2px; }
-/* Rice marks the selection with an accent outline (V2-BRIEF §1). */
+/* Rice marks the selection with an accent outline. */
 :root[data-style="rice"] .acc-dot { border-radius: var(--r-sm); }
 :root[data-style="rice"] .acc-item.selected .acc-dot { outline-color: var(--accent); }
 
 /* =====================================================================================
-   Live preview («Так будут выглядеть плитки»): wallpaper-coloured desk with two mini tiles
+   Live preview («Так будут выглядеть виджеты»): wallpaper-coloured desk with two mini tiles
    ===================================================================================== */
 .pv-desk {
   display: flex; flex-wrap: wrap; gap: var(--s3);
@@ -337,6 +337,8 @@
 /* «Автор»: the marks follow the caption on its line, like a byline, instead of sitting at the far edge. */
 .row.about-author { justify-content: flex-start; gap: var(--s3); }
 .about-links { display: flex; align-items: center; gap: var(--s1); }
+/* «Карта AITU» in the credits: the map author's GitHub mark, then the button to the map's repository. */
+.about-credit-links { flex-wrap: nowrap; }
 .about-p { margin: 0; color: var(--text-2); }
 .inline.between { justify-content: space-between; }
 .licence-box {

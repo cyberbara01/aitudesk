@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ru } from "../i18n/ru";
 import { useEditMode } from "../lib/editMode";
+import { popupMenu } from "../lib/nativeMenu";
 import { settings, type TileId } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { Button } from "./Button";
@@ -48,21 +49,25 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
 
   const onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
-    // The menu needs the keyboard (arrows, Esc) and must close when the user clicks elsewhere: take the focus
-    // for this interaction (the tile keeps its look, see glass.rs; it returns below other windows afterwards).
+    // A menu needs the keyboard (arrows, Esc) and must close when the user clicks elsewhere: take the focus for
+    // this interaction (the tile keeps its look, see glass.rs; it returns below other windows afterwards).
     invoke("activate_tile").catch(() => undefined);
+    const { clientX: x, clientY: y } = e;
+    // A real Windows menu, never squeezed by a small widget; the one drawn inside the widget only if that fails.
+    const show = (items: MenuItemSpec[]) => void popupMenu(items).catch(() => setMenu({ x, y, items }));
     if (edit.editing) {
       // While moving or resizing, the menu offers the way out.
-      setMenu({ x: e.clientX, y: e.clientY, items: [{ id: "done", label: ru.common.done, icon: "checkmark", onSelect: edit.stop }] });
+      show([{ id: "done", label: ru.common.done, icon: "checkmark", onSelect: edit.stop }]);
       return;
     }
     const extra = menuItems?.(e.target as HTMLElement) ?? [];
     const standard: MenuItemSpec[] = [
-      { id: "move", label: ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked, hint: locked ? ru.edit.locked : undefined },
+      // Locked: the item says why it does nothing (a Windows menu shows no tooltip).
+      { id: "move", label: locked ? ru.edit.locked : ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked },
       { id: "settings", label: ru.menu.settings, icon: "settings", onSelect: () => invoke("open_settings", { tab: label }).catch(() => undefined) },
       { id: "hide", label: ru.menu.hide, icon: "eye_off", onSelect: () => void hideTile(label) },
     ];
-    setMenu({ x: e.clientX, y: e.clientY, items: extra.length ? [...extra, { id: "sep", label: "", separator: true, onSelect: () => undefined }, ...standard] : standard });
+    show(extra.length ? [...extra, { id: "sep", label: "", separator: true, onSelect: () => undefined }, ...standard] : standard);
   };
 
   // Tiles are not activated by clicks (no jump in the z-order). A text field (the map search) needs the

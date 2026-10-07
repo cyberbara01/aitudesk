@@ -103,7 +103,7 @@ function ThemeCard({ meta, selected, onSelect }: ThemeCardProps) {
   );
 }
 
-/** «Так будут выглядеть плитки». The only part of the page with a timer: it ticks every second only while the clock shows seconds. */
+/** «Так будут выглядеть виджеты». The only part of the page with a timer: it ticks every second only while the clock shows seconds. */
 function LivePreview({ s, desk }: { s: Settings; desk: CSSProperties }) {
   const now = useNow(s.clock.seconds);
   return (

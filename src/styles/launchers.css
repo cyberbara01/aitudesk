@@ -45,7 +45,7 @@ button.ln-cell:hover { background: var(--ctl-fill); }
 button.ln-cell:active { background: var(--ctl-fill-pressed); transform: scale(.97); }
 button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 
-/* 36×36 square (radius 8, SPEC §3) tinted with the launcher colour. The icon / letter take the colour at
+/* 36×36 square (radius 8) tinted with the launcher colour. The icon / letter take the colour at
    100 %, in the tone that reads on the square: --ln-ink-dark / --ln-ink-light come with the colour
    (lib/launchers.ts launcherInk) and are picked by palette through --ln-ink, so the service cells below can
    still set their own colour. */

@@ -1,4 +1,4 @@
-// Settings file of «Импорт и экспорт»: what a saved configuration holds, how it is written and read, and how
+// The settings file of «Конфиги»: what a saved configuration holds, how it is written and read, and how
 // its parts are applied. Pure functions only; the page (src/settings/TransferPage.tsx) does the IPC.
 //
 // A file is UTF-8 JSON pretty-printed with two spaces, so it reads well in Notepad:
@@ -14,7 +14,7 @@
 //                                       (src-tauri/src/layout.rs); `defaults` lists the tiles never moved
 //   }
 // Never in a file: `version`, `onboarded` (the welcome page), autostart (a Windows setting) and whether «Все
-// плитки» are hidden (`tilesHidden`, kept next to the settings in the store).
+// виджеты» are hidden (`tilesHidden`, kept next to the settings in the store).
 //
 // Loading also takes the app's own store, %APPDATA%\kz.edu.astanait.aitudesk\settings.json: `settings` of
 // version 2 and maybe `layout`, tile rects without the screen they were made on. Such a copy is almost always a
@@ -183,7 +183,7 @@ export function suggestedFileName(chosen: readonly PartId[], now: Date): string 
 // ---------------------------------------------------------------------------------------------
 
 export interface ConfigFile {
-  /** "export": written by «Сохранить в файл»; "store": the app's own settings.json. */
+  /** "export": written by «Сохранить конфиг…»; "store": the app's own settings.json. */
   source: "export" | "store";
   /** Parts found in the file (by the keys present), in PARTS order. */
   parts: PartId[];
@@ -476,7 +476,8 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       const r = s.reminders;
       const items: string[] = [];
       if (r.lessons) items.push(r.lessonBefore === 0 ? x.lessonStart : x.beforeLesson(duration(r.lessonBefore)));
-      if (r.deadlines) items.push(r.deadlineFirst === 0 ? x.deadlines : x.beforeDeadline(duration(r.deadlineFirst)));
+      if (r.deadlines && r.deadlineFirst > 0) items.push(x.beforeDeadline(duration(r.deadlineFirst)));
+      else if (r.deadlines && r.atDeadline) items.push(x.deadlines);
       return items.length === 0 ? x.remindersOff : capitalize(items.join(", "));
     }
     case "notes": {

@@ -34,7 +34,7 @@ const BUBBLE: CSSProperties = {
 type Phase = "idle" | "pending" | "open";
 
 /**
- * Hover tooltip (SPEC §3): caption text, radius 4, --tooltip-fill, appears after 500 ms with no animation;
+ * Hover tooltip: caption text, radius 4, --tooltip-fill, appears after 500 ms with no animation;
  * placed below the anchor (above when there is no room) and clamped inside the window. Also opens for keyboard
  * focus inside the anchor. From the moment it is armed it closes on pointer leave / press, Esc, blur of the
  * focused element, when the window loses focus, scrolls or resizes, and when the anchor unmounts.

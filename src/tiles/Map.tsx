@@ -1,4 +1,4 @@
-// «Карта AITU» (brief §3.4, 6.3): block C1 driven by settings.map. The colour scheme, label and pictogram toggles,
+// «Карта AITU»: block C1 driven by settings.map. The colour scheme, label and pictogram toggles,
 // the switch side and visibility, the silhouette and the zoom column are data attributes on .map-root (map.css
 // reads them); the floor at start is the remembered or the default one. Rooms are marked with a colour in paint
 // mode (brush button, palette, click a room) or from the context menu; marks live in settings.map.favorites.

@@ -1,4 +1,4 @@
-// Map viewport with its own zoom engine (brief §3.4). The <svg> is laid out at its real size (fit × zoom), so
+// Map viewport with its own zoom engine. The <svg> is laid out at its real size (fit × zoom), so
 // Chromium re-rasterises it on every zoom change and the plan stays crisp from 1× to 6×; it is panned with a
 // translate-only transform, snapped to whole device pixels (a layer at a fractional offset is resampled and goes
 // soft), never with a CSS scale. Strokes are non-scaling (map.css): one screen pixel at any zoom.
@@ -126,7 +126,7 @@ const FLOOR_VIEW: Record<Floor, ComponentType> = { 1: memo(Floor1), 2: memo(Floo
 const Backdrop = memo(Wallpaper);
 const Pictograms = memo(IconsCommon);
 
-/** Slide distance of a floor change, screen px (SPEC §3). */
+/** Slide distance of a floor change, screen px. */
 const SLIDE_PX = 12;
 /** Zoom buttons multiply/divide the zoom by this. */
 const BUTTON_FACTOR = 1.5;

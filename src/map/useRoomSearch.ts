@@ -1,5 +1,5 @@
 // Floor + room-search state, shared by the search field and the «map-focus-room» event from the schedule tile.
-// Search logic adapted from aitumap's MapProvider.jsx (spec §1.1): a code names its floor by its first digit and
+// Search logic adapted from aitumap's MapProvider.jsx: a code names its floor by its first digit and
 // rooms match by a substring of data-name. On top of the original: codes typed in the Russian layout («223К»,
 // «С1.2.223») are read as the Latin code, and words find the named areas by their aliases («библиотека»).
 import { useCallback, useMemo, useState } from "react";

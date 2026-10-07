@@ -1,6 +1,6 @@
-// «Импорт и экспорт»: the settings as a file. «Сохранить в файл» writes the parts the user picks; notes are
+// «Конфиги»: the settings as a file. «Сохранить конфиг…» writes the parts the user picks; notes are
 // personal: marked, never picked by default, and the suggested file name says when they are inside.
-// «Загрузить из файла» reads one's own file or someone else's, lists the parts it holds with what is in them
+// «Выбрать конфиг…» reads one's own file or someone else's, lists the parts it holds with what is in them
 // and changes nothing until «Применить»; «Отменить» then brings back what was replaced, for as long as the page
 // stays open. The format and the pure helpers live in src/lib/config.ts, the Windows dialogs in
 // src-tauri/src/files.rs.
@@ -283,7 +283,7 @@ function ImportSection({ s }: { s: Settings }) {
   const listId = useId();
   const chooseId = useId();
   // The control that had the focus goes away when the view switches: the keyboard continues in the list that
-  // appeared, or on «Выбрать файл…» again. Moved after the render that shows (and enables) the target.
+  // appeared, or on «Выбрать конфиг…» again. Moved after the render that shows (and enables) the target.
   const focusNext = useRef<"list" | "choose" | null>(null);
   const [focusTick, setFocusTick] = useState(0);
   const moveFocus = (target: "list" | "choose") => {
@@ -401,7 +401,7 @@ function ImportSection({ s }: { s: Settings }) {
     return null;
   };
 
-  // One status line for both views, so it stays mounted and «Настройки загружены» is announced.
+  // One status line for both views, so it stays mounted and «Конфиг загружен» is announced.
   let status: StatusProps = { text: "" };
   if (applyError) status = { tone: "fail", text: applyError };
   else if (loaded) status = { text: "" };

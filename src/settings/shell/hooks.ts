@@ -31,7 +31,7 @@ export function useTransient<T>(idle: T, ms = 2500): [T, (v: T) => void] {
 
 /**
  * True shortly after `ready` becomes true. Controls whose initial value arrives asynchronously (IPC)
- * keep transitions off until then, so nothing animates at startup (§3 «никаких анимаций при запуске»).
+ * keep transitions off until then, so nothing animates at startup.
  */
 export function useSettled(ready: boolean): boolean {
   const [settled, setSettled] = useState(false);

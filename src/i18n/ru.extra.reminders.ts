@@ -32,9 +32,9 @@ function every(minutes: number): string {
   }
   if (minutes % 60 === 0) {
     const n = minutes / 60;
-    return n === 1 ? "каждый час" : `каждые ${n} ${units.hours(n)}`;
+    return n === 1 ? "каждый час" : `${plural(n, "каждый", "каждые", "каждые")} ${n} ${units.hours(n)}`;
   }
-  return minutes === 1 ? "каждую минуту" : `каждые ${minutes} ${units.minutes(minutes)}`;
+  return minutes === 1 ? "каждую минуту" : `${plural(minutes, "каждую", "каждые", "каждые")} ${minutes} ${units.minutes(minutes)}`;
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

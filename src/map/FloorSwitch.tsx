@@ -1,4 +1,4 @@
-// Vertical floor switch (SPEC §3): three 36×32 items («3» on top), shared control fill, radius 6; the selected item
+// Vertical floor switch: three 36×32 items («3» on top), shared control fill, radius 6; the selected item
 // gets the hover fill and a 3×16 accent indicator at the left edge that slides between items (167 ms, --ease-move).
 // A radio group: one Tab stop, arrows move between floors. The wheel over the switch changes the floor. The floor
 // with the room of the next lesson (nextLesson.ts), when it is not the one shown, gets a small accent dot.

@@ -95,7 +95,7 @@ pub async fn fetch_site_icon(url: String) -> Result<String, String> {
         .map_err(|e| e.to_string())?
 }
 
-/// Glass background of the calling tile on/off (settings "Фон плитки").
+/// Glass background of the calling tile on/off (settings «Фон виджета»).
 #[tauri::command]
 pub fn set_tile_glass(window: WebviewWindow, on: bool) {
     if crate::TILES.contains(&window.label()) {
@@ -103,7 +103,7 @@ pub fn set_tile_glass(window: WebviewWindow, on: bool) {
     }
 }
 
-/// «Все плитки» in «Общие»: hide or show every tile (the choice survives a restart).
+/// «Все виджеты» in «Общие»: hide or show every tile (the choice survives a restart).
 #[tauri::command]
 pub fn set_tiles_hidden(app: AppHandle, hidden: bool) {
     layout::set_hidden(&app, hidden);
@@ -144,7 +144,7 @@ fn owner_of(window: &WebviewWindow) -> isize {
     window.hwnd().map(|h| h.0 as isize).unwrap_or(0)
 }
 
-/// «Сохранить в файл»: the standard Windows save dialog over the calling window. `None` = cancelled.
+/// «Сохранить конфиг»: the standard Windows save dialog over the calling window. `None` = cancelled.
 #[tauri::command]
 pub async fn save_config_file(
     window: WebviewWindow,
@@ -158,7 +158,7 @@ pub async fn save_config_file(
         .map_err(|e| e.to_string())?
 }
 
-/// «Загрузить из файла»: the standard Windows open dialog; returns the file's text. `None` = cancelled.
+/// «Выбрать конфиг»: the standard Windows open dialog; returns the file's text. `None` = cancelled.
 #[tauri::command]
 pub async fn open_config_file(window: WebviewWindow, title: String) -> Result<Option<crate::files::OpenedFile>, String> {
     let owner = owner_of(&window);

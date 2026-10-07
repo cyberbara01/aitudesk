@@ -33,7 +33,7 @@
 .clock-time {
   flex: 0 0 auto;
   white-space: nowrap;
-  line-height: calc(60 / 56);   /* SPEC §3: the clock is 56/60 */
+  line-height: calc(60 / 56);   /* the clock is 56/60 */
   font-kerning: normal;
 }
 .clock-colon { display: inline; }

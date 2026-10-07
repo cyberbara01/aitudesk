@@ -116,7 +116,7 @@ function LessonMeta({ lesson, roomLink }: { lesson: Lesson; roomLink?: RoomLink 
   const room = lesson.room.trim();
   if (!teacher && !room) return null;
   if (!shown) return <MaskedText id={lesson.id} text={teacher || room} className="sched-meta caption" />;
-  // Mono only for a room code (SPEC): «Спортзал» stays in the text font and is not a link.
+  // Mono only for a room code: «Спортзал» stays in the text font and is not a link.
   const code = room ? mapRoomCode(room) : null;
   return (
     <span className="sched-meta caption ellipsis">

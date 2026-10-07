@@ -1,4 +1,4 @@
-// Edit mode (spec 1.5): drag the whole tile, resize the map by its bottom-right grip,
+// Edit mode: drag the whole tile, resize the map by its bottom-right grip,
 // snap to an 8 px grid and to the screen edges with a 24 px margin; Esc exits and positions are saved.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";

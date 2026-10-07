@@ -1,4 +1,4 @@
-//! Standard Windows «Сохранить» and «Открыть» dialogs for the settings file («Импорт и экспорт»). Each dialog
+//! Standard Windows «Сохранить» and «Открыть» dialogs for settings files («Конфиги»). Each dialog
 //! runs on its own short-lived thread (COM single-threaded apartment) and is owned by the settings window,
 //! which stays drawn behind it and cannot be used until the dialog closes. Files are plain UTF-8 JSON: they
 //! can be opened and read in any text editor before loading.
@@ -21,7 +21,7 @@ const CANCELLED: HRESULT = HRESULT(0x8007_04C7_u32 as i32);
 /// A settings file is a few hundred KB at most (site icons included); anything far bigger is not one.
 const MAX_FILE: u64 = 16 * 1024 * 1024;
 
-const FILTER_NAME: &str = "Настройки AITU Desk (*.json)";
+const FILTER_NAME: &str = "Конфиг AITU Desk (*.json)";
 const FILTER_SPEC: &str = "*.json";
 
 fn err(e: windows::core::Error) -> String {

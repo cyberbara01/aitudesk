@@ -1,7 +1,7 @@
-// «О программе»: app header, help and the author, credits, privacy, licences. Below the header everything is
-// kit sections with one alignment rule: label and hint on the left edge of the card, actions on the right. The
+// «О программе»: app header, help and the author, credits, privacy, the map's licence. Below the header everything
+// is kit sections with one alignment rule: label and hint on the left edge of the card, actions on the right. The
 // one exception is «Автор»: the author's GitHub and Telegram follow the caption on its line, like a byline.
-// The only marks are the ones that are links: GitHub and Telegram.
+// The only marks are the ones that are links: GitHub (the author, the map's author) and Telegram.
 import { useId, useState, type MouseEvent, type ReactNode } from "react";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
@@ -93,8 +93,6 @@ export function AboutPage() {
             </span>
             <span className="about-dot" aria-hidden="true" />
             <span>{ab.openSource}</span>
-            <span className="about-dot" aria-hidden="true" />
-            <span>{x.licenseName}</span>
           </div>
         </div>
       </header>
@@ -118,7 +116,12 @@ export function AboutPage() {
 
       <Section title={ab.credits}>
         <Row label={x.mapTitle} hint={ab.mapCredit}>
-          <Button onClick={() => open(ab.mapRepo)}>{x.mapRepoLabel}</Button>
+          <span className="inline about-credit-links">
+            <MarkLink href={ab.mapAuthorGithub} name={`${ab.github}: ${ab.mapAuthor}`}>
+              <GitHubMark />
+            </MarkLink>
+            <Button onClick={() => open(ab.mapRepo)}>{x.mapRepoLabel}</Button>
+          </span>
         </Row>
         <Row label={ab.iconsTitle} hint={ab.iconsCredit} />
         <Row label={ab.fontsTitle} hint={ab.fontsCredit} />
@@ -139,7 +142,6 @@ export function AboutPage() {
       </Section>
 
       <Section title={ab.license} padded>
-        <p className="about-p">{ab.licenseText}</p>
         <div className="inline between">
           <span className="row-label">{x.mapLicence}</span>
           <Button aria-expanded={licenceOpen} aria-controls={licenceId} onClick={() => setLicenceOpen((v) => !v)}>

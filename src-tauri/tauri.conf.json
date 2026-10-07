@@ -152,7 +152,6 @@
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
-      "icons/icon.icns",
       "icons/icon.ico"
     ],
     "windows": {
@@ -166,6 +165,6 @@
     },
     "publisher": "AITU Desk",
     "shortDescription": "Виджеты рабочего стола для студентов AITU",
-    "copyright": "MIT. Карта AITU: aitumap (Yuujiso, MIT). Иконки: Fluent UI System Icons (Microsoft, MIT)"
+    "copyright": "© 2026 cyberbara01. Карта AITU: aitumap (Yuujiso, MIT). Иконки: Fluent UI System Icons (Microsoft, MIT)"
   }
 }

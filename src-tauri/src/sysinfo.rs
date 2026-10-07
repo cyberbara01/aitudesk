@@ -1,11 +1,11 @@
-//! Data for the «Система» tile (§1.3): power, Wi‑Fi and Bluetooth.
+//! Data for the «Система» tile: power, Wi‑Fi and Bluetooth.
 //!
 //! Every WinRT call blocks with `join()` (a kernel wait, no message pump), so all of it runs in
 //! `spawn_blocking`, never on the UI thread. A null WinRT object surfaces as `Err` with HRESULT 0
 //! and means «nothing there», not a failure. The commands never panic and never fail: any error
 //! collapses into an «unavailable» value.
 //!
-//! Mocks for §4 verification, read at call time:
+//! Mocks for checks without the hardware, read at call time:
 //! `AITUDESK_MOCK_POWER` = `none` | `NN` | `NN,charging`;
 //! `AITUDESK_MOCK_WIFI` = `off` | `SSID,bars` | `hidden,bars`;
 //! `AITUDESK_MOCK_BT` = `off` | `none` | `Name1;Name2;Name3`.

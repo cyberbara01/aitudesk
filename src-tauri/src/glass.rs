@@ -17,7 +17,7 @@ use windows::Win32::UI::WindowsAndMessaging::{SendMessageW, WM_NCACTIVATE};
 
 static GLASS_OK: AtomicBool = AtomicBool::new(true);
 static MICA_OK: AtomicBool = AtomicBool::new(true);
-/// Per tile: the glass the frontend asked for ("Фон плитки"; missing = on) and the glass last applied.
+/// Per tile: the glass the frontend asked for («Фон виджета»; missing = on) and the glass last applied.
 /// Kept apart because a page may report before the startup pass has run: the startup pass then applies
 /// what was asked instead of switching a tile's glass back on.
 static WANTED: Mutex<Option<HashMap<String, bool>>> = Mutex::new(None);

@@ -1,4 +1,4 @@
-// Room search field (SPEC §3 text field, width 200, mono because it holds a room code). Enter shows the found
+// Room search field (kit text field, width 200, mono because it holds a room code). Enter shows the found
 // rooms (the map centres and zooms on them), Esc or the clear button empties it. With text that matches nothing
 // on the floor the field shows «Ничего не найдено» under it. `pinned` keeps it visible without hover (the schedule
 // tile asked for a room that is not on the plan).

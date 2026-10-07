@@ -1,4 +1,4 @@
-// «Общие»: «Все плитки» (every tile off the desktop and back with one button), the tiles one by one, desktop
+// «Общие»: «Все виджеты» (every tile off the desktop and back with one button), the tiles one by one, desktop
 // behaviour (lock layout), autostart, and the resets (tile layout, the whole customization).
 import { useCallback, useEffect, useId, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -22,7 +22,7 @@ const g = ru.settings.general;
 const x = extra.general;
 
 // ---------------------------------------------------------------------------------------------
-// «Все плитки» and autostart live outside the settings file. Both are read once when the settings
+// «Все виджеты» and autostart live outside the settings file. Both are read once when the settings
 // window loads its code, so even the first visit to this page usually paints the real state in its first
 // frame, and read again on every visit. A local change bumps `version`, so an older read cannot undo it.
 // ---------------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ interface AllTilesProps {
 }
 
 /**
- * «Все плитки», first on the page: hidden tiles stay hidden after a restart, and the app then opens right here.
+ * «Все виджеты», first on the page: hidden tiles stay hidden after a restart, and the app then opens right here.
  * The state reads at a glance (the mark lit or out, one line of state) and there is one button; showing the
  * tiles again is the accent action. Nothing that depends on the state is drawn before it is known.
  */

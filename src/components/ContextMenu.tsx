@@ -24,7 +24,8 @@ interface Props {
 
 /**
  * Context menu rendered inside the tile and clamped to its bounds (padding 4, items h32, icon 16; long menus
- * scroll). Like a native menu it opens with no item highlighted: the menu itself takes the focus, the arrow
+ * scroll). Widgets show a real Windows menu (src/lib/nativeMenu.ts); this one is the fallback when that is not
+ * available. Like a native menu it opens with no item highlighted: the menu itself takes the focus, the arrow
  * keys then move through the items (Home/End jump), Enter activates, Esc closes.
  */
 export function ContextMenu({ x, y, items, onClose }: Props) {

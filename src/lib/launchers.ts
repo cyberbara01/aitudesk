@@ -119,7 +119,6 @@ export function visibleLaunchers(s: Settings): LauncherItem[] {
 // ---------------------------------------------------------------------------------------------
 
 export type IconMode = LauncherIcon["kind"];
-export const ICON_MODES: readonly IconMode[] = ["site", "fluent", "letter"];
 
 /** Icon preselected when a launcher switches to the Fluent mode. */
 export const DEFAULT_FLUENT_ICON = "globe";

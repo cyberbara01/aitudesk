@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { ColorPicker } from "../components/ColorPicker";
 import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
@@ -23,14 +24,15 @@ import {
   weightSteps,
   type DateFormat,
 } from "../lib/clock";
+import type { LayoutFile } from "../lib/config";
 import { ACCENT_PRESETS, CLOCK_FONTS, CLOCK_PRESETS, clockFont, contrast, isHex, type ClockPreset } from "../lib/design";
 import { DEFAULT_CLOCK, settings, type ClockFont, type ClockSettings } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { ClockFace } from "../tiles/Clock";
 import { useRootAttribute } from "./shell/hooks";
 
-type PreviewSize = keyof typeof extra.clock.previewSizes;
-const PREVIEW_SIZES: Record<PreviewSize, { w: number; h: number }> = { s: { w: 280, h: 120 }, m: { w: 400, h: 160 }, l: { w: 520, h: 200 } };
+/** The clock widget's size in the default layout (src-tauri/src/layout.rs COLUMN), logical px. */
+const DEFAULT_WIDGET = { w: 280, h: 120 };
 /** Padding of the preview desk and of a preset card's desk, CSS px (clock.css: --s6 and --s3). */
 const DESK_PAD = 24;
 const CARD_PAD = 12;
@@ -79,7 +81,6 @@ function fontOptions(current: ClockFont): readonly SelectOption<ClockFont>[] {
     style: { fontFamily: f.family },
   }));
 }
-const PREVIEW_SIZE_OPTIONS: readonly SegmentedOption<PreviewSize>[] = (["s", "m", "l"] as const).map((k) => ({ value: k, label: extra.clock.previewSizes[k] }));
 
 /** Colours offered for the time: the accent tones made for this kind of palette, so every swatch reads on the tile («Как текст» covers the text colour). */
 const SWATCHES: Record<"light" | "dark", readonly string[]> = {
@@ -163,8 +164,32 @@ function useClockEditor(clock: ClockSettings) {
   return { view, patch, patchLive, applyPreset };
 }
 
-/** The live tile on its desk. Ticks only while it is on screen; scaled down, never cropped, when the window is narrower than the size. */
-function LivePreview({ settings: s, size }: { settings: ClockSettings; size: PreviewSize }) {
+/**
+ * The clock widget's size on the desktop (logical px): its saved rect, read once when the page opens; the default
+ * size while it was never resized. The preview shows the clock exactly at this size.
+ */
+function useWidgetSize(): { w: number; h: number } {
+  const [size, setSize] = useState(DEFAULT_WIDGET);
+  useEffect(() => {
+    let alive = true;
+    invoke<LayoutFile | null>("get_layout").then(
+      (layout) => {
+        const r = layout?.tiles.clock;
+        if (!alive || !layout || !r) return;
+        const scale = layout.screen.scale || 1;
+        setSize({ w: Math.round(r.w / scale), h: Math.round(r.h / scale) });
+      },
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return size;
+}
+
+/** The live widget on its desk, at its real size. Ticks only while it is on screen; scaled down, never cropped, when the window is narrower. */
+function LivePreview({ settings: s, box }: { settings: ClockSettings; box: { w: number; h: number } }) {
   const deskRef = useRef<HTMLDivElement>(null);
   const [avail, setAvail] = useState(0);
   const [visible, setVisible] = useState(true);
@@ -183,11 +208,9 @@ function LivePreview({ settings: s, size }: { settings: ClockSettings; size: Pre
     };
   }, []);
 
-  const zoomFor = (w: number) => (avail > 0 ? Math.min(1, avail / w) : 1);
-  const box = PREVIEW_SIZES[size];
-  // The desk is as tall as the largest size needs, so switching sizes never moves the rest of the page.
-  const deskStyle: CSSProperties = { minHeight: Math.ceil(PREVIEW_SIZES.l.h * zoomFor(PREVIEW_SIZES.l.w)) + 2 * DESK_PAD };
-  const tileStyle = { width: box.w, height: box.h, "--clock-preview-zoom": zoomFor(box.w) } as CSSProperties;
+  const zoom = avail > 0 ? Math.min(1, avail / box.w) : 1;
+  const deskStyle: CSSProperties = { minHeight: Math.ceil(box.h * zoom) + 2 * DESK_PAD };
+  const tileStyle = { width: box.w, height: box.h, "--clock-preview-zoom": zoom } as CSSProperties;
   return (
     <div ref={deskRef} className="clock-desk" style={deskStyle}>
       <div className={s.background ? "tile clock-preview" : "tile clock-preview no-bg"} style={tileStyle}>
@@ -285,7 +308,7 @@ function PresetGallery({ current, view, sample, onApply }: GalleryProps) {
 export function ClockPage() {
   const { clock } = useSettings();
   const { view, patch, patchLive, applyPreset } = useClockEditor(clock);
-  const [previewSize, setPreviewSize] = useState<PreviewSize>("s");
+  const widget = useWidgetSize();
   const scheme = useRootAttribute("data-scheme") === "light" ? "light" : "dark";
   const today = useToday();
 
@@ -321,9 +344,9 @@ export function ClockPage() {
       <div className="clock-stage">
         <div className="clock-stage-head">
           <span className="body-strong">{ru.common.preview}</span>
-          <Segmented options={PREVIEW_SIZE_OPTIONS} value={previewSize} onChange={setPreviewSize} size="sm" ariaLabel={ru.common.size} />
+          <span className="hint">{extra.clock.widgetSize(widget.w, widget.h)}</span>
         </div>
-        <LivePreview settings={view} size={previewSize} />
+        <LivePreview settings={view} box={widget} />
         <p className="hint clock-stage-hint">{extra.clock.previewHint}</p>
       </div>
 
