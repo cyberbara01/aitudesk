@@ -6,6 +6,7 @@ import { MaskedText, PrivacyScope, RevealButton, useRevealed } from "../componen
 import { Tile } from "../components/Tile";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
+import { useDesktopCovered } from "../lib/desktopCovered";
 import { DENSITY_PAD, resolveLook } from "../lib/design";
 import type { Settings, SystemSettings } from "../lib/settings";
 import { IN_POPUP, useFolded, useTileView } from "../lib/tileView";
@@ -236,10 +237,12 @@ export function SystemTile() {
   const loaded = useSettingsLoaded();
   const s = useSettings();
   const sys = s.system;
-  // Folded to its icon, nothing is read; only a size set by hand grows to fit its rows.
+  // Folded to its icon, or with a program over the whole screen, nothing is read (the last values stay, and every
+  // stale one is read again as soon as the desktop shows); only a size set by hand grows to fit its rows.
   const folded = useFolded();
+  const covered = useDesktopCovered();
   const view = useTileView();
-  const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: loaded && !folded });
+  const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: loaded && !folded && !covered });
   const fit = rowsFit(1 + Number(sys.showWifi) + Number(sys.showBluetooth), s);
   // Only the tile itself grows (the pop-up keeps the size it opened with).
   useGrowToFit(fit, loaded && view === "manual" && !IN_POPUP);

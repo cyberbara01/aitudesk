@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { ru } from "../i18n/ru";
 import { SWATCHES, hexToRgb, hsvToRgb, isHex, rgbToHex, rgbToHsv, type HSV } from "../lib/design";
+import { onRadioGroupKeyDown } from "../lib/radioGroup";
 import { TextField } from "./TextField";
 
 interface ColorPickerProps {
@@ -70,17 +71,20 @@ export function ColorPicker({ value, onChange, swatches = SWATCHES, allowCustom 
   };
 
   const hueHex = rgbToHex(hsvToRgb({ h: hsv.h, s: 1, v: 1 }));
+  const swatchChecked = swatches.some((s) => s.toUpperCase() === value.toUpperCase());
   const current = rgbToHex(rgb);
 
   return (
     <div className={["cp", className ?? ""].filter(Boolean).join(" ")}>
-      <div className="cp-swatches" role="radiogroup" aria-label={ru.common.color}>
-        {swatches.map((s) => (
+      {/* One Tab stop with the arrow keys between the swatches (src/lib/radioGroup.ts); «Свой» keeps its own. */}
+      <div className="cp-swatches" role="radiogroup" aria-label={ru.common.color} onKeyDown={onRadioGroupKeyDown}>
+        {swatches.map((s, i) => (
           <button
             key={s}
             type="button"
             role="radio"
             aria-checked={s.toUpperCase() === value.toUpperCase()}
+            tabIndex={s.toUpperCase() === value.toUpperCase() || (!swatchChecked && i === 0) ? 0 : -1}
             aria-label={s}
             className={s.toUpperCase() === value.toUpperCase() ? "cp-swatch selected" : "cp-swatch"}
             style={{ background: s }}

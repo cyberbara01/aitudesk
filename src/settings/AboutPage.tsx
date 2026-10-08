@@ -14,6 +14,7 @@ import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
 import appLicence from "../../LICENSE?raw";
 import mapLicence from "../map/LICENSE.md?raw";
+import iconsLicence from "../icons/LICENSE-FluentIcons.txt?raw";
 import { useNavigate } from "./shell/nav";
 
 const ab = ru.settings.about;
@@ -38,6 +39,7 @@ const paragraphs = (text: string) =>
 
 const appLicenceParagraphs = paragraphs(appLicence);
 const mapLicenceParagraphs = paragraphs(mapLicence);
+const iconsLicenceParagraphs = paragraphs(iconsLicence);
 
 /** GitHub's mark (Primer Octicons «mark-github»). */
 function GitHubMark() {
@@ -209,6 +211,7 @@ export function AboutPage() {
         <p className="about-p">{x.appLicenceText}</p>
         <LicenceText label={x.appLicence} text={appLicenceParagraphs} />
         <LicenceText label={x.mapLicence} text={mapLicenceParagraphs} />
+        <LicenceText label={x.iconsLicence} text={iconsLicenceParagraphs} />
       </Section>
     </Page>
   );

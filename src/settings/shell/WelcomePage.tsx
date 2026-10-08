@@ -3,8 +3,8 @@
 // menu's own classes, the style cards) or beside real shortcuts to the pages it mentions, then «Начать»,
 // which marks the page as seen and opens «Общие». The last step shows the start with Windows (on from the first
 // start) with its switch right here: it decides whether the widgets are still there after a restart.
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { autostartChanged, disable, enable, isEnabled } from "../../lib/autostart";
+import { type CSSProperties, type ReactNode } from "react";
+import { autostartChanged, disable, enable } from "../../lib/autostart";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { Page } from "../../components/Section";
@@ -13,6 +13,7 @@ import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.shell";
 import { STYLES, THEMES } from "../../lib/design";
 import { useSettings } from "../../lib/useSettings";
+import { autostartOn, useExternal } from "./external";
 import { useRootAttribute } from "./hooks";
 import { useNavigate } from "./nav";
 
@@ -148,19 +149,9 @@ function StylesPicture({ desk }: { desk: CSSProperties }) {
   );
 }
 
-/** «Запускать вместе с Windows», the same switch as in «Общие» (the Run value of src-tauri/src/autostart.rs). */
-function AutostartSwitch() {
-  const [on, setOn] = useState<boolean | null>(null);
-  useEffect(() => {
-    let alive = true;
-    isEnabled().then(
-      (v) => alive && setOn(v),
-      () => alive && setOn(false),
-    );
-    return () => {
-      alive = false;
-    };
-  }, []);
+/** «Запускать вместе с Windows», the same switch and state as in «Общие» (the Run value of
+ *  src-tauri/src/autostart.rs); the step's text follows it. */
+function AutostartSwitch({ on, setOn }: { on: boolean | null; setOn: (v: boolean) => void }) {
   const toggle = (v: boolean) => {
     setOn(v);
     (v ? enable() : disable()).then(
@@ -177,6 +168,7 @@ export function WelcomePage() {
   // The pictures sit on the wallpaper of the palette in use, like the previews on «Оформление».
   const applied = useRootAttribute("data-theme");
   const desk = { "--desk": (THEMES.find((t) => t.id === applied) ?? THEMES[0]).swatch.bg } as CSSProperties;
+  const [autostart, setAutostart] = useExternal(autostartOn);
 
   return (
     <Page title={onboarded ? extra.shell.help : w.title} description={w.desc}>
@@ -201,7 +193,7 @@ export function WelcomePage() {
               <Button icon="note" onClick={() => navigate("notes")}>
                 {nav.notes}
               </Button>
-              <Button icon="apps" onClick={() => navigate("launchers")}>
+              <Button icon="link" onClick={() => navigate("launchers")}>
                 {nav.launchers}
               </Button>
             </div>
@@ -221,10 +213,10 @@ export function WelcomePage() {
         <Step
           n={6}
           title={w.startTitle}
-          text={w.startText(nav.general, nav.reminders)}
+          text={autostart === false ? w.startTextOff(nav.general, nav.reminders) : w.startText(nav.general, nav.reminders)}
           actions={
             <>
-              <AutostartSwitch />
+              <AutostartSwitch on={autostart} setOn={setAutostart} />
               <Button icon="alert" onClick={() => navigate("reminders")}>
                 {nav.reminders}
               </Button>
@@ -234,7 +226,7 @@ export function WelcomePage() {
       </ol>
       <div className="ob-foot">
         <p className="hint ob-foot-text">{w.footer(extra.shell.help)}</p>
-        <Button variant="accent" onClick={() => navigate("general")}>
+        <Button variant="accent" onClick={() => navigate("widgets")}>
           {w.start}
         </Button>
       </div>

@@ -36,6 +36,9 @@ export const en: ShellStrings = {
     reset: "Reset",
     layoutLabel: "Widget layout",
     layoutHint: "The widgets go back to their original places and sizes",
+    layoutTitle: "Reset the layout?",
+    layoutText: (manual: string) =>
+      `Every widget goes back to its original place and size, and every widget's size becomes “${manual}” again. This cannot be undone.`,
     resetLayoutFailed: "Couldn't reset the layout",
     appearanceLabel: "Appearance",
     appearanceHint: "Design, theme, accent and the look of all widgets. Classes, notes and shortcuts stay",
@@ -80,7 +83,7 @@ export const en: ShellStrings = {
     sampleDevice: "Headphones",
     fine: "Fine-tuning",
     fineHint:
-      "Take from a design only what you like: the font, corners, spacing, borders and transparency are chosen on their own. Switches and buttons stay as in the design",
+      "Take from a design only what you like: the font, numbers, corners, spacing, borders and transparency are chosen on their own. Switches and buttons stay as in the design",
     fineAuto: (value: string) => `As in the design: ${value}`,
     fineChangedLabel: "Your own look",
     fineChanged: (parts: string) => `Chosen on their own: ${parts}`,
@@ -116,6 +119,7 @@ export const en: ShellStrings = {
     guide: "Guide",
     mapTitle: "AITU map",
     mapLicence: "aitumap license text",
+    iconsLicence: "Fluent UI System Icons license text",
     appLicence: "AITU Desk license text",
     appLicenceText:
       "AITU Desk is distributed under the MIT license: you can use, change and share the app freely, as long as the author's name and the license text are kept.",
@@ -148,10 +152,12 @@ export const en: ShellStrings = {
       "Add your schedule, notes with deadlines and shortcuts to your sites in these sections; the widgets show them right away. Drag notes with the mouse, in the list or right on the widget, to put them in your own order. Click a room in the schedule to find it on the map.",
     lookTitle: "Design, theme and size",
     lookText: (appearance: string, a: string, b: string, c: string) =>
-      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, corners, spacing, borders and transparency can be chosen on their own instead of taken from the design. The widgets and this window change at once.`,
+      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, numbers, corners, spacing, borders and transparency can be chosen on their own instead of taken from the design. The widgets and this window change at once.`,
     startTitle: "Startup and reminders",
     startText: (general: string, reminders: string) =>
-      `Autostart is already on: after a restart the widgets are in place. You can turn it off here or in “${general}”. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
+      `Autostart is on: after a restart the widgets are in place. You can turn it off here or in “${general}”. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
+    startTextOff: (general: string, reminders: string) =>
+      `Autostart is off: after a restart the widgets appear only once you open AITU Desk. You can turn it on here or in “${general}”. While the app runs, it reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
     footer: (help: string) =>
       `You can close this window: the widgets stay. Open the settings again from the AITU Desk shortcut or its icon next to the clock on the taskbar, these tips from “${help}” at the bottom of the sidebar, and switch the app language with the “RU | EN” button under it.`,
     start: "Get started",
@@ -165,7 +171,7 @@ export const en: ShellStrings = {
     addHint: (max: number) => `Up to ${max} widgets. The picture is copied into the app's folder, so the original file is not needed later`,
     limit: (max: number) => `There are ${max} widgets already, no more can be added`,
     newTitle: "New widget",
-    editTitle: "Your widget",
+    editTitle: "Edit widget",
     previewTitle: "This is how it will look",
     previewChoose: "Choose a picture or a GIF",
     previewHintNew: "It starts as a square, and you can resize it on the desktop from the widget's menu",

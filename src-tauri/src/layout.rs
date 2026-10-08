@@ -262,9 +262,16 @@ pub fn scale_saved(app: &AppHandle, f: impl Fn(&Rect) -> Rect) {
     }
 }
 
-/// The rect a tile was given by hand (moved or resized); None while it keeps its default place and size.
-pub fn saved_rect(app: &AppHandle, label: &str) -> Option<Rect> {
-    load_layout(app).get(label).copied()
+/// The size a widget shows its content at (an own widget's proportions for the preview in its editor): «Большой»
+/// is the default size; otherwise the rect given by hand while it is on this screen, else the default one. A folded
+/// widget's pop-up shows the same full size. None while the window does not exist.
+pub fn content_rect(app: &AppHandle, label: &str) -> Option<Rect> {
+    let win = app.get_webview_window(label)?;
+    if view_of(app, label) == View::Large {
+        return Some(default_rect(app, label, &work_area(&win)));
+    }
+    let (w, h) = full_size(app, &win, label);
+    Some(Rect { x: 0, y: 0, w, h })
 }
 
 fn load_layout(app: &AppHandle) -> HashMap<String, Rect> {
@@ -558,6 +565,9 @@ pub fn set_hidden(app: &AppHandle, hidden: bool) {
     }
     // The settings window shows this state («Все виджеты» in «Виджеты»).
     let _ = app.emit("tiles-hidden", hidden);
+    if !hidden {
+        crate::desktop_watch::wake(app);
+    }
 }
 
 pub fn is_hidden(app: &AppHandle) -> bool {
@@ -578,6 +588,8 @@ pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
         if !hidden {
             unpark(app, &win, label);
         }
+        drop(disabled);
+        crate::desktop_watch::wake(app);
     } else {
         disabled.insert(label.to_string());
         drop(disabled);

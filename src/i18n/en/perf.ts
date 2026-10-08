@@ -12,6 +12,8 @@ export const en: PerfStrings = {
     `${used.toLocaleString("en-GB", { maximumFractionDigits: 1 })} of ${total.toLocaleString("en-GB", { maximumFractionDigits: 0 })} GB`,
   cycleHint: "Click to switch the view",
   waiting: "Collecting data",
+  allOff: "All readings are off. Turn them on in the widget settings",
+  unavailable: "This computer does not report the readings that are on",
 
   pageDesc: "Processor, graphics, memory and disk load and their temperature. Updated only while the widget is visible",
   previewHint: "Live preview: the real values of this computer",

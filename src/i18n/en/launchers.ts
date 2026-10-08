@@ -24,7 +24,7 @@ export const en: LaunchersStrings = {
   tileNames: { du: "DU", moodle: "LMS", learn: "Learn" },
   menuTurnOff: "Turn off shortcut",
 
-  untitled: "New shortcut",
+  untitled: "Shortcut",
   restore: "Restore the original",
   urlSpaces: "Remove the spaces from the address",
   siteIconReady: "Site icon loaded",

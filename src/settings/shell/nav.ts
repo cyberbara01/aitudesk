@@ -75,7 +75,7 @@ export const TILE_ICONS: Record<TileId, string> = {
   clock: "clock",
   system: "desktop",
   perf: "top_speed",
-  launchers: "apps",
+  launchers: "link",
   map: "map",
   schedule: "calendar_ltr",
   notes: "note",

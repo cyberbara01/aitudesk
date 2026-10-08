@@ -25,6 +25,9 @@ interface Reading {
   temp: number | null;
 }
 
+/** At least one of the four readings is switched on. */
+const anyReadingOn = (s: PerfSettings) => s.cpu || s.gpu || s.ram || s.disk;
+
 function readings(info: PerfInfo | null, s: PerfSettings): Reading[] {
   if (!info) return [];
   const out: Reading[] = [];
@@ -109,7 +112,10 @@ function Item({ r, s }: { r: Reading; s: PerfSettings }) {
 /** The readings in one of the four views; shared by the widget and the live preview on its settings page. */
 export function PerfView({ info, settings: s, mode }: { info: PerfInfo | null; settings: PerfSettings; mode: PerfMode }) {
   const rs = readings(info, s);
-  if (rs.length === 0) return <div className="perf-empty caption">{x.waiting}</div>;
+  if (rs.length === 0) {
+    const why = !anyReadingOn(s) ? x.allOff : info ? x.unavailable : x.waiting;
+    return <div className="perf-empty caption">{why}</div>;
+  }
   const look = { "data-color": s.color, "data-thickness": s.thickness };
   if (mode === "rings") {
     return (
@@ -154,10 +160,10 @@ const GROW: Grow = { w: 280, h: 132 };
 
 export function PerfTile() {
   const s = useSettings().perf;
-  // Folded to its icon, or with a program over the whole screen, nothing is read.
+  // Folded to its icon, with a program over the whole screen, or with every reading switched off, nothing is read.
   const folded = useFolded();
   const covered = useDesktopCovered();
-  const info = usePerf(!folded && !covered, s.interval);
+  const info = usePerf(!folded && !covered && anyReadingOn(s), s.interval);
   return (
     <Tile label="perf" className="tile-perf" background={s.background} grow={GROW}>
       <Tooltip text={x.cycleHint} className="perf-hit">

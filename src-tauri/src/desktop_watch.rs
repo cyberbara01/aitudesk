@@ -32,7 +32,7 @@ use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED};
 use windows::Win32::UI::Accessibility::{SetWinEventHook, HWINEVENTHOOK};
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, EnumWindows, FindWindowExW, GetClassNameW, GetForegroundWindow, GetShellWindow, GetWindow,
-    GetWindowLongPtrW, GetWindowLongW, GetWindowRect, IsIconic, IsWindowVisible, SetForegroundWindow, SetTimer,
+    GetWindowLongPtrW, GetWindowLongW, GetWindowRect, IsIconic, IsWindowVisible, KillTimer, SetForegroundWindow, SetTimer,
     SetWindowLongPtrW, SetWindowPos, SystemParametersInfoW, SPI_GETWORKAREA, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
     WS_EX_LAYERED, WS_EX_TRANSPARENT,
     EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, GWLP_HWNDPARENT, GWL_EXSTYLE,
@@ -371,9 +371,34 @@ fn check() {
     }
 }
 
-/// Fast poll right after a hooked event or a transition, medium while the desktop is shown, slow otherwise.
-/// SetTimer with the id of an existing thread timer replaces its interval.
+/// No widget of ours is on screen: every tile hidden («Все виджеты» off) or switched off, and no pop-up open.
+fn nothing_shown(app: &AppHandle) -> bool {
+    if crate::popup::open_hwnd(app).is_some() {
+        return false;
+    }
+    let vis = app.state::<crate::layout::Visibility>();
+    if *vis.hidden.lock().unwrap() {
+        return true;
+    }
+    let disabled = vis.disabled.lock().unwrap();
+    crate::tile_labels(app).iter().all(|l| disabled.contains(l))
+}
+
+/// Fast poll right after a hooked event or a transition, medium while the desktop is shown, slow otherwise, and
+/// none while nothing of ours is on screen (`wake` starts it again). SetTimer with the id of an existing thread
+/// timer replaces its interval.
 fn schedule_poll() {
+    if APP.get().is_some_and(nothing_shown) {
+        let id = TIMER_ID.load(Ordering::Relaxed);
+        if id != 0 {
+            unsafe {
+                let _ = KillTimer(None, id);
+            }
+            TIMER_ID.store(0, Ordering::Relaxed);
+            TIMER_MS.store(0, Ordering::Relaxed);
+        }
+        return;
+    }
     let want = if now_ms() < FAST_UNTIL_MS.load(Ordering::Relaxed) {
         FAST_MS
     } else if DESKTOP_SHOWN.load(Ordering::Relaxed) {
@@ -413,6 +438,16 @@ unsafe extern "system" fn on_event(
 unsafe extern "system" fn on_timer(_hwnd: HWND, _msg: u32, _id: usize, _time: u32) {
     check();
     schedule_poll();
+}
+
+/// Widgets are on screen again (shown with «Все виджеты», or one switched on): watch closely for a moment and start
+/// the poll. Runs on the main thread, after the caller's locks are released.
+pub fn wake(app: &AppHandle) {
+    let _ = app.run_on_main_thread(|| {
+        FAST_UNTIL_MS.fetch_max(now_ms() + FAST_AFTER_EVENT_MS, Ordering::Relaxed);
+        check();
+        schedule_poll();
+    });
 }
 
 /// The pop-up window (popup.rs): a tool window owned by the desktop like the tiles, but it can be activated: it

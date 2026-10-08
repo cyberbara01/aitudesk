@@ -178,6 +178,7 @@
     ],
     "windows": {
       "nsis": {
+        "installerIcon": "icons/icon.ico",
         "installMode": "currentUser",
         "languages": [
           "English",
@@ -188,6 +189,6 @@
     },
     "publisher": "AITU Desk",
     "shortDescription": "Виджеты рабочего стола для студентов Astana IT University",
-    "copyright": "© 2026 cyberbara01. Карта AITU: aitumap (Yuujiso, MIT). Иконки: Fluent UI System Icons (Microsoft, MIT)"
+    "copyright": "© 2026 cyberbara01"
   }
 }

@@ -23,6 +23,8 @@ function detect(): Lang {
 }
 
 export const LANG: Lang = detect();
+// The page says which language it is in, so Narrator reads the English interface by English rules.
+if (typeof document !== "undefined") document.documentElement.lang = LANG;
 
 /** Locale for dates, letter case and sorting: Russian, or British English (day before month, week from Monday). */
 export const LOCALE = LANG === "ru" ? "ru-RU" : "en-GB";

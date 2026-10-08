@@ -55,8 +55,8 @@ export function CustomWidgetEditor({ widget, onClose }: Props) {
   const [picking, setPicking] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const image = useWidgetImage(file);
-  // An existing widget's proportions, from the rect it was given on the desktop (also while it is folded to an
-  // icon); a new one, or one never resized, is the default square.
+  // An existing widget's proportions: the size it shows its picture at on the desktop (or in its pop-up while it
+  // is folded to an icon); a new one, or one never resized, is the default square.
   const [aspect, setAspect] = useState(1);
   useEffect(() => {
     if (!widget) return;
@@ -215,7 +215,7 @@ export function CustomWidgetEditor({ widget, onClose }: Props) {
         footer={
           <>
             <Button onClick={closeConfirm}>{ru.common.cancel}</Button>
-            <Button variant="accent" onClick={() => void remove()}>
+            <Button variant="danger" icon="delete" onClick={() => void remove()}>
               {c.remove}
             </Button>
           </>

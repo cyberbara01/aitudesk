@@ -201,7 +201,7 @@ const RU = {
       accentWindows: "Как в Windows",
       accentCustom: "Свой цвет",
       accents: {
-        "fluent-blue": "Fluent",
+        "fluent-blue": "Кобальт",
         sky: "Небо",
         teal: "Бирюза",
         mint: "Мята",

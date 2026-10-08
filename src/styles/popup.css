@@ -142,3 +142,5 @@
   box-shadow: none;
   background: transparent !important;
 }
+/* An own picture widget has no padding: its picture ends at the card's rounded bottom corners, not past them. */
+.tile.in-popup.tile-custom { border-radius: 0 0 var(--popup-r) var(--popup-r); }

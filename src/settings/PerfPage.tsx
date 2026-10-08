@@ -35,7 +35,7 @@ const THICKNESS_OPTIONS: readonly SegmentedOption<PerfThickness>[] = (["thin", "
 }));
 const ALERT_OPTIONS: readonly SegmentedOption<string>[] = PERF_ALERTS.map((a) => ({
   value: String(a),
-  label: a === 0 ? x.alertOff : `${a}${String.fromCharCode(0x202f)}%`,
+  label: a === 0 ? x.alertOff : x.percent(a),
 }));
 const UNIT_OPTIONS: readonly SegmentedOption<"c" | "f">[] = [
   { value: "c", label: x.unitOptions.c },

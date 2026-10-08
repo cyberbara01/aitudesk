@@ -14,4 +14,9 @@ The icons of the DU, LMS and Learn sites ([src/assets/sites](src/assets/sites)) 
 They are taken from the sites' own favicons and are used only to mark the shortcuts that lead to the
 university's services. They are the university's marks and are not covered by this repository's MIT licence.
 
+The GitHub, Telegram and Google marks on the About page only mark the links to those services. They are trademarks
+of GitHub, Inc., Telegram FZ-LLC and Google LLC and are not covered by this repository's MIT licence. The GitHub
+mark is the `mark-github` icon of [Octicons](https://github.com/primer/octicons) (© GitHub Inc., MIT); the Telegram
+and Google shapes come from [Simple Icons](https://github.com/simple-icons/simple-icons) (CC0 1.0).
+
 Libraries installed by npm and Cargo (Tauri, React and others) come with their own licences in their packages.

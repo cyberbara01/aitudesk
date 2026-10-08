@@ -40,7 +40,7 @@ export const en: NotesStrings = {
     desc: "Short tasks and deadlines. The widget shows your notes and counts down to each deadline",
     list: "All notes",
     sort: "Sort order",
-    sortHint: "The widget uses the same order. Drag a note with the mouse, here or on the widget, to put them in your own order",
+    sortHint: "The widget shows the notes in the same order. To arrange them your own way, drag a note with the mouse here or right on the widget",
     sorts: {
       deadline: "By deadline",
       newest: "Newest first",

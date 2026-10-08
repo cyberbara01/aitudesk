@@ -32,6 +32,8 @@ export function GeneralPage() {
   /** The language picked in the row, waiting for «Перезапустить». */
   const [language, setLanguage] = useState<LanguageSetting | null>(null);
   const [layoutReset, flashLayoutReset] = useTransient<Outcome>("idle");
+  const [layoutOpen, setLayoutOpen] = useState(false);
+  const closeLayout = useCallback(() => setLayoutOpen(false), []);
   const [lookReset, flashLookReset] = useTransient<Outcome>("idle");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const closeConfirm = useCallback(() => setConfirmOpen(false), []);
@@ -49,6 +51,7 @@ export function GeneralPage() {
 
   // Back to the first places and sizes: every widget «Вручную» again, at its default rect.
   const resetLayout = async () => {
+    setLayoutOpen(false);
     try {
       await settings.update({ tileViews: {} });
       await invoke("reset_layout");
@@ -100,7 +103,7 @@ export function GeneralPage() {
       <Section title={x.reset}>
         <Row label={x.layoutLabel} hint={x.layoutHint} stack>
           <span className="inline">
-            <Button icon="arrow_reset" onClick={() => void resetLayout()}>
+            <Button icon="arrow_reset" onClick={() => setLayoutOpen(true)}>
               {g.resetLayout}
             </Button>
             <ResultText outcome={layoutReset} done={g.resetLayoutDone} failed={x.resetLayoutFailed} />
@@ -125,6 +128,23 @@ export function GeneralPage() {
       </Section>
 
       <LanguageDialog pending={language} onClose={() => setLanguage(null)} />
+
+      <Dialog
+        open={layoutOpen}
+        title={x.layoutTitle}
+        onClose={closeLayout}
+        width="440px"
+        footer={
+          <>
+            <Button onClick={closeLayout}>{ru.common.cancel}</Button>
+            <Button variant="accent" onClick={() => void resetLayout()}>
+              {ru.common.reset}
+            </Button>
+          </>
+        }
+      >
+        <p className="reset-text">{x.layoutText(extra.views.manual)}</p>
+      </Dialog>
 
       <Dialog
         open={confirmOpen}

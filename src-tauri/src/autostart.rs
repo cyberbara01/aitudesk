@@ -4,7 +4,11 @@
 //! Windows' own switch for startup apps (Settings → Apps → Startup, kept in Explorer\StartupApproved\Run) counts:
 //! a start switched off there reads as off here, and switching it on here clears that mark, so the app's switch
 //! and the system's always agree.
+//! The user's choice is also kept in the store (`autostartWanted`, next to the settings, not in config files): an
+//! update's installer runs the old uninstaller, which deletes the Run value, and the next start writes it back.
 
+use tauri::AppHandle;
+use tauri_plugin_store::StoreExt;
 use windows::core::HSTRING;
 use windows::Win32::Foundation::ERROR_SUCCESS;
 use windows::Win32::System::Registry::{
@@ -15,6 +19,7 @@ use windows::Win32::System::Registry::{
 const RUN: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
 const APPROVED: &str = r"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
 const NAME: &str = "AITU Desk";
+const WANTED_KEY: &str = "autostartWanted";
 
 /// What the Run value should say for this installation.
 fn command_line() -> Option<String> {
@@ -68,7 +73,8 @@ pub fn is_enabled() -> bool {
     read_string(RUN, NAME).is_some() && approved() != Some(false)
 }
 
-pub fn enable() -> Result<(), String> {
+/// The Run value only, saying exactly what it should for this installation.
+fn write_run() -> Result<(), String> {
     let value = command_line().ok_or("no exe path")?;
     let key = open(RUN, KEY_SET_VALUE).ok_or("registry")?;
     let wide: Vec<u16> = value.encode_utf16().chain(std::iter::once(0)).collect();
@@ -81,7 +87,13 @@ pub fn enable() -> Result<(), String> {
     if status != ERROR_SUCCESS {
         return Err("registry".into());
     }
-    // Turned off in Windows' settings before: clear that mark, the user has just asked for the start.
+    Ok(())
+}
+
+/// The start switched on: the Run value, and Windows' own «off» mark cleared, since the user (or the first start)
+/// has just asked for the start.
+pub fn enable() -> Result<(), String> {
+    write_run()?;
     if approved() == Some(false) {
         if let Some(key) = open(APPROVED, KEY_SET_VALUE) {
             unsafe {
@@ -107,12 +119,35 @@ pub fn disable() -> Result<(), String> {
 }
 
 /// At every start: an existing entry that no longer says exactly the right thing (written unquoted by an older
-/// version, or pointing at a moved install) is rewritten. Nothing is created when there is none.
+/// version, or pointing at a moved install) is rewritten. Nothing is created when there is none, and Windows' own
+/// switch is left as the user set it.
 pub fn refresh() {
     if let (Some(current), Some(wanted)) = (read_string(RUN, NAME), command_line()) {
         if current != wanted {
-            let _ = enable();
+            let _ = write_run();
         }
+    }
+}
+
+/// Keeps the user's choice in the store.
+pub fn remember(app: &AppHandle, on: bool) {
+    if let Ok(store) = app.store(crate::layout::STORE_FILE) {
+        store.set(WANTED_KEY, on);
+        let _ = store.save();
+    }
+}
+
+/// At every start but the first: the user wants the start and its Run value is gone (an update's uninstaller
+/// deleted it), so it is written back, unless the start was switched off in Windows' own settings. A store from
+/// before this key learns the current state.
+pub fn restore(app: &AppHandle) {
+    let wanted = app.store(crate::layout::STORE_FILE).ok().and_then(|s| s.get(WANTED_KEY)).and_then(|v| v.as_bool());
+    match wanted {
+        Some(true) if read_string(RUN, NAME).is_none() && approved() != Some(false) => {
+            let _ = write_run();
+        }
+        None => remember(app, is_enabled()),
+        _ => {}
     }
 }
 
@@ -122,10 +157,12 @@ pub fn autostart_enabled() -> bool {
 }
 
 #[tauri::command]
-pub fn set_autostart(on: bool) -> Result<(), String> {
+pub fn set_autostart(app: AppHandle, on: bool) -> Result<(), String> {
     if on {
-        enable()
+        enable()?;
     } else {
-        disable()
+        disable()?;
     }
+    remember(&app, on);
+    Ok(())
 }

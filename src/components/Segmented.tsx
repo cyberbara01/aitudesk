@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { onRadioGroupKeyDown } from "../lib/radioGroup";
 import { Icon } from "./Icon";
 
 export interface SegmentedOption<T extends string> {
@@ -19,7 +20,8 @@ interface SegmentedProps<T extends string> {
   className?: string;
 }
 
-/** Segmented control with a sliding indicator (167 ms, move curve). The look per design language is in base.css. */
+/** Segmented control with a sliding indicator (167 ms, move curve). The look per design language is in base.css.
+ *  As a radio group it is one Tab stop and the arrow keys pick the neighbouring option (src/lib/radioGroup.ts). */
 export function Segmented<T extends string>({ options, value, onChange, size = "md", fill, role = "radiogroup", ariaLabel, className }: SegmentedProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
   const [ind, setInd] = useState<{ x: number; w: number } | null>(null);
@@ -43,11 +45,20 @@ export function Segmented<T extends string>({ options, value, onChange, size = "
 
   const cls = ["segmented", size === "sm" ? "sm" : "", fill ? "fill" : "", className ?? ""].filter(Boolean).join(" ");
   const style = ind ? ({ "--seg-x": `${ind.x}px`, "--seg-w": `${ind.w}px` } as CSSProperties) : undefined;
+  const radio = role === "radiogroup";
+  const anySelected = options.some((o) => o.value === value);
 
   return (
-    <div ref={ref} className={cls} role={role} aria-label={ariaLabel} style={style}>
+    <div
+      ref={ref}
+      className={cls}
+      role={role}
+      aria-label={ariaLabel}
+      style={style}
+      onKeyDown={radio ? onRadioGroupKeyDown : undefined}
+    >
       {ind && <span className="seg-indicator" aria-hidden="true" />}
-      {options.map((o) => {
+      {options.map((o, i) => {
         const selected = o.value === value;
         return (
           <button
@@ -56,7 +67,8 @@ export function Segmented<T extends string>({ options, value, onChange, size = "
             data-value={o.value}
             role={role === "tablist" ? "tab" : "radio"}
             aria-selected={role === "tablist" ? selected : undefined}
-            aria-checked={role === "radiogroup" ? selected : undefined}
+            aria-checked={radio ? selected : undefined}
+            tabIndex={radio ? (selected || (!anySelected && i === 0) ? 0 : -1) : undefined}
             className={selected ? "seg-item selected" : "seg-item"}
             onClick={() => {
               if (!selected) onChange(o.value);

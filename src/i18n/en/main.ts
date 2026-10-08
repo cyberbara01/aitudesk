@@ -192,7 +192,7 @@ export const en: MainStrings = {
       accentWindows: "Same as Windows",
       accentCustom: "Custom color",
       accents: {
-        "fluent-blue": "Fluent",
+        "fluent-blue": "Cobalt",
         sky: "Sky",
         teal: "Teal",
         mint: "Mint",

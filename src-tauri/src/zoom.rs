@@ -3,9 +3,11 @@
 //! a factor (0.8, 0.9, 1, 1.1). Auto is 1 on a screen tall enough for the default column of widgets and smaller
 //! on laptops, so the default layout still fits one column there.
 //!
-//! The zoom the saved layout was made with is kept next to it (`tileZoom`). When the zoom changes (the setting,
-//! or "auto" on another screen), every saved tile is scaled by the ratio about the work-area corner it is
-//! nearest to, so a column along the right edge stays along the right edge with its gaps scaled too.
+//! The zoom the saved layout was made with is kept next to it (`tileZoom`), and so is the display scale
+//! (`layoutScale`, Windows' «Масштаб»): the saved rects are physical pixels. When either changes (the setting,
+//! "auto" on another screen, or another display scale), every saved tile is scaled by the ratio of physical pixels
+//! per page pixel about the work-area corner it is nearest to, so a widget keeps its size next to its neighbours
+//! and a column along the right edge stays along the right edge with its gaps scaled too.
 
 use std::sync::Mutex;
 
@@ -16,6 +18,8 @@ use crate::layout::{Rect, WorkArea, STORE_FILE};
 
 /// The zoom the layout in the store was made with (absent: 1, every layout before this setting).
 const ZOOM_KEY: &str = "tileZoom";
+/// The display scale the layout in the store was made at (absent: the current one, every layout before it).
+const SCALE_KEY: &str = "layoutScale";
 
 /// Zoom the tile pages have now.
 static CURRENT: Mutex<f64> = Mutex::new(1.0);
@@ -58,8 +62,23 @@ fn stored(app: &AppHandle) -> f64 {
         .unwrap_or(1.0)
 }
 
-/// A saved rect at zoom `from` brought to zoom `to`: its size scaled, and its distance from the nearest corner
-/// of the work area too.
+/// Display scale of the saved layout.
+fn stored_scale(app: &AppHandle) -> Option<f64> {
+    app.store(STORE_FILE)
+        .ok()
+        .and_then(|s| s.get(SCALE_KEY))
+        .and_then(|v| v.as_f64())
+        .filter(|s| (0.5..=8.0).contains(s))
+}
+
+/// The tiles' zoom or the display scale differs from what the saved layout was made with.
+pub fn screen_changed(app: &AppHandle, wa: &WorkArea) -> bool {
+    let scale = stored_scale(app).unwrap_or(wa.scale);
+    (resolve(app, wa) - stored(app)).abs() > 1e-6 || (scale - wa.scale).abs() > 1e-6
+}
+
+/// A saved rect brought to `k` times as many physical pixels per page pixel: its size scaled, and its distance
+/// from the nearest corner of the work area too.
 fn rescale(r: &Rect, wa: &WorkArea, k: f64) -> Rect {
     let w = (r.w as f64 * k).round().max(1.0);
     let h = (r.h as f64 * k).round().max(1.0);
@@ -82,15 +101,20 @@ fn rescale(r: &Rect, wa: &WorkArea, k: f64) -> Rect {
     Rect { x: x.round() as i32, y: y.round() as i32, w: w as u32, h: h as u32 }
 }
 
-/// Startup and every change of the setting: the zoom for this screen, the saved layout scaled to it if it was
-/// made at another one, and every tile page zoomed. Returns the zoom.
+/// Startup, every change of the setting and of the display scale: the zoom for this screen, the saved layout
+/// scaled to it if it was made at another zoom or display scale, and every tile page zoomed. Returns the zoom.
 pub fn apply(app: &AppHandle, wa: &WorkArea) -> f64 {
     let zoom = resolve(app, wa);
     let before = stored(app);
-    if (zoom - before).abs() > 1e-6 {
-        crate::layout::scale_saved(app, |r| rescale(r, wa, zoom / before));
+    let then = stored_scale(app);
+    let k = (wa.scale * zoom) / (then.unwrap_or(wa.scale) * before);
+    if (k - 1.0).abs() > 1e-6 {
+        crate::layout::scale_saved(app, |r| rescale(r, wa, k));
+    }
+    if (zoom - before).abs() > 1e-6 || then.is_none_or(|s| (s - wa.scale).abs() > 1e-6) {
         if let Ok(store) = app.store(STORE_FILE) {
             store.set(ZOOM_KEY, zoom);
+            store.set(SCALE_KEY, wa.scale);
             let _ = store.save();
         }
     }

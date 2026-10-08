@@ -148,12 +148,10 @@ pub fn run() {
     let language = lang::init(&context.config().identifier);
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            // Launching the app again (its shortcut, the Start menu) while it runs opens the settings window: on
-            // «Виджеты» while every widget is hidden (the button that shows them again is there), else on
-            // «Общие». A login start stays quiet.
+            // Launching the app again (its shortcut, the Start menu) while it runs opens the settings window on its
+            // home page (settings_window::home_tab). A login start stays quiet.
             if !args.iter().any(|a| a == AUTOSTART_ARG) {
-                let tab = if layout::is_hidden(app) { "widgets" } else { "general" };
-                settings_window::open(app, tab, None);
+                settings_window::open(app, settings_window::home_tab(app), None);
             }
         }))
         // Every page learns the interface language before its own scripts run.
@@ -164,6 +162,20 @@ pub fn run() {
         // system menu) stays: a closed widget window would be gone until the next start, whatever the settings
         // say. The pop-up closes the way it always does, back into its icon.
         .on_window_event(|window, event| {
+            // Windows' display scale changed under the widgets: the saved layout follows it once (the other tiles'
+            // events then find nothing changed) and every tile goes to its place.
+            if let tauri::WindowEvent::ScaleFactorChanged { .. } = event {
+                let app = window.app_handle();
+                if tile_labels(app).iter().any(|l| l == window.label()) {
+                    if let Some(win) = app.get_webview_window(window.label()) {
+                        let wa = layout::work_area(&win);
+                        if zoom::screen_changed(app, &wa) {
+                            zoom::apply(app, &wa);
+                            layout::replace_shown(app);
+                        }
+                    }
+                }
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 let label = window.label();
                 if label != settings_window::LABEL {
@@ -241,18 +253,24 @@ pub fn run() {
             desktop_watch::install(&handle);
             reminders::start(handle.clone());
             // The start with Windows is on by default: written at the first start (and once for settings from before
-            // that default). Otherwise an existing login entry that is not exactly right (unquoted or without
-            // `--autostart` from an older version, or an install that moved) is rewritten, and none is created.
+            // that default). Later starts write it back when the user wants it and an update's uninstaller deleted
+            // it. An existing login entry that is not exactly right (unquoted or without `--autostart` from an older
+            // version, or an install that moved) is rewritten.
             if start_with_windows {
                 let _ = autostart::enable();
+                autostart::remember(&handle, true);
+            } else {
+                autostart::restore(&handle);
             }
             autostart::refresh();
             // Started by hand (shortcut, Start menu, after install): open the settings window too; the first
             // time it shows the welcome page. A login start shows only the tiles.
-            let autostart = std::env::args().skip(1).any(|a| a == AUTOSTART_ARG)
-                && std::env::var_os("AITUDESK_OPEN_SETTINGS").is_none();
+            // A restart after a language change or «Сбросить всё» comes back to «Общие», where it was asked for.
+            let restarted = std::env::var_os("AITUDESK_OPEN_SETTINGS").is_some();
+            let autostart = std::env::args().skip(1).any(|a| a == AUTOSTART_ARG) && !restarted;
             if !autostart {
-                settings_window::open(&handle, "general", None);
+                let tab = if restarted { "general" } else { settings_window::home_tab(&handle) };
+                settings_window::open(&handle, tab, None);
             }
             Ok(())
         })

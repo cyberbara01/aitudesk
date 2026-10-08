@@ -216,10 +216,10 @@ pub fn get_layout(app: AppHandle) -> Option<layout::LayoutFile> {
     layout::export(&app)
 }
 
-/// One tile's saved rect (an own widget's proportions for the preview in its editor).
+/// The size a tile shows its content at (an own widget's proportions for the preview in its editor).
 #[tauri::command]
 pub fn get_tile_rect(app: AppHandle, label: String) -> Option<layout::Rect> {
-    layout::saved_rect(&app, &label)
+    layout::content_rect(&app, &label)
 }
 
 /// Tile positions and sizes from a settings file, adapted to this screen; the tiles move there.

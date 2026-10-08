@@ -69,7 +69,7 @@ function CustomRow({ widget, view, onEdit }: { widget: CustomWidget; view: TileV
         <SizeSelect label={customLabel(widget.id)} name={name} value={view} />
         <Switch checked={widget.enabled} onChange={toggle} ariaLabel={name} />
         <Tooltip text={c.settingsOf(name)}>
-          <IconButton icon="edit" variant="subtle" label={c.settingsOf(name)} onClick={onEdit} />
+          <IconButton icon="settings" variant="subtle" label={c.settingsOf(name)} onClick={onEdit} />
         </Tooltip>
       </div>
     </div>
@@ -166,14 +166,16 @@ export function WidgetsPage({ editId }: Props) {
     <Page title={ru.settings.nav.widgets} description={x.widgetsDesc}>
       <AllTiles visible={visible} settled={visibleSettled} onChange={toggleVisible} />
 
-      {/* Each widget: what it shows, its size, on or off, and a way into its own settings (switch plus chevron, as
-          in Windows). While every widget is hidden the switches still work; the hint says when they take effect. */}
+      {/* Each widget: what it shows, its size, on or off, and a gear into its own settings (the own widgets' rows end
+          with the same gear). While every widget is hidden the switches still work; the hint says when they take effect. */}
       <Section title={g.tiles} description={visible === false ? x.tilesWhileHidden(x.showAllTiles) : `${g.tilesHint}. ${v.hint}`}>
         {TILE_IDS.map((id) => (
           <IconRow key={id} icon={TILE_ICONS[id]} label={ru.tiles[id]} hint={x.tileHints[id]}>
             <SizeSelect label={id} name={ru.tiles[id]} value={s.tileViews[id] ?? "manual"} />
             <Switch checked={s.tiles[id]} onChange={(on) => toggleTile(id, on)} ariaLabel={ru.tiles[id]} />
-            <IconButton icon="chevron_right" variant="subtle" label={x.tileSettings(ru.tiles[id])} onClick={() => navigate(id)} />
+            <Tooltip text={x.tileSettings(ru.tiles[id])}>
+              <IconButton icon="settings" variant="subtle" label={x.tileSettings(ru.tiles[id])} onClick={() => navigate(id)} />
+            </Tooltip>
           </IconRow>
         ))}
       </Section>

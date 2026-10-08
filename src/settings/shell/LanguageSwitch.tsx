@@ -120,7 +120,13 @@ export function LanguageSwitch() {
  * the app starts again in that language. Shared by this button and the «Язык» row on «Общие».
  */
 export function LanguageDialog({ pending, onClose }: { pending: LanguageSetting | null; onClose: () => void }) {
-  const close = useCallback(() => onClose(), [onClose]);
+  // A stable close for the Dialog whatever the caller passes: a new one would re-run its focus effect on every
+  // render of the page behind it and move the focus from «Перезапустить» back to «Отмена».
+  const latest = useRef(onClose);
+  useEffect(() => {
+    latest.current = onClose;
+  }, [onClose]);
+  const close = useCallback(() => latest.current(), []);
   const apply = async () => {
     if (pending === null) return;
     await settings.update({ language: pending });

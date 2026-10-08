@@ -208,10 +208,15 @@ fn origin(url: &str) -> Option<String> {
     Some(format!("{scheme}://{host}"))
 }
 
+/// The host name alone: no user name or password, no port, lower case.
 fn host_of(url: &str) -> Option<String> {
-    let o = origin(url)?;
-    let h = o.split_once("://")?.1;
-    Some(h.split(':').next()?.to_string())
+    host_port(url).map(|(h, _)| h)
+}
+
+/// A name the public favicon service can know: a dotted domain (not an address) whose every address is public.
+/// localhost, a router's 192.168.x.x or an intranet name are never sent to it.
+fn public_name(host: &str) -> bool {
+    host.contains('.') && host.parse::<IpAddr>().is_err() && allowed(&format!("https://{host}/"), "")
 }
 
 fn resolve(base_origin: &str, page_url: &str, href: &str) -> String {
@@ -280,8 +285,12 @@ fn link_tags(html: &str) -> Vec<(String, String, u32)> {
     out
 }
 
-/// Best-effort icon for `url` as a data: URL.
+/// Best-effort icon for `url` as a data: URL. The scheme is read in any case («Https://» as typed).
 pub fn fetch(url: &str) -> Result<String, String> {
+    let url = &match url.split_once("://") {
+        Some((scheme, rest)) => format!("{}://{rest}", scheme.to_ascii_lowercase()),
+        None => url.to_string(),
+    };
     let base = origin(url).ok_or("invalid address")?;
     let host = host_of(url).ok_or("invalid address")?;
     let (own, _) = host_port(url).ok_or("invalid address")?;
@@ -324,15 +333,18 @@ pub fn fetch(url: &str) -> Result<String, String> {
         }
     }
 
-    // 4. Public favicon service (128 px PNG); it learns the site's name only (the in-app privacy text says so).
-    if let Some(f) = get(
-        &agent,
-        &format!("https://www.google.com/s2/favicons?domain={host}&sz=128"),
-        &own,
-        MAX_ICON_BYTES,
-    ) {
-        if let Some(d) = to_data_url(&f) {
-            return Ok(d);
+    // 4. Public favicon service (128 px PNG); it learns the site's name only (the in-app privacy text says so), and
+    //    only a public one.
+    if public_name(&host) {
+        if let Some(f) = get(
+            &agent,
+            &format!("https://www.google.com/s2/favicons?domain={host}&sz=128"),
+            &own,
+            MAX_ICON_BYTES,
+        ) {
+            if let Some(d) = to_data_url(&f) {
+                return Ok(d);
+            }
         }
     }
 

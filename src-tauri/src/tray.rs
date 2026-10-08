@@ -20,11 +20,11 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         .on_tray_icon_event(|tray, event| {
             // Left click opens settings directly; right click shows the menu.
             if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
-                crate::settings_window::open(tray.app_handle(), "general", None);
+                crate::settings_window::open(tray.app_handle(), crate::settings_window::home_tab(tray.app_handle()), None);
             }
         })
         .on_menu_event(|app, event| match event.id().as_ref() {
-            ID_SETTINGS => crate::settings_window::open(app, "general", None),
+            ID_SETTINGS => crate::settings_window::open(app, crate::settings_window::home_tab(app), None),
             ID_QUIT => app.exit(0),
             _ => {}
         });

@@ -73,8 +73,9 @@ export const BUILT_IN: readonly BuiltInDef[] = [
 /**
  * The real icons of the university's sites, by host, as bundled data: URLs, taken once from the sites
  * themselves as small PNGs. DU: its favicon (the logo on white), drawn again at 128 px from the logo the DU site
- * serves, since the favicon itself is 48 px; LMS: the Moodle favicon; Learn: its 256 px favicon. A Map, so a
- * host like «constructor» cannot reach an Object prototype member.
+ * serves, since the favicon itself is 48 px; LMS: the Moodle favicon on the same white plate (its grey arcs vanish
+ * on a dark tile otherwise); Learn: its 256 px favicon. A Map, so a host like «constructor» cannot reach an Object
+ * prototype member.
  */
 const SITE_ICONS: ReadonlyMap<string, string> = new Map([
   ["du.astanait.edu.kz", duSiteIcon],

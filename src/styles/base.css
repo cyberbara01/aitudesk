@@ -237,7 +237,8 @@ a { color: var(--accent-text); text-decoration: none; }
 /* =====================================================================================
    Switch & checkbox
    ===================================================================================== */
-.switch { display: inline-flex; align-items: center; gap: var(--s3); color: var(--text); min-height: 20px; }
+/* Positioned, so the hidden input lies inside the scrolling page: Tab to a switch below the fold scrolls to it. */
+.switch { position: relative; display: inline-flex; align-items: center; gap: var(--s3); color: var(--text); min-height: 20px; }
 .switch.disabled { color: var(--text-disabled); }
 .switch-input { position: absolute; width: 0; height: 0; margin: 0; opacity: 0; pointer-events: none; }
 .switch-track {

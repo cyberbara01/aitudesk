@@ -282,7 +282,16 @@ function ExportSection({ s }: { s: Settings }) {
           </Button>
           <span className="tr-result">
             <Status
-              tone={result.kind === "saved" ? "ok" : result.kind === "failed" ? "fail" : undefined}
+              // Saved without some own widgets or the layout: said in the neutral tone, not as a full success.
+              tone={
+                result.kind === "saved"
+                  ? result.widgetsLeft > 0 || result.noLayout
+                    ? undefined
+                    : "ok"
+                  : result.kind === "failed"
+                    ? "fail"
+                    : undefined
+              }
               text={
                 result.kind === "saved"
                   ? result.widgetsLeft > 0

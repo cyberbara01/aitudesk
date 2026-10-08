@@ -132,7 +132,9 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
   }, []);
 
   const trimmedName = name.trim();
-  const trimmedUrl = url.trim();
+  // The scheme in lower case at once («Https://» as typed): the icon fetch, the bundled-icon check and the saved
+  // address then all read the same address.
+  const trimmedUrl = url.trim().replace(/^https?:/i, (m) => m.toLowerCase());
   /** The site image the launcher already has stays valid only while the URL is unchanged. */
   const ownData =
     keepOwnImage && item?.icon.kind === "site" && isImageDataUrl(item.icon.data) && item.url === trimmedUrl

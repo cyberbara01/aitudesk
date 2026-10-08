@@ -236,6 +236,13 @@ pub fn sync(app: &AppHandle) {
             let _ = win.destroy();
         }
     }
+    // Unused pictures go only while the settings are really there. After an unreadable settings file was set aside
+    // (settings.broken-*.json, kept so it can be repaired) the store starts empty, and its empty list must not take
+    // every picture with it.
+    let has_settings = app.store(STORE_FILE).ok().and_then(|s| s.get(SETTINGS_KEY)).is_some_and(|v| v.is_object());
+    if !has_settings || broken_settings_kept(app) {
+        return;
+    }
     if let Ok(folder) = dir(app) {
         let used: Vec<&str> = list.iter().map(|(_, _, file, _)| file.as_str()).collect();
         if let Ok(entries) = std::fs::read_dir(folder) {
@@ -249,6 +256,14 @@ pub fn sync(app: &AppHandle) {
             }
         }
     }
+}
+
+/// An unreadable settings file was set aside next to the store (lib.rs protect_store_file).
+fn broken_settings_kept(app: &AppHandle) -> bool {
+    let Ok(folder) = app.path().app_data_dir() else { return true };
+    std::fs::read_dir(folder)
+        .map(|entries| entries.flatten().any(|e| e.file_name().to_string_lossy().starts_with("settings.broken-")))
+        .unwrap_or(false)
 }
 
 /// The settings added, removed or renamed a custom widget.

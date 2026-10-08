@@ -613,8 +613,9 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
     case "custom": {
       const list = s.customWidgets;
       if (list.length === 0) return shell.custom.summaryNone;
-      const names = list.map((w) => w.name.trim()).filter(Boolean);
-      return shell.custom.summary(list.length, names.slice(0, 3).join(", "), names.length - 3);
+      // Up to three names; every other widget, named or not, counts in «и ещё N».
+      const shown = list.map((w) => w.name.trim()).filter(Boolean).slice(0, 3);
+      return shell.custom.summary(list.length, shown.join(", "), list.length - shown.length);
     }
     case "notes": {
       const notes = s.notes.notes;

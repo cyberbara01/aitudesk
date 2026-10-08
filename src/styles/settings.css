@@ -22,6 +22,8 @@
    list scrolls only if the window is too low for all of it. */
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; }
 .sidebar-foot { display: flex; flex-direction: column; gap: 2px; }
+/* The items fill the scrolling list edge to edge, which would clip a ring drawn outside them: it goes inside. */
+:is(.sidebar-nav, .sidebar-foot) .nav-item:focus-visible { outline-offset: -2px; }
 .lang-switch { position: relative; display: flex; }
 /* «RU | EN» in small capitals, the language in use bright; as wide as its text. */
 .lang-btn {
