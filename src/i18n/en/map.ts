@@ -42,7 +42,7 @@ export const en: MapStrings = {
   },
   labelsHint: "Numbers on the plan. In the smallest rooms they appear as you zoom in",
   labelsWhenZoomed: "Numbers only when zoomed in",
-  labelsWhenZoomedHint: "The whole-floor view shows no numbers; they appear once the map is zoomed in by two wheel notches",
+  labelsWhenZoomedHint: "The whole-floor view shows no numbers; they appear once the map is zoomed in a little: two wheel notches or a pinch",
   iconsHint: "Hidden while the map is too small",
   nextLesson: "Show the next class",
   nextLessonHint:
@@ -50,14 +50,14 @@ export const en: MapStrings = {
   nextLessonPrivate: "Not shown while the schedule hides its content on the desktop",
   legendOther: "·",
 
-  gestures: "The wheel zooms, dragging moves the map, a double-click fits the whole map",
+  gestures: "The wheel or a two-finger pinch on the touchpad zooms, dragging moves the map, a double-click fits the whole map",
   switchSideHint: "The search and the brush take the opposite side",
   switchMode: "Floor switch visibility",
   switchModeHint: "On hover it appears together with the search and the zoom buttons",
   switchAlways: "Always",
   switchHover: "On hover",
   showSearchHint: "Appears when you point at the widget. Room number: 223 or C1.2.223",
-  showZoomHint: "Appear on hover. The mouse wheel and double-click always work",
+  showZoomHint: "Appear on hover. The mouse wheel, a touchpad pinch and double-click always work",
 
   defaultFloorHint: "Has no effect while “Remember the last floor” is on",
   rememberFloorHint: "At startup the map opens on the floor you chose last",

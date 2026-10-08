@@ -1,0 +1,26 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "tiles",
+  "description": "AITU Desk widgets: their own window's place and size, the light or dark look, the settings, web links",
+  "windows": [
+    "clock",
+    "system",
+    "perf",
+    "launchers",
+    "map",
+    "schedule",
+    "notes",
+    "custom-*"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size",
+    "core:window:allow-outer-position",
+    "core:window:allow-outer-size",
+    "core:window:allow-theme",
+    "store:default",
+    "opener:allow-open-url",
+    "opener:allow-default-urls"
+  ]
+}

@@ -10,6 +10,7 @@ export const en: MainStrings = {
   tiles: {
     clock: "Clock",
     system: "System",
+    perf: "Performance",
     launchers: "Shortcuts",
     map: "AITU map",
     schedule: "Schedule",
@@ -96,7 +97,7 @@ export const en: MainStrings = {
   launchers: {
     add: "Add",
     du: "Digital University",
-    moodle: "Moodle LMS",
+    moodle: "LMS",
     learn: "Learn",
   },
   map: {
@@ -142,6 +143,7 @@ export const en: MainStrings = {
       appearance: "Appearance",
       clock: "Clock",
       system: "System",
+      perf: "Performance",
       launchers: "Shortcuts",
       map: "Map",
       schedule: "Schedule",
@@ -347,7 +349,7 @@ export const en: MainStrings = {
       openSource: "Open source",
       privacy: "Privacy",
       privacyText:
-        "The app never goes online on its own: no telemetry, ads or auto-updates. It uses the network only when you ask for it: to open a shortcut in your browser, or to download a site icon once when you add or change a shortcut. Settings, classes and notes stay on this computer.",
+        "The app never goes online on its own: no telemetry, ads or auto-updates. It uses the network only when you ask for it: to open a shortcut in your browser, or to download a site icon once when you add or change a shortcut (if the site gives none, Google's icon service finds one by the site's name). Settings, classes and notes stay on this computer.",
     },
   },
 };

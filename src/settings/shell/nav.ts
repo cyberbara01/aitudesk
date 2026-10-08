@@ -7,6 +7,7 @@ export type TabId =
   | "appearance"
   | "clock"
   | "system"
+  | "perf"
   | "launchers"
   | "map"
   | "schedule"
@@ -30,6 +31,7 @@ export const TABS: readonly TabSpec[] = [
   { id: "appearance", icon: "paint_brush" },
   { id: "clock", icon: "clock" },
   { id: "system", icon: "desktop" },
+  { id: "perf", icon: "top_speed" },
   { id: "launchers", icon: "apps" },
   { id: "map", icon: "map" },
   { id: "schedule", icon: "calendar_ltr" },
@@ -43,15 +45,16 @@ export const TABS: readonly TabSpec[] = [
 export const TILE_ICONS: Record<TileId, string> = {
   clock: "clock",
   system: "desktop",
+  perf: "top_speed",
   launchers: "apps",
   map: "map",
   schedule: "calendar_ltr",
   notes: "note",
 };
 
-/** Tabs whose page opens an editor for `edit`. */
+/** Tabs whose page opens an editor for `edit` («Общие»: an own widget). */
 export function acceptsEdit(tab: PageId): boolean {
-  return tab === "launchers" || tab === "notes" || tab === "schedule";
+  return tab === "general" || tab === "launchers" || tab === "notes" || tab === "schedule";
 }
 
 export function isTab(v: unknown): v is TabId {

@@ -38,7 +38,7 @@ const SCALE_OPTIONS: readonly SegmentedOption<string>[] = TILE_SCALES.map((v) =>
 }));
 const scaleOf = (key: string): TileScale => TILE_SCALES.find((v) => String(v) === key) ?? "auto";
 
-/** «Размер виджетов»: the zoom of every widget («Авто» picks it by the screen size, src-tauri/src/zoom.rs). */
+/** «Масштаб виджетов»: the zoom of every widget («Авто» picks it by the screen size, src-tauri/src/zoom.rs). */
 function TileScaleSection({ value }: { value: TileScale }) {
   return (
     <Section title={x.tileScale} description={x.tileScaleHint}>

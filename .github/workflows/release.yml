@@ -1,63 +1,77 @@
 name: Release
 
 # A tag like v1.0.0 builds the installer and publishes the release with it and its checksums.
+# Actions are pinned to exact commits (the version is in the comment), and nothing is restored from a cache:
+# the published installer is built from this tag's sources alone.
 on:
   push:
     tags:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     name: Windows installer (NSIS)
     runs-on: windows-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-          cache: npm
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
         with:
-          workspaces: src-tauri
+          toolchain: stable
 
       - run: npm ci
 
       - name: Build and publish the installer
         id: tauri
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "AITU Desk ${{ github.ref_name }}"
           releaseBody: |
-            Установка: скачайте `AITU Desk_*_x64-setup.exe` и запустите. Права администратора не нужны, приложение ставится только для вашей учётной записи.
+            **English.** Download `AITU Desk_*_x64-setup.exe` and run it. No administrator rights are needed: the app installs for your Windows account only.
+
+            SmartScreen may warn about an unknown publisher: the app is not signed with a paid certificate. Click "More info", then "Run anyway". GitHub Actions built the installer from the sources of this tag, and the code is open in this repository.
+
+            To check the file, compare it with `SHA256SUMS.txt`. In PowerShell: `Get-FileHash ".\AITU Desk_<version>_x64-setup.exe" -Algorithm SHA256`, the value must match.
+
+            What the installer does, where the settings are kept and how to uninstall: "What the installer does" in the README.
+
+            **Русский.** Скачайте `AITU Desk_*_x64-setup.exe` и запустите. Права администратора не нужны, приложение ставится только для вашей учётной записи.
 
             SmartScreen может предупредить о неизвестном издателе: приложение не подписано платным сертификатом. Нажмите «Подробнее», затем «Выполнить в любом случае». Установщик собран GitHub Actions из исходников этого тега, код открыт в этом репозитории.
 
             Проверка файла: контрольные суммы лежат в `SHA256SUMS.txt`. В PowerShell: `Get-FileHash ".\AITU Desk_<версия>_x64-setup.exe" -Algorithm SHA256`, значение должно совпасть.
 
-            Что делает установщик, где хранятся настройки и как удалить приложение: раздел «Что делает установщик» в README.
+            Что делает установщик, где хранятся настройки и как удалить приложение: раздел «Что делает установщик» в README.ru.md.
           releaseDraft: false
           prerelease: false
 
-      # SHA256 of every published file, so anyone can check the download matches this build.
+      # SHA256 of every published file, so anyone can check the download matches this build. Values from the
+      # workflow reach the script as environment variables, never pasted into its text.
       - name: Publish checksums
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACTS: ${{ steps.tauri.outputs.artifactPaths }}
+          TAG: ${{ github.ref_name }}
         run: |
-          $files = '${{ steps.tauri.outputs.artifactPaths }}' | ConvertFrom-Json | Where-Object { Test-Path $_ -PathType Leaf }
+          $files = $env:ARTIFACTS | ConvertFrom-Json | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
           $lines = foreach ($f in $files) {
-            "{0}  {1}" -f (Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path $f -Leaf)
+            "{0}  {1}" -f (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path $f -Leaf)
           }
           [IO.File]::WriteAllLines("$PWD\SHA256SUMS.txt", [string[]]$lines)
           Get-Content SHA256SUMS.txt
-          gh release upload "${{ github.ref_name }}" SHA256SUMS.txt --clobber
+          gh release upload "$env:TAG" SHA256SUMS.txt --clobber --repo "$env:GITHUB_REPOSITORY"

@@ -11,7 +11,7 @@ use tauri_plugin_store::StoreExt;
 
 pub const STORE_FILE: &str = "settings.json";
 const LAYOUT_KEY: &str = "layout";
-const SETTINGS_KEY: &str = "settings";
+pub const SETTINGS_KEY: &str = "settings";
 /// «Все виджеты» switched off in «Общие»: kept across restarts.
 const HIDDEN_KEY: &str = "tilesHidden";
 /// Far enough that no monitor arrangement reaches it (Windows itself parks minimized windows at -32000).
@@ -51,6 +51,52 @@ pub struct Visibility {
     /// Tiles whose page has drawn its first frame. A page kept out of sight since startup (tile off, all tiles
     /// off) draws it only when shown, so showing it waits for that frame instead of a fixed delay.
     pub drawn: Mutex<HashSet<String>>,
+    /// Folded tiles («Маленький», «Средний») opened to their full size right now (`expand_tile`).
+    pub expanded: Mutex<HashSet<String>>,
+}
+
+/// «Размер» of a tile (settings `tileViews`): its size set by hand, or a preset. «Маленький» shows the tile's
+/// icon, «Средний» its icon and name; a click opens the full widget as a pop-up (`expand_tile`) that folds back
+/// when the tile loses focus. «Большой» is the full widget at its standard size.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum View {
+    Manual,
+    Small,
+    Medium,
+    Large,
+}
+
+pub fn view_of(app: &AppHandle, label: &str) -> View {
+    let view = app
+        .store(STORE_FILE)
+        .ok()
+        .and_then(|s| s.get(SETTINGS_KEY))
+        .and_then(|v| v.get("tileViews")?.get(label)?.as_str().map(str::to_owned));
+    match view.as_deref() {
+        Some("small") => View::Small,
+        Some("medium") => View::Medium,
+        Some("large") => View::Large,
+        _ => View::Manual,
+    }
+}
+
+/// Logical sizes of the folded tiles.
+const SMALL: (f64, f64) = (64.0, 64.0);
+const MEDIUM: (f64, f64) = (184.0, 64.0);
+
+/// Where a folded tile's place is kept in the saved layout (only its place counts; its size follows the view).
+fn compact_key(label: &str) -> String {
+    format!("compact:{label}")
+}
+
+/// A w×h rect sharing the corner of `r` that is nearest to a corner of the work area: a tile on the right edge
+/// stays on it, one at the bottom stays at the bottom.
+fn anchored(r: &Rect, w: u32, h: u32, wa: &WorkArea) -> Rect {
+    let (cx, cy) = (r.x + r.w as i32 / 2, r.y + r.h as i32 / 2);
+    let (mid_x, mid_y) = (wa.x + wa.w as i32 / 2, wa.y + wa.h as i32 / 2);
+    let x = if cx > mid_x { r.x + r.w as i32 - w as i32 } else { r.x };
+    let y = if cy > mid_y { r.y + r.h as i32 - h as i32 } else { r.y };
+    Rect { x, y, w, h }
 }
 
 /// Safety net for a tile shown for the first time: appear even if its page never reports a frame.
@@ -92,6 +138,7 @@ const COLUMN: &[(&str, f64)] = &[
     ("launchers", 184.0),
     ("schedule", 256.0),
     ("notes", 200.0),
+    ("perf", 132.0),
 ];
 const MAP_W: f64 = 720.0;
 const MAP_H: f64 = 360.0;
@@ -99,10 +146,10 @@ const MAP_H: f64 = 360.0;
 const MAP_MIN_W: f64 = 400.0;
 const MAP_MIN_H: f64 = 220.0;
 
-/// Default layout (logical px at the tiles' zoom, «Размер виджетов»): the column tiles flow top to bottom along
+/// Default layout (logical px at the tiles' zoom, «Масштаб виджетов»): the column tiles flow top to bottom along
 /// the right edge and continue in a new column to the left when the screen is not tall enough; the map sits
 /// bottom-aligned to the left of the columns.
-fn default_rect(label: &str, wa: &WorkArea) -> Rect {
+fn default_rect(app: &AppHandle, label: &str, wa: &WorkArea) -> Rect {
     let s = wa.scale * crate::zoom::current();
     let px = |v: f64| (v * s).round() as i32;
     let margin = 24.0;
@@ -128,6 +175,14 @@ fn default_rect(label: &str, wa: &WorkArea) -> Rect {
     // `x` is now the leftmost column used.
     let (lx, ly, lw, lh) = match (label, found) {
         (_, Some(r)) => r,
+        // A custom widget: a square in the middle of the screen, each next one a little lower and to the right.
+        (l, None) if crate::custom::is_custom(l) => {
+            let side = crate::custom::DEFAULT_SIZE;
+            let step = 32.0 * (crate::custom::index_of(app, l) % 8) as f64;
+            let cx = ((width - side) / 2.0 + step).min(width - margin - side).max(margin);
+            let cy = ((bottom + margin - side) / 2.0 + step).min(bottom - side).max(margin);
+            (cx, cy, side, side)
+        }
         ("map", None) => {
             // Left of the columns; on a narrow screen narrower (down to its minimum) rather than over a column.
             let w = (x - gap - margin).clamp(MAP_MIN_W, MAP_W);
@@ -141,6 +196,86 @@ fn default_rect(label: &str, wa: &WorkArea) -> Rect {
         y: wa.y + px(ly),
         w: px(lw) as u32,
         h: px(lh) as u32,
+    }
+}
+
+/// Any tile window (they all share the screen's work area).
+fn first_tile(app: &AppHandle) -> Option<WebviewWindow> {
+    crate::tile_labels(app).iter().find_map(|l| app.get_webview_window(l))
+}
+
+/// A tile window made after startup (a custom widget added in the settings): sized, parked, and shown when its
+/// page has drawn, or kept out of sight when it is switched off or all tiles are hidden.
+pub fn restore_one(app: &AppHandle, win: &WebviewWindow, label: &str) {
+    let vis = app.state::<Visibility>();
+    let rect = resolve_rect(app, win, label);
+    let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
+    park(win);
+    let hidden = *vis.hidden.lock().unwrap();
+    let enabled = tile_enabled_in_store(app, label);
+    if !enabled {
+        vis.disabled.lock().unwrap().insert(label.to_string());
+    }
+    if enabled && !hidden {
+        vis.pending.lock().unwrap().insert(label.to_string(), rect);
+    } else {
+        set_page_visible(win, false);
+    }
+}
+
+/// Opens or folds the pop-up of a folded tile and moves the window to match; true when it moved. A tile out of
+/// sight (all hidden, switched off, not shown yet) only changes its state and takes its rect when shown.
+pub fn set_expanded(app: &AppHandle, win: &WebviewWindow, label: &str, expanded: bool) -> bool {
+    let vis = app.state::<Visibility>();
+    {
+        let mut open = vis.expanded.lock().unwrap();
+        let changed = if expanded { open.insert(label.to_string()) } else { open.remove(label) };
+        if !changed {
+            return false;
+        }
+    }
+    let hidden = *vis.hidden.lock().unwrap();
+    let disabled = vis.disabled.lock().unwrap().contains(label);
+    let waiting = vis.pending.lock().unwrap().contains_key(label);
+    if hidden || disabled || waiting {
+        return false;
+    }
+    let rect = resolve_rect(app, win, label);
+    place(win, label, rect);
+    true
+}
+
+/// A pop-up folds without moving its window (it is being parked, or re-placed right after), and its page is told
+/// so it shows its icon again (the label is the payload: every page hears it, the one named takes it).
+fn fold_quietly(app: &AppHandle, label: &str) {
+    if app.state::<Visibility>().expanded.lock().unwrap().remove(label) {
+        let _ = app.emit("tile-fold", label);
+    }
+}
+
+/// Every pop-up folds (the views changed; `replace_shown` follows).
+pub fn fold_all(app: &AppHandle) {
+    let open: Vec<String> = app.state::<Visibility>().expanded.lock().unwrap().iter().cloned().collect();
+    for label in open {
+        fold_quietly(app, &label);
+    }
+}
+
+/// A custom widget was deleted: its saved rect and visibility state go too.
+pub fn forget(app: &AppHandle, label: &str) {
+    let vis = app.state::<Visibility>();
+    vis.disabled.lock().unwrap().remove(label);
+    vis.pending.lock().unwrap().remove(label);
+    vis.drawn.lock().unwrap().remove(label);
+    vis.ready.lock().unwrap().remove(label);
+    vis.expanded.lock().unwrap().remove(label);
+    let mut layout = load_layout(app);
+    let compact = layout.remove(&compact_key(label)).is_some();
+    if layout.remove(label).is_some() || compact {
+        if let Ok(store) = app.store(STORE_FILE) {
+            store.set(LAYOUT_KEY, json!(layout));
+            let _ = store.save();
+        }
     }
 }
 
@@ -167,12 +302,19 @@ fn load_layout(app: &AppHandle) -> HashMap<String, Rect> {
 
 /// `settings.tiles[label]` from the shared store (default: enabled).
 pub fn tile_enabled_in_store(app: &AppHandle, label: &str) -> bool {
+    if crate::custom::is_custom(label) {
+        return crate::custom::enabled(app, label);
+    }
     app.store(STORE_FILE)
         .ok()
         .and_then(|s| s.get(SETTINGS_KEY))
         .and_then(|v| v.get("tiles")?.get(label)?.as_bool())
-        .unwrap_or(true)
+        // Settings saved before a tile existed do not name it: it starts as the defaults say (src/lib/settings.ts).
+        .unwrap_or(!OFF_BY_DEFAULT.contains(&label))
 }
+
+/// Tiles that are off until switched on («Нагрузка»), as DEFAULT_SETTINGS.tiles says.
+const OFF_BY_DEFAULT: &[&str] = &["perf"];
 
 fn intersects(r: &Rect, wa: &WorkArea) -> bool {
     let (ax1, ay1, ax2, ay2) = (r.x, r.y, r.x + r.w as i32, r.y + r.h as i32);
@@ -180,19 +322,50 @@ fn intersects(r: &Rect, wa: &WorkArea) -> bool {
     ax1 < bx2 - 16 && ax2 > bx1 + 16 && ay1 < by2 - 16 && ay2 > by1 + 16
 }
 
-/// Saved rect if it is still on screen, else the default one.
+/// Where the tile goes for its view: the saved rect (if still on screen) or the default one; for «Большой» the
+/// standard size there; folded, the icon at its own saved place (or at the corner of the full rect), and opened,
+/// the full size grown from that icon's corner.
 fn resolve_rect(app: &AppHandle, win: &WebviewWindow, label: &str) -> Rect {
     let wa = work_area(win);
-    match load_layout(app).get(label) {
+    let layout = load_layout(app);
+    let full = match layout.get(label) {
         Some(r) if intersects(r, &wa) => *r,
-        _ => default_rect(label, &wa),
+        _ => default_rect(app, label, &wa),
+    };
+    let view = view_of(app, label);
+    match view {
+        View::Manual => full,
+        View::Large => {
+            let d = default_rect(app, label, &wa);
+            clamp_into(anchored(&full, d.w, d.h, &wa), &wa)
+        }
+        View::Small | View::Medium => {
+            let s = wa.scale * crate::zoom::current();
+            let (lw, lh) = if view == View::Small { SMALL } else { MEDIUM };
+            let (w, h) = ((lw * s).round() as u32, (lh * s).round() as u32);
+            let icon = match layout.get(&compact_key(label)) {
+                Some(r) if intersects(r, &wa) => Rect { w, h, ..*r },
+                _ => anchored(&full, w, h, &wa),
+            };
+            let icon = clamp_into(icon, &wa);
+            if app.state::<Visibility>().expanded.lock().unwrap().contains(label) {
+                clamp_into(anchored(&icon, full.w, full.h, &wa), &wa)
+            } else {
+                icon
+            }
+        }
     }
 }
 
 fn place(win: &WebviewWindow, _label: &str, rect: Rect) {
     // Every tile is resizable in edit mode, so the saved size is restored for all of them.
-    let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
-    move_to(win, rect.x, rect.y);
+    match win.hwnd() {
+        Ok(h) => crate::desktop_watch::place_tile(windows::Win32::Foundation::HWND(h.0), rect.x, rect.y, rect.w, rect.h),
+        Err(_) => {
+            let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
+            move_to(win, rect.x, rect.y);
+        }
+    }
 }
 
 /// Position and z-order in one SetWindowPos: on screen, right above the desktop (never on top of other windows).
@@ -220,6 +393,24 @@ fn set_page_visible(win: &WebviewWindow, visible: bool) {
     });
 }
 
+/// Touchpad pinch on a tile: wry turns WebView2's pinch zoom off together with its zoom keys, and WebView2 then
+/// drops the gesture before the page sees it. On, a pinch reaches the page as Ctrl + wheel; every page cancels
+/// those (main.tsx), so no page is ever magnified, and the map zooms its plan with them. The zoom keys stay off.
+pub fn enable_pinch(win: &WebviewWindow) {
+    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings5;
+    use windows::core::Interface;
+    let _ = win.with_webview(|w| {
+        // SAFETY: plain COM calls on this window's own WebView2, run on the main thread.
+        unsafe {
+            let Ok(core) = w.controller().CoreWebView2() else { return };
+            let Ok(settings) = core.Settings() else { return };
+            if let Ok(s5) = settings.cast::<ICoreWebView2Settings5>() {
+                let _ = s5.SetIsPinchZoomEnabled(true);
+            }
+        }
+    });
+}
+
 fn park_hidden(win: &WebviewWindow) {
     park(win);
     set_page_visible(win, false);
@@ -239,12 +430,13 @@ pub fn restore_all(app: &AppHandle) {
         .unwrap_or(false);
     *vis.hidden.lock().unwrap() = hidden;
     // The zoom first: default rects and a saved layout made at another zoom depend on it.
-    if let Some(first) = crate::TILES.iter().find_map(|l| app.get_webview_window(l)) {
+    if let Some(first) = first_tile(app) {
         crate::zoom::apply(app, &work_area(&first));
     }
     let mut disabled = vis.disabled.lock().unwrap();
     let mut pending = vis.pending.lock().unwrap();
-    for label in crate::TILES {
+    for label in crate::tile_labels(app) {
+        let label = label.as_str();
         let Some(win) = app.get_webview_window(label) else { continue };
         let rect = resolve_rect(app, &win, label);
         let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
@@ -319,15 +511,23 @@ pub fn reveal_all_pending(app: &AppHandle) {
 
 /// Persist a tile rect (physical px). A parked position is never saved; only the size is updated then.
 pub fn save_rect(app: &AppHandle, label: &str, rect: Rect) -> Result<(), String> {
+    // An opened pop-up is never saved; a folded tile keeps its own place apart from its full rect.
+    if app.state::<Visibility>().expanded.lock().unwrap().contains(label) {
+        return Ok(());
+    }
+    let key = match view_of(app, label) {
+        View::Small | View::Medium => compact_key(label),
+        _ => label.to_string(),
+    };
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     let mut layout = load_layout(app);
     let next = if is_parked(PhysicalPosition::new(rect.x, rect.y)) {
-        let Some(prev) = layout.get(label).copied() else { return Ok(()) };
+        let Some(prev) = layout.get(&key).copied() else { return Ok(()) };
         Rect { w: rect.w, h: rect.h, ..prev }
     } else {
         rect
     };
-    layout.insert(label.to_string(), next);
+    layout.insert(key, next);
     store.set(LAYOUT_KEY, json!(layout));
     store.save().map_err(|e| e.to_string())
 }
@@ -377,12 +577,13 @@ pub fn set_hidden(app: &AppHandle, hidden: bool) {
     // Set first: a page that reports its first frame while the tiles are being shown must find them shown.
     *vis.hidden.lock().unwrap() = hidden;
     let disabled = vis.disabled.lock().unwrap().clone();
-    for label in crate::TILES {
-        let Some(win) = app.get_webview_window(label) else { continue };
+    for label in crate::tile_labels(app) {
+        let Some(win) = app.get_webview_window(&label) else { continue };
         if hidden {
+            fold_quietly(app, &label);
             park_hidden(&win);
-        } else if !disabled.contains(*label) {
-            unpark(app, &win, label);
+        } else if !disabled.contains(&label) {
+            unpark(app, &win, &label);
         }
     }
     if let Ok(store) = app.store(STORE_FILE) {
@@ -399,7 +600,7 @@ pub fn is_hidden(app: &AppHandle) -> bool {
 
 /// «Общие», the switch of one tile: park or restore it.
 pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
-    if !crate::TILES.contains(&label) {
+    if !crate::is_tile(label) {
         return;
     }
     let vis = app.state::<Visibility>();
@@ -413,6 +614,8 @@ pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
         }
     } else {
         disabled.insert(label.to_string());
+        drop(disabled);
+        fold_quietly(app, label);
         park_hidden(&win);
     }
 }
@@ -434,13 +637,14 @@ pub fn replace_shown(app: &AppHandle) {
     let hidden = *vis.hidden.lock().unwrap();
     let disabled = vis.disabled.lock().unwrap();
     let mut pending = vis.pending.lock().unwrap();
-    for label in crate::TILES {
+    for label in crate::tile_labels(app) {
+        let label = label.as_str();
         let Some(win) = app.get_webview_window(label) else { continue };
-        if hidden || disabled.contains(*label) {
+        if hidden || disabled.contains(label) {
             continue;
         }
         let rect = resolve_rect(app, &win, label);
-        if let Some(queued) = pending.get_mut(*label) {
+        if let Some(queued) = pending.get_mut(label) {
             *queued = rect;
             let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
             continue;
@@ -455,7 +659,7 @@ pub fn replace_shown(app: &AppHandle) {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LayoutFile {
     pub screen: WorkArea,
-    /// Zoom of the tiles the rects were made at («Размер виджетов», zoom.rs); files from before it: 1.
+    /// Zoom of the tiles the rects were made at («Масштаб виджетов», zoom.rs); files from before it: 1.
     #[serde(default = "unit_zoom")]
     pub zoom: f64,
     pub tiles: HashMap<String, Rect>,
@@ -469,7 +673,7 @@ fn unit_zoom() -> f64 {
 
 /// «Конфиги»: the saved rect of every tile that has one (on this screen), the rest as defaults.
 pub fn export(app: &AppHandle) -> Option<LayoutFile> {
-    let first = crate::TILES.iter().find_map(|l| app.get_webview_window(l))?;
+    let first = first_tile(app)?;
     let screen = work_area(&first);
     let saved = load_layout(app);
     let mut tiles = HashMap::new();
@@ -523,7 +727,7 @@ fn clamp_into(r: Rect, wa: &WorkArea) -> Rect {
 
 /// Apply the tile rects of a settings file (adapted to this screen) and move the tiles there.
 pub fn import(app: &AppHandle, file: LayoutFile) -> Result<(), String> {
-    let Some(first) = crate::TILES.iter().find_map(|l| app.get_webview_window(l)) else { return Ok(()) };
+    let Some(first) = first_tile(app) else { return Ok(()) };
     let screen = work_area(&first);
     let valid = |a: &WorkArea| {
         a.w >= 200 && a.h >= 200 && a.w <= 100_000 && a.h <= 100_000 && (0.5..=8.0).contains(&a.scale)

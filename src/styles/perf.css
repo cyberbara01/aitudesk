@@ -1,0 +1,120 @@
+/* =====================================================================================
+   «Нагрузка» (src/tiles/Perf.tsx): rings, bars or numbers. The share in the accent, above 90 % in the critical
+   colour; tracks in the control fill; the numbers in the style's numeric face, tabular. A new reading lands in
+   one step: a glide would make WebView2 redraw the widget for a quarter of a second at every reading (measured: about
+   ten times the processor time), and nothing moves at rest.
+   ===================================================================================== */
+.tile-perf { display: flex; flex-direction: column; }
+/* The settings preview: the widget at its default size (280×132) on the stage desk. */
+.sys-desk > .tile-perf { height: 132px; }
+/* The tooltip anchor and the click area fill the tile: a click anywhere switches the view. */
+.perf-hit { display: flex; flex: 1 1 auto; min-width: 0; min-height: 0; }
+.perf-click { display: flex; flex: 1 1 auto; min-width: 0; min-height: 0; cursor: default; }
+
+.perf {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+.perf-ring,
+.perf-bar,
+.perf-num { --tone: var(--accent); }
+.perf [data-level="high"] { --tone: var(--critical); }
+
+.perf-label {
+  color: var(--text-2);
+  font-size: var(--caption-size);
+  line-height: var(--caption-lh);
+  white-space: nowrap;
+}
+.perf-temp { color: var(--text-3); }
+.perf-label > .perf-temp { margin-left: 4px; }
+.perf-empty {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  color: var(--text-3);
+}
+
+/* ---- Rings: up to four across, the number in the middle ---- */
+.perf-rings {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: var(--s2);
+}
+.perf-ring {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.perf-ring svg { display: block; width: 48px; height: 48px; transform: rotate(-90deg); }
+.perf-ring circle { fill: none; stroke-width: 4; }
+.perf-ring-track { stroke: var(--ctl-fill-hover); }
+.perf-ring-arc {
+  stroke: var(--tone);
+  stroke-linecap: round;
+  stroke-dasharray: var(--v) 100;
+}
+.perf-ring-value {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  height: 48px;
+  color: var(--text);
+  font-size: var(--body-size);
+  font-weight: 600;
+}
+
+/* ---- Bars: name, track, percent, temperature ---- */
+.perf-bars {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.perf-bar {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 42px 30px;
+  align-items: center;
+  column-gap: var(--s2);
+  min-height: 20px;
+}
+.perf-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ctl-fill-hover);
+  overflow: hidden;
+}
+.perf-fill {
+  display: block;
+  width: calc(var(--v) * 1%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tone);
+}
+.perf-value { color: var(--text); font-size: var(--body-size); text-align: right; }
+.perf-bar > .perf-temp { font-size: var(--caption-size); text-align: right; }
+
+/* ---- Numbers: a two-column grid of large figures ---- */
+.perf-numbers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  gap: var(--s2) var(--s4);
+}
+.perf-num { display: flex; flex-direction: column; min-width: 0; }
+.perf-num-value {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 300;
+}
+.perf-num[data-level="high"] .perf-num-value { color: var(--critical); }

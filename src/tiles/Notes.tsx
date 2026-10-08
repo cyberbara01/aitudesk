@@ -24,6 +24,7 @@ import {
   type DueTone,
 } from "../lib/notes";
 import type { Note } from "../lib/settings";
+import { useFolded } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { usePowerSaver } from "../lib/useSystemInfo";
 import { NoteCheck } from "../settings/notes/NoteCheck";
@@ -31,6 +32,8 @@ import { NoteChip } from "../settings/notes/NoteChip";
 
 /** Scroll slack (px) below which the list counts as fully shown and the edge fades go away. */
 const FADE_THRESHOLD = 1;
+/** No countdown while the widget is folded to its icon. */
+const NO_DEADLINES: readonly number[] = [];
 
 const addNote = () => void openNotesSettings(NEW_NOTE);
 
@@ -73,7 +76,8 @@ export function NotesTile() {
   const deadlines = useMemo(() => activeDeadlines(visible), [visible]);
   // The last hour counts down in seconds, unless Windows battery saver is on (then in minutes).
   const live = !usePowerSaver();
-  const now = useDeadlineClock(deadlines, live);
+  // Folded to its icon, nothing counts down.
+  const now = useDeadlineClock(useFolded() ? NO_DEADLINES : deadlines, live);
   const nowDate = useMemo(() => new Date(now), [now]);
 
   // Scroll fades: only while there really is more content in that direction.

@@ -6,6 +6,8 @@
    ===================================================================================== */
 *, *::before, *::after { box-sizing: border-box; }
 
+/* Touch screens: fingers scroll the lists but never pinch-magnify a page (the map pinches its own plan). */
+html { touch-action: pan-x pan-y; }
 html, body, #root {
   margin: 0;
   padding: 0;
@@ -103,6 +105,43 @@ a { color: var(--accent-text); text-decoration: none; }
   border-bottom: 2px solid var(--accent);
   border-bottom-right-radius: var(--r2);
 }
+
+/* «Маленький» and «Средний»: the widget folded to its icon (and name), always on glass; a click opens the whole
+   widget as a pop-up. The icon and the pop-up's content fade in once the window has its new size. */
+.tile.folded { padding: 0; }
+.tile-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s3);
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--s3);
+  text-align: left;
+  transition: background-color var(--t-fast) var(--ease-in);
+  animation: tile-in var(--t-base) var(--ease-in);
+}
+.tile.view-medium .tile-face { justify-content: flex-start; }
+.tile-face:hover { background: var(--ctl-fill-hover); }
+.tile-face:active { background: var(--ctl-fill-pressed); }
+.tile-face-art {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-ctl);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  overflow: hidden;
+}
+:root[data-style="aqua"] .tile-face-art { box-shadow: inset 0 1px 0 var(--tile-edge); }
+.tile-face-art .icon { color: inherit; }
+.tile-face-name { min-width: 0; font-weight: 600; }
+.tile.popup > :not(.ctx-menu) { animation: tile-in var(--t-base) var(--ease-in); }
+@keyframes tile-in { from { opacity: 0; } to { opacity: 1; } }
+/* Arranging a folded icon: the buttons sit in its middle (no words, there is no room). */
+.tile:is(.view-small, .view-medium) .edit-pill { top: 50%; transform: translate(-50%, -50%); }
 
 /* =====================================================================================
    Buttons
@@ -668,6 +707,8 @@ a { color: var(--accent-text); text-decoration: none; }
 .ctx-item .icon { color: var(--text-2); }
 .ctx-item .ctx-swatch { flex: none; width: 14px; height: 14px; border-radius: 4px; margin: 0 1px; }
 .ctx-sep { height: 1px; margin: var(--s1) var(--s2); background: var(--divider); }
+/* A submenu drawn inside the widget: its name over its items. */
+.ctx-group { padding: 6px var(--s2) 2px; color: var(--text-3); }
 
 .tooltip {
   position: fixed;

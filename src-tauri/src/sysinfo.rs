@@ -211,6 +211,15 @@ impl NetshBlock {
     }
 }
 
+/// The Windows system folder (System32), from Windows itself rather than the environment.
+fn system_dir() -> Option<std::path::PathBuf> {
+    use std::os::windows::ffi::OsStringExt;
+    let mut buf = [0u16; 260];
+    // SAFETY: the buffer is ours and its length goes with it.
+    let n = unsafe { windows::Win32::System::SystemInformation::GetSystemDirectoryW(Some(&mut buf)) } as usize;
+    (n > 0 && n < buf.len()).then(|| std::ffi::OsString::from_wide(&buf[..n]).into())
+}
+
 /// Fallback: `netsh wlan show interfaces`, parsed case-insensitively (English or Russian labels).
 fn wifi_netsh() -> Option<WifiInfo> {
     let now = Instant::now();
@@ -219,11 +228,9 @@ fn wifi_netsh() -> Option<WifiInfo> {
             return None;
         }
     }
-    // Absolute path: never pick up a stray netsh.exe from the app directory or PATH.
-    let mut netsh = std::path::PathBuf::from(
-        std::env::var_os("SystemRoot").unwrap_or_else(|| "C:\\Windows".into()),
-    );
-    netsh.push("System32\\netsh.exe");
+    // Absolute path in the system folder as Windows reports it: never a stray netsh.exe from the app directory,
+    // PATH or a changed %SystemRoot%.
+    let netsh = system_dir()?.join("netsh.exe");
     let output = Command::new(netsh)
         .args(["wlan", "show", "interfaces"])
         .creation_flags(CREATE_NO_WINDOW)

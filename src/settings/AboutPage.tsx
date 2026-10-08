@@ -144,7 +144,9 @@ export function AboutPage() {
 
       <Section>
         <Row label={extra.shell.help} hint={x.helpHint}>
-          <Button onClick={() => navigate("welcome")}>{x.open}</Button>
+          <Button icon="book_open" onClick={() => navigate("welcome")}>
+            {x.guide}
+          </Button>
         </Row>
         <Row label={ab.author}>
           <span className="about-links">

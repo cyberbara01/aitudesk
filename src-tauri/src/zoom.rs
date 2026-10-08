@@ -1,4 +1,4 @@
-//! «Размер виджетов»: one zoom for every tile page, applied by WebView2 (fonts, icons, spacing and the window
+//! «Масштаб виджетов»: one zoom for every tile page, applied by WebView2 (fonts, icons, spacing and the window
 //! sizes scale together, so a widget looks the same, only smaller or larger). `settings.tileScale` is "auto" or
 //! a factor (0.8, 0.9, 1, 1.1). Auto is 1 on a screen tall enough for the default column of widgets and smaller
 //! on laptops, so the default layout still fits one column there.
@@ -95,8 +95,8 @@ pub fn apply(app: &AppHandle, wa: &WorkArea) -> f64 {
         }
     }
     *CURRENT.lock().unwrap() = zoom;
-    for label in crate::TILES {
-        if let Some(win) = app.get_webview_window(label) {
+    for label in crate::tile_labels(app) {
+        if let Some(win) = app.get_webview_window(&label) {
             let _ = win.set_zoom(zoom);
         }
     }

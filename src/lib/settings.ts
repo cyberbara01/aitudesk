@@ -33,8 +33,8 @@ export interface AccentSetting {
 // Tiles
 // ---------------------------------------------------------------------------------------------
 
-export type TileId = "clock" | "system" | "launchers" | "map" | "schedule" | "notes";
-export const TILE_IDS: readonly TileId[] = ["clock", "system", "launchers", "map", "schedule", "notes"];
+export type TileId = "clock" | "system" | "perf" | "launchers" | "map" | "schedule" | "notes";
+export const TILE_IDS: readonly TileId[] = ["clock", "system", "perf", "launchers", "map", "schedule", "notes"];
 
 export type ClockFont =
   /** Follows the design language: Segoe UI Display (Windows 11), Inter (Aqua), JetBrains Mono (Rice). */
@@ -89,6 +89,56 @@ export interface SystemSettings {
    */
   labelMode: "default" | "device" | "custom" | "user";
   customLabel: string;
+  background: boolean;
+}
+
+/**
+ * «Размер» of a tile: set by hand, or a preset. «small» shows the tile's icon and «medium» its icon and name, a
+ * click opening the full widget as a pop-up; «large» is the full widget at its standard size
+ * (src-tauri/src/layout.rs View).
+ */
+export type TileView = "manual" | "small" | "medium" | "large";
+export const TILE_VIEWS: readonly TileView[] = ["manual", "small", "medium", "large"];
+
+/** «Свои виджеты»: a picture or animation of the user's own on the desktop (src-tauri/src/custom.rs). */
+export interface CustomWidget {
+  /** 8 lowercase letters and digits; the tile window is `custom-<id>`. */
+  id: string;
+  name: string;
+  /** The stored copy of the picture in the app's widgets folder. */
+  file: string;
+  /** «Заполнить»: the picture covers the tile (edges cut); «Вписать»: it fits whole inside. */
+  fit: "cover" | "contain";
+  background: boolean;
+  enabled: boolean;
+}
+/** More windows than this would weigh on the computer; nobody needs more pictures on one desktop. */
+export const CUSTOM_MAX = 20;
+export const CUSTOM_NAME_MAX = 40;
+const CUSTOM_ID = /^[a-z0-9]{4,16}$/;
+const CUSTOM_FILE = /^[0-9a-f]{16}\.(png|jpg|gif|webp|bmp)$/;
+/** A stored picture's name (src-tauri/src/custom.rs valid_file). */
+export const isWidgetFile = (name: string) => CUSTOM_FILE.test(name);
+/** A new widget's id: 8 random lowercase letters and digits. */
+export function newCustomId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
+}
+export const customLabel = (id: string) => `custom-${id}`;
+export const isCustomLabel = (label: string) => label.startsWith("custom-") && CUSTOM_ID.test(label.slice(7));
+export const customIdOf = (label: string) => label.slice(7);
+
+/** «Нагрузка»: how the readings are drawn. */
+export type PerfMode = "rings" | "bars" | "numbers";
+
+export interface PerfSettings {
+  mode: PerfMode;
+  cpu: boolean;
+  gpu: boolean;
+  ram: boolean;
+  disk: boolean;
+  /** Processor and graphics temperatures, where Windows reports them. */
+  temp: boolean;
   background: boolean;
 }
 
@@ -251,7 +301,7 @@ export interface ReminderSettings {
 /** Interface language: the display language of Windows ("auto"), Russian or English. */
 export type LanguageSetting = "auto" | "ru" | "en";
 
-/** «Размер виджетов»: the zoom of every tile ("auto": smaller on small screens, see src-tauri/src/zoom.rs). */
+/** «Масштаб виджетов»: the zoom of every tile ("auto": smaller on small screens, see src-tauri/src/zoom.rs). */
 export type TileScale = "auto" | 0.8 | 0.9 | 1 | 1.1;
 export const TILE_SCALES: readonly TileScale[] = ["auto", 0.8, 0.9, 1, 1.1];
 
@@ -268,12 +318,16 @@ export interface Settings {
   style: StyleId;
   accent: AccentSetting;
   tiles: Record<TileId, boolean>;
+  /** «Размер» per tile label (built-in ids and `custom-<id>`); missing = "manual". */
+  tileViews: Record<string, TileView>;
+  customWidgets: CustomWidget[];
   /** "Закрепить расположение": tiles cannot enter edit mode. */
   lockLayout: boolean;
   /** The welcome page of the settings window has been seen («Начать»). Not part of any reset. */
   onboarded: boolean;
   clock: ClockSettings;
   system: SystemSettings;
+  perf: PerfSettings;
   launchers: LaunchersSettings;
   map: MapSettings;
   schedule: ScheduleSettings;
@@ -312,6 +366,16 @@ export const DEFAULT_SYSTEM: SystemSettings = {
   hideNames: false,
   labelMode: "default",
   customLabel: "",
+  background: true,
+};
+
+export const DEFAULT_PERF: PerfSettings = {
+  mode: "rings",
+  cpu: true,
+  gpu: true,
+  ram: true,
+  disk: true,
+  temp: true,
   background: true,
 };
 
@@ -379,11 +443,15 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   style: "fluent",
   accent: { mode: "preset", preset: "graphite", custom: "#60CDFF" },
-  tiles: { clock: true, system: true, launchers: true, map: true, schedule: true, notes: true },
+  // «Нагрузка» polls the PC: off until it is wanted.
+  tiles: { clock: true, system: true, perf: false, launchers: true, map: true, schedule: true, notes: true },
+  tileViews: {},
+  customWidgets: [],
   lockLayout: false,
   onboarded: false,
   clock: DEFAULT_CLOCK,
   system: DEFAULT_SYSTEM,
+  perf: DEFAULT_PERF,
   launchers: DEFAULT_LAUNCHERS,
   map: DEFAULT_MAP,
   schedule: DEFAULT_SCHEDULE,
@@ -412,16 +480,40 @@ const oneOf = <T extends string>(v: unknown, list: readonly T[], d: T): T => (li
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const hex = (v: unknown, d: string) => (typeof v === "string" && HEX.test(v) ? v.toUpperCase() : d);
 
+/**
+ * Caps on lists and texts: far above any real use, and they keep a settings file from someone else (or a damaged
+ * one) from bloating the app: every window holds the settings.
+ */
+const LIMIT = {
+  launchers: 200,
+  lessons: 500,
+  notes: 1000,
+  favorites: 1000,
+  /** Ids are short (UUIDs and the like). */
+  id: 64,
+  /** Lesson fields, room notes. */
+  text: 200,
+  room: 32,
+  url: 2048,
+  /** A cached site icon (512 KB at most when fetched, favicon.rs) as a data: URL. */
+  iconData: 800_000,
+} as const;
+const okId = (v: unknown): v is string => typeof v === "string" && v.length > 0 && v.length <= LIMIT.id;
+
 /** A stored launcher icon, or null when `raw` is not one. */
 function migrateIcon(raw: unknown): LauncherIcon | null {
   if (!isObj(raw)) return null;
   const k = raw.kind;
-  if (k === "fluent" && typeof raw.name === "string" && raw.name) {
+  if (k === "fluent" && typeof raw.name === "string" && raw.name && raw.name.length <= LIMIT.id) {
     const cached = raw.svg;
     const svg = typeof cached === "string" && cached.startsWith("<svg") && cached.length < 20000 ? cached : undefined;
     return svg ? { kind: "fluent", name: raw.name, svg } : { kind: "fluent", name: raw.name };
   }
-  if (k === "site") return { kind: "site", data: typeof raw.data === "string" ? raw.data : undefined };
+  if (k === "site") {
+    const data = raw.data;
+    const ok = typeof data === "string" && data.startsWith("data:image/") && data.length <= LIMIT.iconData;
+    return { kind: "site", data: ok ? data : undefined };
+  }
   if (k === "letter") return { kind: "letter" };
   return null;
 }
@@ -433,24 +525,30 @@ function migrateIcon(raw: unknown): LauncherIcon | null {
  */
 function webUrl(v: unknown): string | null {
   if (typeof v !== "string") return null;
-  const url = v.trim().replace(/\s+/g, "%20");
-  return /^https?:\/\/\S+$/i.test(url) ? url : null;
+  // The scheme in lower case, so every check of the address and the browser read it the same way.
+  const url = v.trim().replace(/\s+/g, "%20").replace(/^https?:/i, (m) => m.toLowerCase());
+  if (url.length > LIMIT.url || !/^https?:\/\/\S+$/.test(url)) return null;
+  try {
+    return new URL(url).hostname ? url : null;
+  } catch {
+    return null;
+  }
 }
 
 function migrateLauncher(raw: unknown): CustomLauncher | null {
   const url = isObj(raw) ? webUrl(raw.url) : null;
-  if (!isObj(raw) || typeof raw.id !== "string" || url === null) return null;
+  if (!isObj(raw) || !okId(raw.id) || url === null) return null;
   let icon: LauncherIcon = migrateIcon(raw.icon) ?? { kind: "site" };
   if (typeof raw.icon === "string" && raw.icon) {
     icon = { kind: "fluent", name: raw.icon }; // v1
   }
   let color = hex(raw.color, "");
   if (!color) color = typeof raw.tint === "number" ? (V1_TINTS[raw.tint] ?? V1_TINTS[0]) : V1_TINTS[0];
-  return { id: raw.id, name: str(raw.name, ""), url, icon, color };
+  return { id: raw.id, name: str(raw.name, "").slice(0, 40), url, icon, color };
 }
 
 function migrateLesson(raw: unknown): Lesson | null {
-  if (!isObj(raw) || typeof raw.id !== "string") return null;
+  if (!isObj(raw) || !okId(raw.id)) return null;
   const day = num(raw.day, 1, 1, 7) as Weekday;
   const time = (v: unknown, d: string) => (typeof v === "string" && /^\d{2}:\d{2}$/.test(v) ? v : d);
   return {
@@ -458,9 +556,9 @@ function migrateLesson(raw: unknown): Lesson | null {
     day,
     start: time(raw.start, "08:00"),
     end: time(raw.end, "09:20"),
-    title: str(raw.title, ""),
-    teacher: str(raw.teacher, ""),
-    room: str(raw.room, ""),
+    title: str(raw.title, "").slice(0, LIMIT.text),
+    teacher: str(raw.teacher, "").slice(0, LIMIT.text),
+    room: str(raw.room, "").slice(0, LIMIT.text),
     color: hex(raw.color, "") || undefined,
   };
 }
@@ -481,7 +579,7 @@ const DEADLINE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function migrateNote(raw: unknown): Note | null {
-  if (!isObj(raw) || typeof raw.id !== "string") return null;
+  if (!isObj(raw) || !okId(raw.id)) return null;
   const note: Note = {
     id: raw.id,
     text: str(raw.text, "").slice(0, 2000),
@@ -507,7 +605,7 @@ export function normalize(saved: unknown): Settings {
   const accentRaw = isObj(s.accent) ? s.accent : {};
   const accent: AccentSetting = {
     mode: v1 ? (s.accentFromWindows === false ? "preset" : "windows") : oneOf(accentRaw.mode, ["windows", "preset", "custom"] as const, d.accent.mode),
-    preset: str(accentRaw.preset, d.accent.preset),
+    preset: str(accentRaw.preset, d.accent.preset).slice(0, 40),
     custom: hex(accentRaw.custom, d.accent.custom),
   };
 
@@ -515,6 +613,30 @@ export function normalize(saved: unknown): Settings {
   const tilesRaw = isObj(s.tiles) ? s.tiles : {};
   const tiles = { ...d.tiles } as Record<TileId, boolean>;
   for (const id of TILE_IDS) tiles[id] = bool(tilesRaw[id], d.tiles[id]);
+
+  // Custom widgets: well-formed entries only, ids unique, at most CUSTOM_MAX.
+  const customWidgets: CustomWidget[] = [];
+  for (const w of Array.isArray(s.customWidgets) ? s.customWidgets : []) {
+    if (customWidgets.length >= CUSTOM_MAX || !isObj(w)) continue;
+    const id = typeof w.id === "string" && CUSTOM_ID.test(w.id) ? w.id : null;
+    const file = typeof w.file === "string" && CUSTOM_FILE.test(w.file) ? w.file : null;
+    if (!id || !file || customWidgets.some((c) => c.id === id)) continue;
+    customWidgets.push({
+      id,
+      name: str(w.name, "").slice(0, CUSTOM_NAME_MAX),
+      file,
+      fit: oneOf(w.fit, ["cover", "contain"] as const, "cover"),
+      background: bool(w.background, false),
+      enabled: bool(w.enabled, true),
+    });
+  }
+  // Views of the tiles that exist (built-in, and the custom widgets above).
+  const viewsRaw = isObj(s.tileViews) ? s.tileViews : {};
+  const tileViews: Record<string, TileView> = {};
+  for (const label of [...TILE_IDS, ...customWidgets.map((c) => customLabel(c.id))]) {
+    const v = viewsRaw[label];
+    if (v !== "manual" && TILE_VIEWS.includes(v as TileView)) tileViews[label] = v as TileView;
+  }
 
   // clock
   const c = isObj(s.clock) ? s.clock : {};
@@ -552,6 +674,17 @@ export function normalize(saved: unknown): Settings {
     background: bool(sy.background, d.system.background),
   };
 
+  const pf = isObj(s.perf) ? s.perf : {};
+  const perf: PerfSettings = {
+    mode: oneOf(pf.mode, ["rings", "bars", "numbers"] as const, d.perf.mode),
+    cpu: bool(pf.cpu, d.perf.cpu),
+    gpu: bool(pf.gpu, d.perf.gpu),
+    ram: bool(pf.ram, d.perf.ram),
+    disk: bool(pf.disk, d.perf.disk),
+    temp: bool(pf.temp, d.perf.temp),
+    background: bool(pf.background, d.perf.background),
+  };
+
   // launchers (v1 kept builtIn/custom at the root)
   const l = isObj(s.launchers) ? s.launchers : {};
   const builtInRaw = isObj(l.builtIn) ? l.builtIn : isObj(s.builtIn) ? s.builtIn : {};
@@ -575,7 +708,7 @@ export function normalize(saved: unknown): Settings {
       learn: hex(colorsRaw.learn, d.launchers.builtInColors.learn),
     },
     builtInEdits,
-    custom: customRaw.map(migrateLauncher).filter((x): x is CustomLauncher => x !== null),
+    custom: customRaw.slice(0, LIMIT.launchers).map(migrateLauncher).filter((x): x is CustomLauncher => x !== null),
     showLabels: bool(l.showLabels, d.launchers.showLabels),
     background: bool(l.background, d.launchers.background),
   };
@@ -599,9 +732,14 @@ export function normalize(saved: unknown): Settings {
     showIcons: bool(m.showIcons, d.map.showIcons),
     showNextLesson: bool(m.showNextLesson, d.map.showNextLesson),
     favorites: favRaw
+      .slice(0, LIMIT.favorites)
       .map((f): MapFavorite | null =>
-        isObj(f) && typeof f.room === "string" && f.room
-          ? { room: f.room.toUpperCase(), color: hex(f.color, "#60CDFF"), note: typeof f.note === "string" ? f.note : undefined }
+        isObj(f) && typeof f.room === "string" && f.room && f.room.length <= LIMIT.room
+          ? {
+              room: f.room.toUpperCase(),
+              color: hex(f.color, "#60CDFF"),
+              note: typeof f.note === "string" ? f.note.slice(0, LIMIT.text) : undefined,
+            }
           : null,
       )
       .filter((f): f is MapFavorite => f !== null),
@@ -611,7 +749,7 @@ export function normalize(saved: unknown): Settings {
   const sc = isObj(s.schedule) ? s.schedule : {};
   const lessonsRaw = Array.isArray(sc.lessons) ? sc.lessons : [];
   const schedule: ScheduleSettings = {
-    lessons: lessonsRaw.map(migrateLesson).filter((x): x is Lesson => x !== null),
+    lessons: lessonsRaw.slice(0, LIMIT.lessons).map(migrateLesson).filter((x): x is Lesson => x !== null),
     showWeekend: bool(sc.showWeekend, d.schedule.showWeekend),
     showEmptyDays: bool(sc.showEmptyDays, d.schedule.showEmptyDays),
     background: bool(sc.background, d.schedule.background),
@@ -623,7 +761,7 @@ export function normalize(saved: unknown): Settings {
   const n = isObj(s.notes) ? s.notes : {};
   const notesRaw = Array.isArray(n.notes) ? n.notes : [];
   const notes: NotesSettings = {
-    notes: notesRaw.map(migrateNote).filter((x): x is Note => x !== null),
+    notes: notesRaw.slice(0, LIMIT.notes).map(migrateNote).filter((x): x is Note => x !== null),
     sort: oneOf(n.sort, NOTE_SORTS, d.notes.sort),
     showDone: bool(n.showDone, d.notes.showDone),
     privacy: bool(n.privacy, d.notes.privacy),
@@ -656,10 +794,13 @@ export function normalize(saved: unknown): Settings {
     style,
     accent,
     tiles,
+    tileViews,
+    customWidgets,
     lockLayout: bool(s.lockLayout, d.lockLayout),
     onboarded: bool(s.onboarded, d.onboarded),
     clock,
     system,
+    perf,
     launchers,
     map,
     schedule,
@@ -671,9 +812,9 @@ export function normalize(saved: unknown): Settings {
 export type SettingsPatch = Partial<Omit<Settings, "version">>;
 
 /** Pages that can be reset on their own. */
-export type ResetSection = "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "notes" | "reminders";
+export type ResetSection = "appearance" | "clock" | "system" | "perf" | "launchers" | "map" | "schedule" | "notes" | "reminders";
 /** The sections «Сбросить оформление» resets: the look of the app and the tiles (reminders are not looks). */
-export const RESET_SECTIONS: readonly ResetSection[] = ["appearance", "clock", "system", "launchers", "map", "schedule", "notes"];
+export const RESET_SECTIONS: readonly ResetSection[] = ["appearance", "clock", "system", "perf", "launchers", "map", "schedule", "notes"];
 
 /**
  * Defaults for the customization of one section. User data stays: lessons, notes, custom launchers and
@@ -690,6 +831,8 @@ function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
       return { clock: d.clock };
     case "system":
       return { system: { ...d.system, customLabel: s.system.customLabel, hideNames: s.system.hideNames } };
+    case "perf":
+      return { perf: d.perf };
     case "launchers":
       return {
         launchers: { ...d.launchers, builtIn: s.launchers.builtIn, builtInEdits: s.launchers.builtInEdits, custom: s.launchers.custom },
@@ -794,12 +937,27 @@ class SettingsStore {
     // Nothing changed (a reset of defaults, the same value again): no render, no write.
     if (next === this.current) return;
     const zoomChanged = next.tileScale !== this.current.tileScale;
+    const customChanged = next.customWidgets !== this.current.customWidgets;
+    const viewsChanged = next.tileViews !== this.current.tileViews;
     this.current = next;
     this.emit();
     await store.set(KEY, next);
     await store.save();
-    // The native side reads the new size from the saved settings and zooms the tiles.
+    // The native side reads the new values from the saved settings: it zooms the tiles, makes, switches and
+    // closes the windows of the own widgets, and gives every tile the size of its view.
     if (zoomChanged) await invoke("apply_tile_scale").catch(() => undefined);
+    if (customChanged) await invoke("sync_custom_widgets").catch(() => undefined);
+    if (viewsChanged) await invoke("apply_tile_views").catch(() => undefined);
+  }
+
+  /** «Размер» of one widget; "manual" is kept as no entry. */
+  setTileView(label: string, view: TileView) {
+    return this.update((s) => {
+      const tileViews = { ...s.tileViews };
+      if (view === "manual") delete tileViews[label];
+      else tileViews[label] = view;
+      return { tileViews };
+    });
   }
 
   updateClock(p: Partial<ClockSettings>) {
@@ -807,6 +965,9 @@ class SettingsStore {
   }
   updateSystem(p: Partial<SystemSettings>) {
     return this.update((s) => ({ system: { ...s.system, ...p } }));
+  }
+  updatePerf(p: Partial<PerfSettings>) {
+    return this.update((s) => ({ perf: { ...s.perf, ...p } }));
   }
   updateLaunchers(p: Partial<LaunchersSettings>) {
     return this.update((s) => ({ launchers: { ...s.launchers, ...p } }));

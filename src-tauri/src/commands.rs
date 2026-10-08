@@ -32,6 +32,9 @@ pub fn get_work_area(window: WebviewWindow) -> WorkArea {
 
 #[tauri::command]
 pub fn save_rect(app: AppHandle, label: String, x: i32, y: i32, w: u32, h: u32) -> Result<(), String> {
+    if !crate::is_tile(&label) {
+        return Err("unknown tile".into());
+    }
     layout::save_rect(&app, &label, Rect { x, y, w, h })
 }
 
@@ -50,7 +53,7 @@ pub fn set_window_theme(window: WebviewWindow, dark: bool, material: Option<Stri
 /// off-screen parking spot into place; the settings window (created hidden) is shown and focused.
 #[tauri::command]
 pub fn window_ready(app: AppHandle, window: WebviewWindow) {
-    if crate::TILES.contains(&window.label()) {
+    if crate::is_tile(window.label()) {
         layout::mark_ready(&app, window.label());
     } else if window.label() == crate::settings_window::LABEL {
         if !matches!(window.is_visible(), Ok(true)) {
@@ -64,18 +67,18 @@ pub fn window_ready(app: AppHandle, window: WebviewWindow) {
 /// activated by clicks otherwise (see desktop_watch).
 #[tauri::command]
 pub fn activate_tile(window: WebviewWindow) {
-    if crate::TILES.contains(&window.label()) {
+    if crate::is_tile(window.label()) {
         if let Ok(h) = window.hwnd() {
             crate::desktop_watch::activate(windows::Win32::Foundation::HWND(h.0));
         }
     }
 }
 
-/// «Размер виджетов» changed (already saved): zoom every tile page, scale the saved layout and move the tiles.
+/// «Масштаб виджетов» changed (already saved): zoom every tile page, scale the saved layout and move the tiles.
 /// Returns the zoom now in use (for "auto" the one this screen gets).
 #[tauri::command]
 pub fn apply_tile_scale(app: AppHandle) -> f64 {
-    let Some(first) = crate::TILES.iter().find_map(|l| app.get_webview_window(l)) else { return crate::zoom::current() };
+    let Some(first) = crate::tile_labels(&app).iter().find_map(|l| app.get_webview_window(l)) else { return crate::zoom::current() };
     let zoom = crate::zoom::apply(&app, &crate::layout::work_area(&first));
     crate::layout::replace_shown(&app);
     zoom
@@ -114,10 +117,42 @@ pub async fn fetch_site_icon(url: String) -> Result<String, String> {
         .map_err(|e| e.to_string())?
 }
 
+/// A folded tile («Маленький», «Средний») opens to its full size as a pop-up, or folds back. Opening gives it the
+/// keyboard and the focus, so a click anywhere else (its blur) folds it again.
+#[tauri::command]
+pub fn expand_tile(app: AppHandle, window: WebviewWindow, expanded: bool) {
+    let label = window.label().to_string();
+    if !crate::is_tile(&label) {
+        return;
+    }
+    // Only a folded view opens; folding is always allowed (the view may have changed meanwhile).
+    if expanded && !matches!(layout::view_of(&app, &label), layout::View::Small | layout::View::Medium) {
+        return;
+    }
+    if layout::set_expanded(&app, &window, &label, expanded) && expanded {
+        if let Ok(h) = window.hwnd() {
+            crate::desktop_watch::activate(windows::Win32::Foundation::HWND(h.0));
+        }
+    }
+}
+
+/// A program fills the screen right now (desktop_watch.rs `front_covers`): the widgets that work on their own rest.
+#[tauri::command]
+pub fn desktop_covered() -> bool {
+    crate::desktop_watch::is_covered()
+}
+
+/// «Размер» of tiles changed in the settings: every pop-up folds and every shown tile takes its new rect.
+#[tauri::command]
+pub fn apply_tile_views(app: AppHandle) {
+    layout::fold_all(&app);
+    layout::replace_shown(&app);
+}
+
 /// Glass background of the calling tile on/off (settings «Фон виджета»).
 #[tauri::command]
 pub fn set_tile_glass(window: WebviewWindow, on: bool) {
-    if crate::TILES.contains(&window.label()) {
+    if crate::is_tile(window.label()) {
         crate::glass::set_tile_glass(&window, on);
     }
 }

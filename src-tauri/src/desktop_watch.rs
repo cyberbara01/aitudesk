@@ -15,19 +15,26 @@
 //! pinned back there. Owner and styles are re-checked on every poll: after an Explorer restart the old host
 //! is gone (owned windows of other processes survive that) and the tiles are attached to the new one.
 //! Nothing here touches tao's window flags: they re-apply styles and call ShowWindow, which activates a tile.
+//!
+//! The same poll notices when a program fills the screen the tiles are on (`front_covers`): the pages hear it
+//! («desktop-covered») and the ones that work on their own rest until the desktop can be seen again. Nothing is
+//! hidden for it, so the desktop never shows a tile without its content.
 
 use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::sync::OnceLock;
 use std::time::Instant;
 
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use windows::core::{w, BOOL};
-use windows::Win32::Foundation::{HWND, LPARAM};
+use windows::Win32::Foundation::{HWND, LPARAM, RECT};
+use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED};
 use windows::Win32::UI::Accessibility::{SetWinEventHook, HWINEVENTHOOK};
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, EnumWindows, FindWindowExW, GetClassNameW, GetShellWindow, GetWindow, GetWindowLongPtrW,
-    GetWindowLongW, IsWindowVisible, SetForegroundWindow, SetTimer, SetWindowLongPtrW, SetWindowPos,
+    CreateWindowExW, EnumWindows, FindWindowExW, GetClassNameW, GetForegroundWindow, GetShellWindow, GetWindow,
+    GetWindowLongPtrW, GetWindowLongW, GetWindowRect, IsIconic, IsWindowVisible, SetForegroundWindow, SetTimer,
+    SetWindowLongPtrW, SetWindowPos, SystemParametersInfoW, SPI_GETWORKAREA, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
+    WS_EX_LAYERED, WS_EX_TRANSPARENT,
     EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, GWLP_HWNDPARENT, GWL_EXSTYLE,
     GW_HWNDNEXT, GW_HWNDPREV, GW_OWNER, HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOPMOST, SET_WINDOW_POS_FLAGS,
     SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, WINEVENT_OUTOFCONTEXT,
@@ -36,6 +43,8 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static DESKTOP_SHOWN: AtomicBool = AtomicBool::new(false);
+/// A program fills the screen the tiles are on (`front_covers`).
+static COVERED: AtomicBool = AtomicBool::new(false);
 /// HWND of the hidden z-order sentinel (0 = not created).
 static SENTINEL: AtomicIsize = AtomicIsize::new(0);
 
@@ -202,7 +211,7 @@ fn tiles_right_above(host: HWND, tiles: &[HWND]) -> bool {
 }
 
 fn tile_hwnds(app: &AppHandle) -> Vec<HWND> {
-    crate::TILES
+    crate::tile_labels(app)
         .iter()
         .filter_map(|label| app.get_webview_window(label))
         .filter_map(|w| w.hwnd().ok())
@@ -278,6 +287,50 @@ fn pin_tiles(tiles: &[HWND]) {
     }
 }
 
+/// The window in front fills the work area the tiles are on (a maximized or full-screen program), so not one tile
+/// can be seen. Only a plain opaque window counts: an overlay that lets the desktop through (layered or
+/// click-through), a window on another virtual desktop (cloaked), a minimized one, the taskbar or the desktop
+/// itself never do, so a tile in sight is never taken for covered.
+fn front_covers(host: HWND, sentinel: HWND, tiles: &[HWND]) -> bool {
+    // SAFETY: plain queries about a window handle and the work area, with buffers of the sizes the calls expect.
+    unsafe {
+        let fg = GetForegroundWindow();
+        if fg.0.is_null() || fg == host || fg == sentinel || tiles.contains(&fg) {
+            return false;
+        }
+        if !IsWindowVisible(fg).as_bool() || IsIconic(fg).as_bool() {
+            return false;
+        }
+        let ex = GetWindowLongW(fg, GWL_EXSTYLE) as u32;
+        if ex & (WS_EX_LAYERED.0 | WS_EX_TRANSPARENT.0) != 0 {
+            return false;
+        }
+        if matches!(class_name(fg).as_str(), "Progman" | "WorkerW" | "Shell_TrayWnd" | "Shell_SecondaryTrayWnd") {
+            return false;
+        }
+        let mut cloaked = 0u32;
+        let size = std::mem::size_of::<u32>() as u32;
+        if DwmGetWindowAttribute(fg, DWMWA_CLOAKED, &mut cloaked as *mut u32 as *mut c_void, size).is_ok() && cloaked != 0 {
+            return false;
+        }
+        let mut wa = RECT::default();
+        let flags = SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0);
+        if SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut wa as *mut RECT as *mut c_void), flags).is_err() {
+            return false;
+        }
+        let mut r = RECT::default();
+        if GetWindowRect(fg, &mut r).is_err() {
+            return false;
+        }
+        r.left <= wa.left && r.top <= wa.top && r.right >= wa.right && r.bottom >= wa.bottom
+    }
+}
+
+/// Whether a program fills the screen now, for a page that starts meanwhile.
+pub fn is_covered() -> bool {
+    COVERED.load(Ordering::Relaxed)
+}
+
 fn check() {
     let Some(app) = APP.get() else { return };
     let Some(s) = sentinel() else { return };
@@ -294,6 +347,10 @@ fn check() {
     if shown != was {
         // A transition: watch closely for a while (Explorer settles the z-order in a few steps).
         FAST_UNTIL_MS.fetch_max(now_ms() + FAST_AFTER_EVENT_MS, Ordering::Relaxed);
+    }
+    let covered = !shown && front_covers(host, s, &tiles);
+    if COVERED.swap(covered, Ordering::SeqCst) != covered {
+        let _ = app.emit("desktop-covered", covered);
     }
     if shown {
         if tile_below {
@@ -368,6 +425,22 @@ pub fn move_tile(h: HWND, x: i32, y: i32) {
             0,
             0,
             SET_WINDOW_POS_FLAGS(SWP_NOSIZE.0 | SWP_NOACTIVATE.0 | SWP_NOOWNERZORDER.0),
+        );
+    }
+}
+
+/// Size and position of a tile in one SetWindowPos, right above the desktop like `move_tile`: a pop-up opening or
+/// folding (and any re-placing) never shows a step with the new size at the old place.
+pub fn place_tile(h: HWND, x: i32, y: i32, w: u32, height: u32) {
+    unsafe {
+        let _ = SetWindowPos(
+            h,
+            Some(HWND_BOTTOM),
+            x,
+            y,
+            w as i32,
+            height as i32,
+            SET_WINDOW_POS_FLAGS(SWP_NOACTIVATE.0 | SWP_NOOWNERZORDER.0),
         );
     }
 }

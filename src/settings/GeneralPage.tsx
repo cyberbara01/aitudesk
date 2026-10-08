@@ -1,26 +1,90 @@
-// «Общие»: «Все виджеты» (every tile off the desktop and back with one button), the tiles one by one, desktop
-// behaviour (lock layout), autostart, and the resets (tile layout, the whole customization). The interface
-// language is the small button in the bottom-left corner of the window (shell/LanguageSwitch.tsx).
-import { useCallback, useEffect, useId, useState } from "react";
+// «Общие»: «Все виджеты» (every tile off the desktop and back with one button), the tiles one by one with their
+// size, the own widgets (pictures, src/settings/custom/CustomWidgetEditor.tsx), desktop behaviour (lock layout),
+// autostart, and the resets (tile layout, the whole customization). The interface language is the small button
+// in the bottom-left corner of the window (shell/LanguageSwitch.tsx).
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
-import { onAutostartChange } from "../lib/autostart";
+import { disable, enable, isEnabled, onAutostartChange } from "../lib/autostart";
 import { Button, IconButton } from "../components/Button";
 import { Dialog } from "../components/Dialog";
+import { EmptyState } from "../components/EmptyState";
 import { Icon } from "../components/Icon";
 import { Page, Row, Section } from "../components/Section";
+import { Select, type SelectOption } from "../components/Select";
 import { Switch } from "../components/Switch";
+import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
-import { TILE_IDS, settings, type TileId } from "../lib/settings";
-import { useSettings } from "../lib/useSettings";
+import {
+  CUSTOM_MAX,
+  TILE_IDS,
+  TILE_VIEWS,
+  customLabel,
+  settings,
+  type CustomWidget,
+  type TileId,
+  type TileView,
+} from "../lib/settings";
+import { useSettings, useSettingsLoaded } from "../lib/useSettings";
+import { useWidgetImage } from "../lib/widgetImage";
+import { CustomWidgetEditor } from "./custom/CustomWidgetEditor";
 import { useSettled, useTransient } from "./shell/hooks";
 import { IconRow } from "./shell/IconRow";
 import { TILE_ICONS, useNavigate } from "./shell/nav";
 
 const g = ru.settings.general;
 const x = extra.general;
+const v = extra.views;
+const c = extra.custom;
+
+/** «Размер» of a widget: by hand, or a preset (src/lib/tileView.ts). */
+const VIEW_OPTIONS: readonly SelectOption<TileView>[] = TILE_VIEWS.map((tv) => ({ value: tv, label: v[tv] }));
+
+/** The picture's format, under the widget's name. */
+const FORMATS: Record<string, string> = { png: "PNG", jpg: "JPEG", gif: "GIF", webp: "WebP", bmp: "BMP" };
+const formatOf = (file: string) => FORMATS[file.slice(file.lastIndexOf(".") + 1)] ?? "";
+
+function SizeSelect({ label, name, value }: { label: string; name: string; value: TileView }) {
+  return (
+    <Select
+      options={VIEW_OPTIONS}
+      value={value}
+      onChange={(tv) => void settings.setTileView(label, tv)}
+      ariaLabel={v.sizeOf(name)}
+      className="tile-size"
+    />
+  );
+}
+
+/** An own widget in the list: its picture (a still of the first frame), name, size, switch and editor. */
+function CustomRow({ widget, view, onEdit }: { widget: CustomWidget; view: TileView; onEdit: () => void }) {
+  const image = useWidgetImage(widget.file);
+  const missing = image === "missing";
+  const name = widget.name.trim() || c.unnamed;
+  const toggle = (on: boolean) =>
+    void settings.update((cur) => ({
+      customWidgets: cur.customWidgets.map((w) => (w.id === widget.id ? { ...w, enabled: on } : w)),
+    }));
+  return (
+    <div className={widget.enabled ? "row cw-row" : "row cw-row off"}>
+      <span className="cw-thumb" aria-hidden="true">
+        {image && !missing ? <img src={image.still} alt="" draggable={false} /> : <Icon name="image" />}
+      </span>
+      <div className="row-text">
+        <span className="row-label ellipsis">{name}</span>
+        <span className={missing ? "row-hint cw-warn" : "row-hint"}>{missing ? c.pictureMissing : formatOf(widget.file)}</span>
+      </div>
+      <div className="row-control">
+        <SizeSelect label={customLabel(widget.id)} name={name} value={view} />
+        <Switch checked={widget.enabled} onChange={toggle} ariaLabel={name} />
+        <Tooltip text={c.settingsOf(name)}>
+          <IconButton icon="edit" variant="subtle" label={c.settingsOf(name)} onClick={onEdit} />
+        </Tooltip>
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------------------------
 // «Все виджеты» and autostart live outside the settings file. Both are read once when the settings
@@ -132,8 +196,28 @@ function AllTiles({ visible, settled, onChange }: AllTilesProps) {
   );
 }
 
-export function GeneralPage() {
+interface Props {
+  /** From ?edit= / settings-navigate (a widget's «Настройки виджета»): the id of an own widget opens its editor. */
+  editId?: string | null;
+}
+
+export function GeneralPage({ editId }: Props) {
   const s = useSettings();
+  const loaded = useSettingsLoaded();
+  /** The open editor of an own widget: null = a new one. */
+  const [editor, setEditor] = useState<{ widget: CustomWidget | null } | null>(null);
+  const closeEditor = useCallback(() => setEditor(null), []);
+  const handledEdit = useRef<string | null>(null);
+  useEffect(() => {
+    if (!loaded || !editId || handledEdit.current === editId) return;
+    handledEdit.current = editId;
+    const widget = settings.get().customWidgets.find((w) => w.id === editId);
+    if (widget) setEditor({ widget });
+  }, [loaded, editId]);
+  const full = s.customWidgets.length >= CUSTOM_MAX;
+  const openNew = () => {
+    if (!full) setEditor({ widget: null });
+  };
   const [visible, setVisible] = useExternal(tilesVisible);
   // The tiles' state as the app reports it after every change («tiles-hidden»), so this card always tells the truth.
   useEffect(() => {
@@ -176,11 +260,15 @@ export function GeneralPage() {
     });
   };
 
-  const resetLayout = () => {
-    invoke("reset_layout").then(
-      () => flashLayoutReset("done"),
-      () => flashLayoutReset("failed"),
-    );
+  // Back to the first places and sizes: every widget «Вручную» again, at its default rect.
+  const resetLayout = async () => {
+    try {
+      await settings.update({ tileViews: {} });
+      await invoke("reset_layout");
+      flashLayoutReset("done");
+    } catch {
+      flashLayoutReset("failed");
+    }
   };
 
   const resetLook = () => {
@@ -197,13 +285,32 @@ export function GeneralPage() {
 
       {/* Each tile: what it shows, on or off, and a way into its own settings (switch plus chevron, as in Windows).
           While every tile is hidden the switches still work; the hint says when they take effect. */}
-      <Section title={g.tiles} description={visible === false ? x.tilesWhileHidden(x.showAllTiles) : g.tilesHint}>
+      <Section title={g.tiles} description={visible === false ? x.tilesWhileHidden(x.showAllTiles) : `${g.tilesHint}. ${v.hint}`}>
         {TILE_IDS.map((id) => (
           <IconRow key={id} icon={TILE_ICONS[id]} label={ru.tiles[id]} hint={x.tileHints[id]}>
+            <SizeSelect label={id} name={ru.tiles[id]} value={s.tileViews[id] ?? "manual"} />
             <Switch checked={s.tiles[id]} onChange={(on) => toggleTile(id, on)} ariaLabel={ru.tiles[id]} />
             <IconButton icon="chevron_right" variant="subtle" label={x.tileSettings(ru.tiles[id])} onClick={() => navigate(id)} />
           </IconRow>
         ))}
+      </Section>
+
+      <Section title={c.title} description={c.desc}>
+        {s.customWidgets.length === 0 ? (
+          <EmptyState title={c.empty} hint={c.emptyHint} action={{ label: c.add, icon: "image_add", onClick: openNew }} />
+        ) : (
+          <>
+            {s.customWidgets.map((w) => (
+              <CustomRow key={w.id} widget={w} view={s.tileViews[customLabel(w.id)] ?? "manual"} onEdit={() => setEditor({ widget: w })} />
+            ))}
+            <div className="cw-foot">
+              <Button variant="accent" icon="image_add" onClick={openNew} disabled={full}>
+                {c.add}
+              </Button>
+              <span className="cw-hint">{full ? c.limit(CUSTOM_MAX) : c.addHint(CUSTOM_MAX)}</span>
+            </div>
+          </>
+        )}
       </Section>
 
       <Section title={x.desktop} description={g.arrangeHint}>
@@ -223,7 +330,7 @@ export function GeneralPage() {
       <Section title={x.reset}>
         <Row label={x.layoutLabel} hint={x.layoutHint} stack>
           <span className="inline">
-            <Button icon="arrow_reset" onClick={resetLayout}>
+            <Button icon="arrow_reset" onClick={() => void resetLayout()}>
               {g.resetLayout}
             </Button>
             <ResultText outcome={layoutReset} done={g.resetLayoutDone} failed={x.resetLayoutFailed} />
@@ -255,6 +362,8 @@ export function GeneralPage() {
       >
         <p className="reset-text">{ru.common.resetAllText}</p>
       </Dialog>
+
+      {editor && <CustomWidgetEditor widget={editor.widget} onClose={closeEditor} />}
 
     </Page>
   );

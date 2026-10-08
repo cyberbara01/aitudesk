@@ -7,6 +7,7 @@ import { Tile } from "../components/Tile";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
 import type { StyleId, SystemSettings } from "../lib/settings";
+import { useFolded, useTileView } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { useSystemInfo, useUserName, type BluetoothInfo, type PowerInfo, type SystemInfo, type WifiInfo } from "../lib/useSystemInfo";
 
@@ -232,9 +233,12 @@ export function SystemTile() {
   const loaded = useSettingsLoaded();
   const s = useSettings();
   const sys = s.system;
-  const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: loaded });
+  // Folded to its icon, nothing is read; only a size set by hand grows to fit its rows.
+  const folded = useFolded();
+  const view = useTileView();
+  const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: loaded && !folded });
   const fit = rowsFit(1 + Number(sys.showWifi) + Number(sys.showBluetooth), s.style);
-  useGrowToFit(fit, loaded);
+  useGrowToFit(fit, loaded && view === "manual");
   // Wait for the stored settings so the tile never flashes default rows (or toggles the acrylic twice).
   if (!loaded) return null;
   return (

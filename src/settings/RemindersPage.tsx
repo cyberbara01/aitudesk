@@ -6,8 +6,7 @@
 // дедлайна») and is saved as soon as it is valid.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { enable, isEnabled } from "@tauri-apps/plugin-autostart";
-import { autostartChanged } from "../lib/autostart";
+import { autostartChanged, enable, isEnabled } from "../lib/autostart";
 import { Button } from "../components/Button";
 import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";

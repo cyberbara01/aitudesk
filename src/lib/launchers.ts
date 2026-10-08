@@ -259,7 +259,8 @@ export function contentBox(el: HTMLElement): { w: number; h: number } {
  */
 export function isValidUrl(url: string): boolean {
   const text = url.trim();
-  if (!/^https?:\/\//i.test(text) || hasSpaces(text)) return false;
+  // 2048: the longest address the settings keep (settings.ts webUrl).
+  if (!/^https?:\/\//i.test(text) || hasSpaces(text) || text.length > 2048) return false;
   try {
     const u = new URL(text);
     return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.length > 0;

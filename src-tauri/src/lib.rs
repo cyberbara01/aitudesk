@@ -1,5 +1,7 @@
 mod accent;
+mod autostart;
 mod commands;
+mod custom;
 mod desktop_watch;
 mod favicon;
 mod files;
@@ -7,6 +9,7 @@ mod glass;
 mod lang;
 mod layout;
 mod notify;
+mod perf;
 mod reminders;
 mod settings_window;
 mod sysinfo;
@@ -16,7 +19,7 @@ mod zoom;
 use tauri::Manager;
 
 /// Labels of the tile windows declared in tauri.conf.json.
-pub const TILES: &[&str] = &["clock", "system", "launchers", "map", "schedule", "notes"];
+pub const TILES: &[&str] = &["clock", "system", "perf", "launchers", "map", "schedule", "notes"];
 
 /// WebView2 arguments of every window, taken from the tile windows in tauri.conf.json by build.rs (windows
 /// with different arguments cannot share one WebView2 environment). The first part is wry's default;
@@ -24,11 +27,39 @@ pub const TILES: &[&str] = &["clock", "system", "launchers", "map", "schedule", 
 /// window, which saves about a quarter of the app's memory.
 pub const BROWSER_ARGS: &str = env!("AITUDESK_BROWSER_ARGS");
 
+/// A tile window: a built-in one or a custom widget (`custom-<id>`).
+pub fn is_tile(label: &str) -> bool {
+    TILES.contains(&label) || custom::is_custom(label)
+}
+
+/// Labels of the tile windows that exist now: the built-in ones, then the custom widgets'.
+pub fn tile_labels(app: &tauri::AppHandle) -> Vec<String> {
+    let mut labels: Vec<String> = TILES.iter().map(|l| l.to_string()).collect();
+    let mut own: Vec<String> = app.webview_windows().into_keys().filter(|l| custom::is_custom(l)).collect();
+    own.sort();
+    labels.extend(own);
+    labels
+}
+
+/// What every tile window gets once: its title, touchpad pinch, the glass, the place above the desktop.
+pub fn setup_tile(app: &tauri::AppHandle, win: &tauri::WebviewWindow, label: &str) {
+    let title = if custom::is_custom(label) { custom::title(app, label) } else { tile_title(label) };
+    let _ = win.set_title(&title);
+    layout::enable_pinch(win);
+    glass::apply(win);
+    glass::keep_active_look(win);
+    let _ = win.set_zoom(zoom::current());
+    if let Ok(h) = win.hwnd() {
+        desktop_watch::attach(windows::Win32::Foundation::HWND(h.0));
+    }
+}
+
 /// Window title of a tile, in the interface language (screen readers announce it when a menu opens on the tile).
 fn tile_title(label: &str) -> String {
     let name = match label {
         "clock" => lang::pick("часы", "clock"),
         "system" => lang::pick("система", "system"),
+        "perf" => lang::pick("нагрузка", "performance"),
         "launchers" => lang::pick("ярлыки", "shortcuts"),
         "map" => lang::pick("карта", "map"),
         "schedule" => lang::pick("расписание", "schedule"),
@@ -38,16 +69,49 @@ fn tile_title(label: &str) -> String {
     format!("AITU Desk: {name}")
 }
 
-/// Command-line flag of the login start (written into the Run key by the autostart plugin).
+/// Command-line flag of the login start (written into the Run key, autostart.rs).
 const AUTOSTART_ARG: &str = "--autostart";
 
 /// settings.json is plain JSON that people may edit by hand. The store plugin reads a file it cannot parse as
 /// empty, and the first save then writes defaults over it, losing lessons and notes. So before anything opens
 /// it: a UTF-8 BOM (added by some editors) is dropped, and a file that still does not parse is moved aside as
 /// settings.broken-<unix time>.json, next to it, where the data can be recovered.
+/// A second launch only hands its arguments to the running instance and exits; it must not touch the store file,
+/// which the running instance may be writing at that very moment. tauri-plugin-single-instance holds a mutex
+/// named «<identifier>-sim» for as long as the first instance runs.
+fn another_instance_runs(identifier: &str) -> bool {
+    use windows::Win32::System::Threading::{OpenMutexW, SYNCHRONIZATION_SYNCHRONIZE};
+    let name = windows::core::HSTRING::from(format!("{identifier}-sim"));
+    // SAFETY: opens (and closes again) a handle to a named mutex, nothing else.
+    match unsafe { OpenMutexW(SYNCHRONIZATION_SYNCHRONIZE, false, &name) } {
+        Ok(handle) => {
+            unsafe {
+                let _ = windows::Win32::Foundation::CloseHandle(handle);
+            }
+            true
+        }
+        Err(_) => false,
+    }
+}
+
+/// %APPDATA% as the store plugin resolves it (the Roaming known folder), not from the environment.
+fn roaming_app_data() -> Option<std::path::PathBuf> {
+    use windows::Win32::UI::Shell::{FOLDERID_RoamingAppData, SHGetKnownFolderPath, KNOWN_FOLDER_FLAG};
+    // SAFETY: the returned string is copied and then freed with CoTaskMemFree.
+    unsafe {
+        let raw = SHGetKnownFolderPath(&FOLDERID_RoamingAppData, KNOWN_FOLDER_FLAG(0), None).ok()?;
+        let path = raw.to_string().ok();
+        windows::Win32::System::Com::CoTaskMemFree(Some(raw.0 as *const core::ffi::c_void));
+        path.map(std::path::PathBuf::from)
+    }
+}
+
 fn protect_store_file(identifier: &str) {
-    let Some(appdata) = std::env::var_os("APPDATA") else { return };
-    let dir = std::path::PathBuf::from(appdata).join(identifier);
+    if another_instance_runs(identifier) {
+        return;
+    }
+    let Some(appdata) = roaming_app_data() else { return };
+    let dir = appdata.join(identifier);
     let path = dir.join(layout::STORE_FILE);
     let Ok(bytes) = std::fs::read(&path) else { return };
     let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF][..]).unwrap_or(&bytes);
@@ -80,10 +144,6 @@ pub fn run() {
         .plugin(tauri::plugin::Builder::<tauri::Wry>::new("aitudesk-lang").js_init_script(lang::init_script(language)).build())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec![AUTOSTART_ARG]),
-        ))
         .manage(layout::Visibility::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_accent,
@@ -108,24 +168,32 @@ pub fn run() {
             commands::save_config_file,
             commands::open_config_file,
             commands::restart_app,
+            commands::expand_tile,
+            commands::desktop_covered,
+            commands::apply_tile_views,
             commands::apply_tile_scale,
             sysinfo::get_power,
             sysinfo::get_wifi,
             sysinfo::get_bluetooth,
+            perf::get_perf,
+            custom::pick_widget_image,
+            custom::read_widget_image,
+            custom::widget_image_base64,
+            custom::store_widget_image,
+            custom::sync_custom_widgets,
+            autostart::autostart_enabled,
+            autostart::set_autostart,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
             layout::restore_all(&handle);
             for label in TILES {
                 if let Some(win) = handle.get_webview_window(label) {
-                    let _ = win.set_title(&tile_title(label));
-                    glass::apply(&win);
-                    glass::keep_active_look(&win);
-                    if let Ok(h) = win.hwnd() {
-                        desktop_watch::attach(windows::Win32::Foundation::HWND(h.0));
-                    }
+                    setup_tile(&handle, &win, label);
                 }
             }
+            // The user's own picture widgets: windows made now, placed like the others.
+            custom::sync(&handle);
             // Tiles move into place when their page reports its first frame (`window_ready`).
             // Safety net: reveal whatever has not reported within a few seconds.
             let fallback = handle.clone();
@@ -136,15 +204,9 @@ pub fn run() {
             tray::build(&handle)?;
             desktop_watch::install(&handle);
             reminders::start(handle.clone());
-            // The login entry written by older versions has no `--autostart`: rewrite it once, so a login
-            // start never opens the settings window.
-            {
-                use tauri_plugin_autostart::ManagerExt;
-                let launcher = handle.autolaunch();
-                if matches!(launcher.is_enabled(), Ok(true)) {
-                    let _ = launcher.enable();
-                }
-            }
+            // An existing login entry that is not exactly right (unquoted or without `--autostart` from an older
+            // version, or an install that moved) is rewritten; none is created here.
+            autostart::refresh();
             // Started by hand (shortcut, Start menu, after install): open the settings window too; the first
             // time it shows the welcome page. A login start shows only the tiles.
             let autostart = std::env::args().skip(1).any(|a| a == AUTOSTART_ARG)

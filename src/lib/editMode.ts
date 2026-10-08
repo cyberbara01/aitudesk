@@ -34,8 +34,10 @@ const VK_Z = 0x5a;
 export interface EditModeOptions {
   label: string;
   resizable?: boolean;
-  /** CSS px of the widget page (logical px when «Размер виджетов» is 100 %). */
+  /** CSS px of the widget page (logical px when «Масштаб виджетов» is 100 %). */
   minSize?: { w: number; h: number };
+  /** A resize ended with a new size (a «Большой» widget becomes «Вручную»). */
+  onResized?: () => void;
 }
 
 const GRID = 8;
@@ -56,8 +58,10 @@ export function setEditMode(on: boolean) {
   return emit(EDIT_EVENT, on);
 }
 
-export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 220 } }: EditModeOptions) {
+export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 220 }, onResized }: EditModeOptions) {
   const [editing, setEditing] = useState(false);
+  const onResizedRef = useRef(onResized);
+  onResizedRef.current = onResized;
   const editingRef = useRef(false);
   editingRef.current = editing;
   /** Where the tile was before each move or resize of this session, the latest last. */
@@ -133,7 +137,7 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         win.outerSize(),
         invoke<WorkArea>("get_work_area"),
       ]);
-      // Pointer screen coordinates are the monitor's logical px (the page zoom, «Размер виджетов», leaves them
+      // Pointer screen coordinates are the monitor's logical px (the page zoom, «Масштаб виджетов», leaves them
       // alone); the grid and the margins are the page's CSS px, so they shrink with the widgets.
       const ms = wa.scale;
       const s = window.devicePixelRatio || wa.scale;
@@ -204,6 +208,7 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         if (next) await win.setSize(new PhysicalSize(next.w, next.h));
         remember(before, { ...before, ...(next ?? {}) });
         await save();
+        if (next && (next.w !== before.w || next.h !== before.h)) onResizedRef.current?.();
       };
       el.addEventListener("pointermove", move);
       el.addEventListener("pointerup", up);

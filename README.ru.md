@@ -6,8 +6,9 @@
 
 [English](README.md) · **Русский**
 
-**Виджеты на рабочий стол Windows 11: часы, заряд и сеть, ярлыки, заметки с дедлайнами, расписание пар и карта
-Astana IT University.** Лежат прямо на обоях, под окнами, не мешают работать и не пропадают от Win+D.
+**Виджеты на рабочий стол Windows 11: часы, заряд и сеть, нагрузка компьютера, ярлыки, заметки с дедлайнами,
+расписание пар, карта Astana IT University и ваши картинки.** Лежат прямо на обоях, под окнами, не мешают работать
+и не пропадают от Win+D.
 
 [![Скачать для Windows 11](https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C_%D0%B4%D0%BB%D1%8F_Windows_11-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B)](https://github.com/cyberbara01/aitudesk/releases/latest)
 
@@ -34,16 +35,20 @@ Astana IT University.** Лежат прямо на обоях, под окнам
 <td width="50%" valign="top"><img src="docs/readme/system.svg" width="22" height="22" alt=""><br><b>Система</b><br>Заряд батареи, Wi-Fi и Bluetooth. Имена сети и устройств можно скрыть</td>
 </tr>
 <tr>
+<td width="50%" valign="top"><img src="docs/readme/perf.svg" width="22" height="22" alt=""><br><b>Нагрузка</b><br>Процессор, видеокарта, память и диск в процентах, температура процессора и видеокарты</td>
 <td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Ярлыки</b><br>Любимые сайты в один клик: иконка сайта, из набора или буква, свой цвет</td>
+</tr>
+<tr>
 <td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Заметки</b><br>Задачи с дедлайном и обратным отсчётом, просроченные сразу видно</td>
-</tr>
-<tr>
 <td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Расписание</b><br>Пары по дням недели, текущая и следующая подсвечены</td>
-<td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Напоминания</b><br>Уведомления Windows перед парой и дедлайном, тихие часы</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>Карта AITU</b><br>Этажи университета, поиск кабинета, свои цветные метки</td>
-<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Оформление</b><br>Три дизайна, темы от светлой до чёрной, стекло, свой акцент, размер под экран</td>
+<td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Напоминания</b><br>Уведомления Windows перед парой и дедлайном, тихие часы</td>
+<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>Карта AITU</b><br>Этажи университета, поиск кабинета, свои цветные метки, приближение колесом или двумя пальцами</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Свои виджеты</b><br>Ваша картинка или GIF на рабочем столе, сколько угодно</td>
+<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Оформление</b><br>Три дизайна, темы от светлой до чёрной, стекло, свой акцент, масштаб под экран</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Приватность</b><br>Текст на рабочем столе можно скрыть точками, как пароль</td>
@@ -84,8 +89,9 @@ Astana IT University.** Лежат прямо на обоях, под окнам
 3. Откроется окно настроек с короткой подсказкой, а виджеты появятся на рабочем столе. Чтобы они запускались вместе
    с Windows, включите это в разделе «Общие».
 
-Нужна Windows 11, 64 бита. Чтобы переставить виджет или изменить его размер, нажмите на него правой кнопкой мыши.
-Интерфейс на русском или английском, как в Windows; сменить язык можно кнопкой «RU | EN» внизу окна настроек.
+Нужна Windows 11, 64 бита. Чтобы переставить виджет или изменить его размер, нажмите на него правой кнопкой мыши;
+в пункте «Размер» его можно свернуть в значок, который раскрывается по щелчку. Интерфейс на русском или английском,
+как в Windows; сменить язык можно кнопкой «RU | EN» внизу окна настроек.
 
 <details>
 <summary><b>Проверить, что установщик тот самый</b></summary>
@@ -110,6 +116,7 @@ Get-FileHash ".\AITU Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 | Ярлык в меню «Пуск» и, если оставить галочку, на рабочем столе | меню «Пуск», рабочий стол |
 | Запись для удаления в «Установленных приложениях» | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\AITU Desk` |
 | Настройки, пары, заметки, ярлыки, расположение виджетов (обычный JSON) | `%APPDATA%\kz.edu.astanait.aitudesk\settings.json` |
+| Копии картинок своих виджетов | `%APPDATA%\kz.edu.astanait.aitudesk\widgets\` |
 | Служебный кэш WebView2 | `%LOCALAPPDATA%\kz.edu.astanait.aitudesk\EBWebView\` |
 | Автозапуск, только если вы его включили | значение `AITU Desk` в `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
 
@@ -125,10 +132,12 @@ Get-FileHash ".\AITU Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 <br>
 
 - Сеть нужна только по вашему действию: открыть ярлык в браузере или один раз загрузить иконку сайта, когда вы
-  добавляете ярлык (запрос к самому сайту, а если иконки там нет, к сервису иконок Google).
+  добавляете ярлык (запрос к самому сайту, а если иконки там нет, к сервису иконок Google). Сайт не может направить
+  эти запросы на устройства вашей домашней сети.
 - Расписание, заметки, имя сети Wi-Fi и названия Bluetooth-устройств на рабочем столе можно скрыть точками.
-- Конфиг содержит только выбранные вами разделы, заметки по умолчанию в него не попадают. Ярлыки из чужого конфига
-  принимаются только с адресами `http://` и `https://`.
+- Конфиг содержит только выбранные вами разделы, заметки и свои виджеты по умолчанию в него не попадают. Ярлыки из
+  чужого конфига принимаются только с адресами `http://` и `https://`, а картинки только если это действительно
+  картинки.
 </details>
 
 <details>
@@ -157,8 +166,8 @@ npm run tauri build    # установщик в src-tauri/target/release/bundle
 `AITUDESK_MOCK_WIFI` (`off` | `SSID,bars` | `hidden,bars`), `AITUDESK_MOCK_BT` (`off` | `none` | `A;B;C`).
 
 Внутри: Tauri 2, Rust, React 18, TypeScript и Vite. Все виджеты работают в одном процессе WebView2, часы
-просыпаются раз в минуту, если секунды не показаны, а скрытые виджеты не держат таймеров. В режиме экономии заряда
-Windows часы прячут секунды, а заряд и сеть проверяются реже.
+просыпаются раз в минуту, если секунды не показаны, а скрытые и свёрнутые в значок виджеты не держат таймеров.
+В режиме экономии заряда Windows часы прячут секунды, заряд, сеть и нагрузка проверяются реже, а GIF замирают.
 </details>
 
 ## Обратная связь

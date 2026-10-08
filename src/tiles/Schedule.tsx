@@ -31,6 +31,7 @@ import {
   type LessonState,
 } from "../lib/schedule";
 import type { Lesson, Weekday } from "../lib/settings";
+import { useFolded } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 
 type DayKey = `${Weekday}`;
@@ -68,9 +69,10 @@ const openNewLesson = () => void invoke("open_settings", { tab: "schedule", edit
  * 15 min) and re-renders only when the date changes. Re-read when the lessons change and when the window
  * becomes visible again.
  */
-function useNow(lessons: readonly Lesson[]): Date {
+function useNow(lessons: readonly Lesson[], active: boolean): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
+    if (!active) return;
     let timer = 0;
     // The tick on which the last lesson of the day ends must still be published (the row turns «past»).
     let wasActive = false;
@@ -93,7 +95,7 @@ function useNow(lessons: readonly Lesson[]): Date {
       window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [lessons]);
+  }, [lessons, active]);
   return now;
 }
 
@@ -404,7 +406,8 @@ export function ScheduleTile() {
   const lessonsKey = JSON.stringify(s.schedule.lessons);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const lessons = useMemo(() => s.schedule.lessons, [lessonsKey]);
-  const now = useNow(lessons);
+  // Folded to its icon, the schedule does not tick.
+  const now = useNow(lessons, !useFolded());
   const today = isoWeekday(now);
   // Memoised: the Segmented options and its indicator measurement key off the array identity.
   const days = useMemo(() => visibleDays(lessons, showWeekend, showEmptyDays), [lessons, showWeekend, showEmptyDays]);

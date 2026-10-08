@@ -6,9 +6,9 @@
 
 **English** · [Русский](README.ru.md)
 
-**Desktop widgets for Windows 11: a clock, battery and network, shortcuts, notes with deadlines, the class schedule
-and the map of Astana IT University.** They sit right on the wallpaper, under your windows, stay out of the way and
-don't vanish with Win+D.
+**Desktop widgets for Windows 11: a clock, battery and network, computer load, shortcuts, notes with deadlines, the
+class schedule, the map of Astana IT University and your own pictures.** They sit right on the wallpaper, under your
+windows, stay out of the way and don't vanish with Win+D.
 
 [![Download for Windows 11](https://img.shields.io/badge/Download_for_Windows_11-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B)](https://github.com/cyberbara01/aitudesk/releases/latest)
 
@@ -35,16 +35,20 @@ don't vanish with Win+D.
 <td width="50%" valign="top"><img src="docs/readme/system.svg" width="22" height="22" alt=""><br><b>System</b><br>Battery charge, Wi-Fi and Bluetooth. Network and device names can be hidden</td>
 </tr>
 <tr>
+<td width="50%" valign="top"><img src="docs/readme/perf.svg" width="22" height="22" alt=""><br><b>Performance</b><br>Processor, graphics, memory and disk load in percent, processor and graphics temperature</td>
 <td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Shortcuts</b><br>Favorite sites in one click: the site's icon, one from the set or a letter, your own color</td>
+</tr>
+<tr>
 <td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Notes</b><br>Tasks with a deadline and a countdown, overdue ones stand out at once</td>
-</tr>
-<tr>
 <td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Schedule</b><br>Classes by day of the week, the current and the next one highlighted</td>
-<td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Reminders</b><br>Windows notifications before a class and a deadline, quiet hours</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>AITU map</b><br>The university's floors, room search, your own colored marks</td>
-<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Appearance</b><br>Three designs, themes from light to black, glass, your own accent, a size for your screen</td>
+<td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Reminders</b><br>Windows notifications before a class and a deadline, quiet hours</td>
+<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>AITU map</b><br>The university's floors, room search, your own colored marks, zoom with the wheel or two fingers</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Your widgets</b><br>Your own picture or GIF on the desktop, as many as you like</td>
+<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Appearance</b><br>Three designs, themes from light to black, glass, your own accent, a scale for your screen</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Privacy</b><br>Text on the desktop can be hidden behind dots, like a password</td>
@@ -86,8 +90,9 @@ turned off.
 3. The settings window opens with a short guide, and the widgets appear on the desktop. To start them with Windows,
    turn this on in “General”.
 
-Windows 11, 64-bit, is required. To move a widget or change its size, right-click it. The interface is in English
-or Russian, following Windows; switch the language with the “RU | EN” button at the bottom of the settings window.
+Windows 11, 64-bit, is required. To move a widget or change its size, right-click it; in “Size” it can also fold
+into an icon that opens with a click. The interface is in English or Russian, following Windows; switch the language
+with the “RU | EN” button at the bottom of the settings window.
 
 <details>
 <summary><b>Check that the installer is genuine</b></summary>
@@ -114,6 +119,7 @@ repository.
 | A Start menu shortcut and, if you leave the box checked, a desktop shortcut | Start menu, desktop |
 | The entry for uninstalling in “Installed apps” | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\AITU Desk` |
 | Settings, classes, notes, shortcuts, widget layout (plain JSON) | `%APPDATA%\kz.edu.astanait.aitudesk\settings.json` |
+| Copies of the pictures of your widgets | `%APPDATA%\kz.edu.astanait.aitudesk\widgets\` |
 | The WebView2 service cache | `%LOCALAPPDATA%\kz.edu.astanait.aitudesk\EBWebView\` |
 | Autostart, only if you turned it on | the `AITU Desk` value in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
 
@@ -129,10 +135,12 @@ it to `settings.broken-<time>.json`.
 <br>
 
 - The network is used only when you act: to open a shortcut in your browser, or to download a site's icon once when
-  you add a shortcut (a request to the site itself and, if it has no icon, to Google's icon service).
+  you add a shortcut (a request to the site itself and, if it has no icon, to Google's icon service). A site cannot
+  send these requests on to devices in your home network.
 - The schedule, notes, the Wi-Fi network name and Bluetooth device names on the desktop can be hidden behind dots.
-- A config holds only the parts you choose, and notes are left out by default. Shortcuts from someone else's config
-  are accepted only with `http://` and `https://` addresses.
+- A config holds only the parts you choose, and notes and your own widgets are left out by default. Shortcuts from
+  someone else's config are accepted only with `http://` and `https://` addresses, and pictures only when they really
+  are pictures.
 </details>
 
 <details>
@@ -162,8 +170,9 @@ For testing without a laptop there are environment variables: `AITUDESK_MOCK_POW
 (`off` | `none` | `A;B;C`).
 
 Inside: Tauri 2, Rust, React 18, TypeScript and Vite. All widgets run in one WebView2 process, the clock wakes up
-once a minute when seconds are not shown, and hidden widgets keep no timers. In Windows battery saver the clock
-hides its seconds, and charge and network are checked less often.
+once a minute when seconds are not shown, and hidden widgets and widgets folded into an icon keep no timers. In
+Windows battery saver the clock hides its seconds, charge, network and load are checked less often, and GIFs stand
+still.
 </details>
 
 ## Feedback

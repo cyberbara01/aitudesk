@@ -12,7 +12,16 @@ export interface MenuItemSpec {
   hint?: string;
   /** Renders a divider instead of an item. */
   separator?: boolean;
+  /** A tick before the item: the current choice among its neighbours (the items of «Размер»). */
+  checked?: boolean;
+  /** A submenu: the item opens these instead of doing something itself (here: a group under its name). */
+  children?: MenuItemSpec[];
   onSelect: () => void;
+}
+
+/** Submenus as groups: the parent's name as a caption, then its items. */
+function flatten(items: readonly MenuItemSpec[]): (MenuItemSpec & { group?: boolean })[] {
+  return items.flatMap((it) => (it.children ? [{ ...it, group: true }, ...it.children] : [it]));
 }
 
 interface Props {
@@ -76,13 +85,18 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
 
   return (
     <div ref={ref} className="ctx-menu" role="menu" tabIndex={-1} style={pos} onContextMenu={(e) => e.preventDefault()}>
-      {items.map((it) =>
+      {flatten(items).map((it) =>
         it.separator ? (
           <div key={it.id} className="ctx-sep" role="separator" />
+        ) : it.group ? (
+          <div key={it.id} className="ctx-group caption" role="presentation">
+            {it.label}
+          </div>
         ) : (
           <button
             key={it.id}
-            role="menuitem"
+            role={it.checked === undefined ? "menuitem" : "menuitemradio"}
+            aria-checked={it.checked}
             className="ctx-item body"
             disabled={it.disabled}
             title={it.disabled ? it.hint : undefined}
@@ -93,6 +107,8 @@ export function ContextMenu({ x, y, items, onClose }: Props) {
           >
             {it.swatch ? (
               <span className="ctx-swatch" style={{ background: it.swatch }} aria-hidden="true" />
+            ) : it.checked !== undefined ? (
+              <span className="icon icon-16">{it.checked && <Icon name="checkmark" size={16} />}</span>
             ) : it.icon ? (
               <Icon name={it.icon} size={16} />
             ) : (

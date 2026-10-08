@@ -1,5 +1,8 @@
 // English for src/i18n/ru.extra.shell.ts.
+import { pluralEn } from "../lang";
 import type { ShellStrings } from "../ru.extra.shell";
+
+const widgets = (n: number) => `${n} ${pluralEn(n, "widget", "widgets")}`;
 
 export const en: ShellStrings = {
   shell: {
@@ -17,6 +20,7 @@ export const en: ShellStrings = {
     tileHints: {
       clock: "Time and date",
       system: "Battery, Wi-Fi and Bluetooth",
+      perf: "Processor, graphics, memory and disk",
       launchers: "Sites in one click",
       map: "Building plan and room search",
       schedule: "Classes for today and the week",
@@ -52,7 +56,7 @@ export const en: ShellStrings = {
     accentWindowsHint: "Taken from the Windows personalization settings",
     accentCustomHint: "Any color: palette, RGB or HEX",
     presets: "Ready-made colors",
-    tileScale: "Widget size",
+    tileScale: "Widget scale",
     tileScaleHint: "Changes everything at once: text, icons and the widgets themselves. The widgets stay where they are",
     tileScaleLabel: "Scale",
     tileScaleAuto: "Auto",
@@ -65,7 +69,7 @@ export const en: ShellStrings = {
   },
   about: {
     helpHint: "A short guide to the widgets, their menus and settings",
-    open: "Open",
+    guide: "Guide",
     mapTitle: "AITU map",
     mapLicence: "aitumap license text",
     appLicence: "AITU Desk license text",
@@ -87,25 +91,71 @@ export const en: ShellStrings = {
     stepsLabel: "Tips",
     tilesTitle: "Widgets on the desktop",
     tilesText: (general: string) =>
-      `The clock, system info, shortcuts, the AITU map, the schedule and notes sit right on the wallpaper, under all windows: to see them, minimize your windows or press Win+D. Choose which of them to show in “${general}”.`,
+      `The clock, system info, computer load, shortcuts, the AITU map, the schedule and notes sit right on the wallpaper, under all windows: to see them, minimize your windows or press Win+D. Choose which of them to show in “${general}”, where you can also add widgets of your own with a picture or a GIF.`,
     menuTitle: "Right-click",
-    menuText: (move: string, open: string, done: string) =>
-      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner. Ctrl+Z undoes a step, “${done}” saves. “${open}” opens its section in this window.`,
+    menuText: (move: string, open: string, done: string, size: string) =>
+      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner. Ctrl+Z undoes a step, “${done}” saves. In “${size}” you can turn a widget into an icon that opens with a click. “${open}” opens its section in this window.`,
     mapTitle: "AITU map",
     mapText:
-      "The mouse wheel zooms the plan, dragging moves it and a double-click fits it whole. Switch floors with the buttons on the side; on hover you also get room search (223 or C1.2.223) and a brush to paint your rooms.",
+      "The mouse wheel or a two-finger pinch on the touchpad zooms the plan, dragging moves it and a double-click fits it whole. Switch floors with the buttons on the side; on hover you also get room search (223 or C1.2.223) and a brush to paint your rooms.",
     mapSample: { search: "223", rooms: ["221", "223", "225", "220", "222", "224"] },
     dataTitle: "Classes, notes and shortcuts",
     dataText:
       "Add your schedule, notes with deadlines and shortcuts to your sites in these sections; the widgets show them right away. Click a room in the schedule to find it on the map.",
     lookTitle: "Design, theme and size",
     lookText: (appearance: string, a: string, b: string, c: string) =>
-      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget size: on a small screen you can make them smaller. The widgets and this window change at once.`,
+      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. The widgets and this window change at once.`,
     startTitle: "Startup and reminders",
     startText: (reminders: string) =>
       `Turn on autostart so the widgets are in place after a restart. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
     footer: (help: string) =>
       `You can close this window: the widgets stay. Open the settings again from the AITU Desk shortcut or its icon next to the clock on the taskbar, these tips from “${help}” at the bottom of the sidebar, and switch the app language with the “RU | EN” button under it.`,
     start: "Get started",
+  },
+  custom: {
+    title: "Your widgets",
+    desc: "Your own picture or animation (GIF) on the desktop. Turn them on and off, move, resize and delete them",
+    add: "Add your widget",
+    empty: "No widgets of your own yet",
+    emptyHint: "Click “Add your widget” and choose a picture or a GIF",
+    noPicture: "No picture chosen",
+    addHint: (max: number) => `Up to ${max} widgets. The picture is copied into the app's folder, so the original file is not needed later`,
+    limit: (max: number) => `There are ${max} widgets already, no more can be added`,
+    newTitle: "New widget",
+    editTitle: "Your widget",
+    name: "Name",
+    namePlaceholder: "For example, Kitty",
+    picture: "Picture",
+    pictureHint: "PNG, JPEG, GIF, WebP or BMP up to 20 MB. A GIF moves while the desktop is in sight",
+    choose: "Choose a picture…",
+    change: "Another picture…",
+    tooLarge: "The file is larger than 20 MB",
+    notPicture: "This is not a picture: PNG, JPEG, GIF, WebP and BMP work",
+    pickFailed: "Could not open the file",
+    pictureMissing: "The picture is missing, please choose it again",
+    fit: "Show as",
+    fitCover: "Fill",
+    fitContain: "Whole",
+    fitHint: "Fill cuts the edges off, Whole shows the entire picture",
+    background: "Widget background",
+    backgroundHint: "Without the background the picture sits right on the wallpaper",
+    remove: "Delete",
+    removeTitle: "Delete the widget?",
+    removeText: (name: string) => `The “${name}” widget leaves the desktop, and its picture is deleted from the app's folder.`,
+    unnamed: "Untitled",
+    settingsOf: (name: string) => `“${name}” widget settings`,
+    summaryNone: "No widgets of your own",
+    summary: (n: number, names: string, more: number) =>
+      names ? `${widgets(n)}: ${names}${more > 0 ? ` and ${more} more` : ""}` : widgets(n),
+  },
+  views: {
+    size: "Size",
+    sizeOf: (name: string) => `Size of the “${name}” widget`,
+    manual: "Custom",
+    small: "Small",
+    medium: "Medium",
+    large: "Large",
+    hint: "Small and medium sizes show an icon that opens with a click",
+    open: (name: string) => `Open “${name}”`,
   },
 };

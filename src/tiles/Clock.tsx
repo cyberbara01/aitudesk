@@ -12,6 +12,7 @@ import {
   useClockNow,
 } from "../lib/clock";
 import type { ClockSettings } from "../lib/settings";
+import { useFolded } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { usePowerSaver } from "../lib/useSystemInfo";
 
@@ -208,7 +209,8 @@ export function ClockTile() {
   const { clock: stored } = useSettings();
   const saver = usePowerSaver();
   const clock = useMemo(() => (saver && stored.seconds ? { ...stored, seconds: false } : stored), [saver, stored]);
-  const { now, colonDim } = useClockNow(clock);
+  // Folded to its icon, the clock does not tick.
+  const { now, colonDim } = useClockNow(clock, !useFolded());
   // Wait for the stored settings so the tile never flashes the defaults (or toggles the acrylic twice).
   if (!loaded) return null;
   return (

@@ -349,6 +349,8 @@
    longest item fits the picture column in every font. */
 .ctx-menu.ob-menu { position: static; width: max-content; min-width: 0; max-width: none; max-height: none; animation: none; zoom: .8; }
 .ob-menu .ctx-item.ob-hot { background: var(--ctl-fill-hover); }
+/* «Размер» opens a submenu: its arrow at the far end, as in the Windows menu. */
+.ob-menu .ctx-item.ob-sub > .icon:last-child { margin-left: auto; padding-left: var(--s4); box-sizing: content-box; color: var(--text-3); }
 /* Shortcuts to the pages where lessons, notes and links are added: real buttons, one per line */
 .ob-links { display: flex; flex-direction: column; gap: var(--s2); width: 100%; }
 .ob-links .btn { justify-content: flex-start; }

@@ -3,7 +3,7 @@
 // screen near any edge, and the keyboard, the light or dark look (as in Windows) and closing are the system's own.
 // Item icons are the app's Fluent icons, drawn into small bitmaps in the colour of the menu's text.
 import { Image } from "@tauri-apps/api/image";
-import { IconMenuItem, Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
+import { CheckMenuItem, IconMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu } from "@tauri-apps/api/menu";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { MenuItemSpec } from "../components/ContextMenu";
 import { loadIcon } from "../components/Icon";
@@ -71,6 +71,32 @@ function swatchBitmap(color: string): Promise<Image | null> {
   });
 }
 
+type Part = MenuItem | IconMenuItem | CheckMenuItem | PredefinedMenuItem | Submenu;
+
+/**
+ * The items of one menu level, made one by one; every item made (submenus' too) also goes to `made`, so all of
+ * them are kept until the next menu.
+ */
+async function build(items: readonly MenuItemSpec[], prefix: string, dark: boolean, made: Part[]): Promise<Part[]> {
+  const parts = await Promise.all(
+    items.map(async (it, i): Promise<Part> => {
+      if (it.separator) return PredefinedMenuItem.new({ item: "Separator" });
+      const id = `${prefix}:${i}`;
+      const icon = it.swatch ? await swatchBitmap(it.swatch) : it.icon ? await iconBitmap(it.icon, dark) : null;
+      if (it.children) {
+        const children = await build(it.children, id, dark, made);
+        return Submenu.new({ id, text: it.label, enabled: !it.disabled, items: children, ...(icon ? { icon } : {}) });
+      }
+      const item = { id, text: it.label, enabled: !it.disabled, action: () => it.onSelect() };
+      // A choice among neighbours: Windows draws its tick in place of an icon.
+      if (it.checked !== undefined) return CheckMenuItem.new({ ...item, checked: it.checked });
+      return icon ? IconMenuItem.new({ ...item, icon }) : MenuItem.new(item);
+    }),
+  );
+  made.push(...parts);
+  return parts;
+}
+
 /**
  * Shows `items` as a Windows menu at the pointer. Rejects when the native menu is not available, so the caller can
  * fall back to the menu drawn inside the widget.
@@ -78,18 +104,11 @@ function swatchBitmap(color: string): Promise<Image | null> {
 export async function popupMenu(items: readonly MenuItemSpec[]): Promise<void> {
   const dark = (await getCurrentWindow().theme()) !== "light";
   serial += 1;
-  const prefix = `${label}:${serial}`;
-  const parts = await Promise.all(
-    items.map(async (it, i) => {
-      if (it.separator) return PredefinedMenuItem.new({ item: "Separator" });
-      const icon = it.swatch ? await swatchBitmap(it.swatch) : it.icon ? await iconBitmap(it.icon, dark) : null;
-      const item = { id: `${prefix}:${i}`, text: it.label, enabled: !it.disabled, action: () => it.onSelect() };
-      return icon ? IconMenuItem.new({ ...item, icon }) : MenuItem.new(item);
-    }),
-  );
+  const made: Part[] = [];
+  const parts = await build(items, `${label}:${serial}`, dark, made);
   const menu = await Menu.new({ items: parts });
   const previous = shown;
-  shown = [menu, ...parts];
+  shown = [menu, ...made];
   for (const r of previous) void r.close().catch(() => undefined);
   await menu.popup();
 }

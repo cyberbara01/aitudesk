@@ -18,8 +18,9 @@ use windows::Win32::UI::Shell::{
 
 /// HRESULT_FROM_WIN32(ERROR_CANCELLED): the user closed the dialog.
 const CANCELLED: HRESULT = HRESULT(0x8007_04C7_u32 as i32);
-/// A settings file is a few hundred KB at most (site icons included); anything far bigger is not one.
-const MAX_FILE: u64 = 16 * 1024 * 1024;
+/// A settings file is a few hundred KB (site icons included), a few dozen MB with the pictures of own widgets
+/// (the page keeps them under 48 MB); anything far bigger is not one.
+const MAX_FILE: u64 = 64 * 1024 * 1024;
 
 /// Name of the file type in the dialogs' type box.
 fn filter_name() -> &'static str {
@@ -48,8 +49,12 @@ fn on_sta_thread<T: Send + 'static>(f: impl FnOnce() -> Result<T, String> + Send
 
 /// Filter, title and owner shared by both dialogs; then shows it. Ok(false) = cancelled.
 unsafe fn show(dialog: &IFileDialog, owner: isize, title: &str) -> Result<bool, String> {
-    let name = HSTRING::from(filter_name());
-    let spec = HSTRING::from(FILTER_SPEC);
+    show_with(dialog, owner, title, filter_name(), FILTER_SPEC)
+}
+
+unsafe fn show_with(dialog: &IFileDialog, owner: isize, title: &str, filter: &str, spec: &str) -> Result<bool, String> {
+    let name = HSTRING::from(filter);
+    let spec = HSTRING::from(spec);
     let filters = [COMDLG_FILTERSPEC { pszName: PCWSTR(name.as_ptr()), pszSpec: PCWSTR(spec.as_ptr()) }];
     dialog.SetFileTypes(&filters).map_err(err)?;
     dialog.SetTitle(&HSTRING::from(title)).map_err(err)?;
@@ -114,8 +119,31 @@ pub fn open(owner: isize, title: String) -> Result<Option<OpenedFile>, String> {
         if size > MAX_FILE {
             return Err("too large".into());
         }
-        let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+        // Read through a bounded reader: a file that grows (or lies about its size) stops at the limit.
+        use std::io::Read;
+        let mut bytes = Vec::with_capacity(size as usize);
+        std::fs::File::open(&path)
+            .and_then(|f| f.take(MAX_FILE + 1).read_to_end(&mut bytes))
+            .map_err(|e| e.to_string())?;
+        if bytes.len() as u64 > MAX_FILE {
+            return Err("too large".into());
+        }
         let text = String::from_utf8_lossy(bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(&bytes)).into_owned();
         Ok(Some(OpenedFile { path, contents: text }))
+    })
+}
+
+/// «Свои виджеты»: asks for a picture (PNG, JPEG, GIF, WebP, BMP). Ok(None) = cancelled. The caller checks and
+/// copies the file (custom.rs); the dialog only names it.
+pub fn open_image(owner: isize, title: String) -> Result<Option<String>, String> {
+    on_sta_thread(move || unsafe {
+        let dialog: IFileOpenDialog = CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER).map_err(err)?;
+        let options = dialog.GetOptions().map_err(err)?;
+        dialog.SetOptions(options | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_FORCEFILESYSTEM).map_err(err)?;
+        let filter = crate::lang::pick("Картинки и анимации", "Pictures and animations");
+        if !show_with(&dialog, owner, &title, filter, "*.png;*.jpg;*.jpeg;*.gif;*.webp;*.bmp")? {
+            return Ok(None);
+        }
+        result_path(&dialog).map(Some)
     })
 }

@@ -134,6 +134,11 @@ const SLIDE_PX = 12;
 const BUTTON_FACTOR = 1.5;
 /** Wheel: the zoom is multiplied by this per 100 px of deltaY (one mouse notch in WebView2). */
 const WHEEL_FACTOR = 1.1;
+/**
+ * A touchpad pinch arrives as Ctrl + wheel events of -100 ln(scale) px each, a few px at a time; a wheel notch is
+ * 100 px even with Ctrl held. Ctrl + wheel below this size is a pinch and follows the fingers exactly.
+ */
+const PINCH_MAX_DELTA = 50;
 /** deltaMode line / page deltas expressed in px. */
 const LINE_PX = 16;
 const PAGE_PX = 100;
@@ -350,7 +355,8 @@ export const MapCanvas = memo(
         const dy = e.deltaMode === 1 ? e.deltaY * LINE_PX : e.deltaMode === 2 ? e.deltaY * PAGE_PX : e.deltaY;
         if (dy === 0) return;
         const b = box.current;
-        zoomAt(WHEEL_FACTOR ** (-dy / 100), e.clientX - b.left, e.clientY - b.top, "none");
+        const pinch = e.ctrlKey && Math.abs(dy) < PINCH_MAX_DELTA;
+        zoomAt(pinch ? Math.exp(-dy / 100) : WHEEL_FACTOR ** (-dy / 100), e.clientX - b.left, e.clientY - b.top, "none");
       };
       host.addEventListener("wheel", onWheel, { passive: false });
       return () => host.removeEventListener("wheel", onWheel);
@@ -372,9 +378,31 @@ export const MapCanvas = memo(
       setMarkHover(null);
     }, [painting, floor, mark, setMarkHover]);
 
+    // ---- Touch screens: the fingers on the plan; two of them zoom about their midpoint and pan with it ----
+    const fingers = useRef(new Map<number, { x: number; y: number }>());
+    const pinch = useRef<{ dist: number; mx: number; my: number } | null>(null);
+    const measurePinch = () => {
+      const [a, b] = [...fingers.current.values()];
+      return { dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    };
+
     // ---- Pointer: drag pans; in paint mode a short press is a click on a room ----
     const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
       setMarkHover(null);
+      if (e.pointerType === "touch") {
+        fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (fingers.current.size >= 2) {
+          // A second finger turns the press into a pinch: no drag of its own and no click on a room.
+          const p = press.current;
+          if (p && e.currentTarget.hasPointerCapture(p.id)) e.currentTarget.releasePointerCapture(p.id);
+          press.current = null;
+          if (fingers.current.size === 2) {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            pinch.current = measurePinch();
+          }
+          return;
+        }
+      }
       if (e.button !== 0 || press.current) return;
       const { painting: paint, floor: shown } = live.current;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -390,6 +418,18 @@ export const MapCanvas = memo(
     };
 
     const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.pointerType === "touch" && fingers.current.has(e.pointerId)) {
+        fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const from = pinch.current;
+        if (from && fingers.current.size === 2) {
+          const to = measurePinch();
+          const b = box.current;
+          setView(view.current.zoom, view.current.x + to.mx - from.mx, view.current.y + to.my - from.my, "none");
+          zoomAt(to.dist / from.dist, to.mx - b.left, to.my - b.top, "none");
+          pinch.current = to;
+          return;
+        }
+      }
       const p = press.current;
       if (p && p.id === e.pointerId) {
         const dx = e.clientX - p.sx;
@@ -407,6 +447,7 @@ export const MapCanvas = memo(
     };
 
     const endPress = (e: ReactPointerEvent<HTMLDivElement>, cancelled: boolean) => {
+      if (fingers.current.delete(e.pointerId) && fingers.current.size < 2) pinch.current = null;
       const p = press.current;
       if (!p || p.id !== e.pointerId) return;
       press.current = null;

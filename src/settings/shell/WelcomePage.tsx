@@ -4,12 +4,11 @@
 // which marks the page as seen and opens «Общие». The last step switches autostart on right here: right after
 // installing, that is the one setting that decides whether the tiles are still there after a restart.
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { autostartChanged, disable, enable, isEnabled } from "../../lib/autostart";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { Page } from "../../components/Section";
 import { Switch } from "../../components/Switch";
-import { autostartChanged } from "../../lib/autostart";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.shell";
 import { STYLES, THEMES } from "../../lib/design";
@@ -84,6 +83,11 @@ function MenuPicture() {
         <Icon name="arrow_move" />
         <span>{ru.menu.moveResize}</span>
       </div>
+      <div className="ctx-item ob-sub">
+        <Icon name="resize" />
+        <span>{extra.views.size}</span>
+        <Icon name="chevron_right" size={16} />
+      </div>
       <div className="ctx-item">
         <Icon name="settings" />
         <span>{ru.menu.settings}</span>
@@ -144,7 +148,7 @@ function StylesPicture({ desk }: { desk: CSSProperties }) {
   );
 }
 
-/** «Запускать вместе с Windows», the same switch as in «Общие» (the Run key written by the autostart plugin). */
+/** «Запускать вместе с Windows», the same switch as in «Общие» (the Run value of src-tauri/src/autostart.rs). */
 function AutostartSwitch() {
   const [on, setOn] = useState<boolean | null>(null);
   useEffect(() => {
@@ -178,7 +182,12 @@ export function WelcomePage() {
     <Page title={onboarded ? extra.shell.help : w.title} description={w.desc}>
       <ol className="ob-steps" aria-label={w.stepsLabel}>
         <Step n={1} title={w.tilesTitle} text={w.tilesText(nav.general)} picture={<DeskPicture desk={desk} />} />
-        <Step n={2} title={w.menuTitle} text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done)} picture={<MenuPicture />} />
+        <Step
+          n={2}
+          title={w.menuTitle}
+          text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done, extra.views.size)}
+          picture={<MenuPicture />}
+        />
         <Step n={3} title={w.mapTitle} text={w.mapText} picture={<MapPicture desk={desk} />} />
         <Step
           n={4}

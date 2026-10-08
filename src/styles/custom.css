@@ -1,0 +1,99 @@
+/* =====================================================================================
+   «Свои виджеты»: the picture fills the widget edge to edge and is rounded with it
+   ===================================================================================== */
+.tile.tile-custom { padding: 0; }
+.custom-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+  -webkit-user-drag: none;
+}
+.custom-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  height: 100%;
+  padding: var(--s3);
+  color: var(--text-2);
+  text-align: center;
+}
+/* The folded face: the first frame of the picture in the icon's square. */
+.tile-face-art .custom-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* =====================================================================================
+   Settings: the size of each widget, the list of own widgets and their editor
+   ===================================================================================== */
+.row-control .select.tile-size { width: 132px; }
+.row-control .select.tile-size .select-btn { min-width: 0; width: 100%; }
+
+.cw-row { min-height: 56px; gap: var(--s3); }
+.cw-row > .row-text { flex: 1 1 auto; }
+.cw-row.off .cw-thumb { opacity: .45; }
+.cw-row.off .row-label { color: var(--text-2); }
+.cw-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--s8);
+  height: var(--s8);
+  border-radius: var(--r-ctl);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  overflow: hidden;
+}
+.cw-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cw-warn { color: var(--caution); }
+.cw-hint { color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); }
+.cw-hint.cw-warn { color: var(--caution); }
+
+.cw-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s3);
+  padding: var(--s3) var(--s5) var(--s4);
+  border-top: 1px solid var(--divider);
+}
+.cw-foot .cw-hint { flex: 1 1 200px; min-width: 0; }
+
+/* The editor (Dialog): a live preview over the form, as in the launcher editor. */
+.cw-editor { display: flex; flex-direction: column; gap: var(--s4); }
+.cw-preview {
+  display: flex;
+  justify-content: center;
+  padding: var(--s4);
+  border-radius: var(--r-card);
+  background: var(--surface-3);
+  border: 1px solid var(--divider);
+}
+.cw-preview-tile {
+  display: grid;
+  place-items: center;
+  width: 220px;
+  height: 160px;
+  overflow: hidden;
+  border-radius: var(--r-tile);
+  background: var(--tile-fill);
+  border: 1px solid var(--tile-border);
+  box-shadow: inset 0 1px 0 var(--tile-edge);
+}
+.cw-preview-tile.no-bg { background: transparent; border-color: transparent; box-shadow: none; }
+.cw-preview-tile img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; }
+.cw-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s3);
+  color: var(--text-3);
+  text-align: center;
+}
+.cw-form { display: flex; flex-direction: column; gap: var(--s4); }
+.cw-field { display: flex; flex-direction: column; gap: var(--s2); }
+.cw-field-label { color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); }
+.cw-picture { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); }
+.cw-picture .cw-hint { flex: 1 1 200px; min-width: 0; }
+/* «Удалить» sits at the start of the footer, apart from Отмена and Сохранить. */
+.cw-remove { margin-right: auto; }

@@ -14,6 +14,7 @@ import { extra } from "../i18n/ru.extra.map";
 import { FAVORITE_COLORS } from "../lib/design";
 import { minutesUntil } from "../lib/schedule";
 import { settings, type Lesson, type MapSettings } from "../lib/settings";
+import { openTile, useFolded } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { markRoom, restoreRoom, roomState, unmarkRoom, type RoomState } from "../map/favorites";
 import { FloorSwitch } from "../map/FloorSwitch";
@@ -90,7 +91,11 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
   const lessonsKey = showNext ? JSON.stringify(lessons) : "";
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const watched = useMemo(() => (showNext ? lessons : NO_LESSONS), [lessonsKey]);
-  const lesson = useNextLesson(watched, showNext);
+  // Folded to its icon, the marker does not tick.
+  const folded = useFolded();
+  const lesson = useNextLesson(watched, showNext && !folded);
+  const foldedRef = useRef(folded);
+  foldedRef.current = folded;
 
   // The bubble over the marked room: opens after the delay, goes when the pointer leaves the room or the map moves.
   const [tipAt, setTipAt] = useState<DOMRect | null>(null);
@@ -160,6 +165,8 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
     void listen<{ room?: unknown }>(FOCUS_EVENT, (e) => {
       const room = typeof e.payload?.room === "string" ? e.payload.room.trim() : "";
       if (!room) return;
+      // Folded to its icon: the map opens to show the room.
+      if (foldedRef.current) void openTile();
       setFlash(false);
       setQueryText(room);
       fromEvent.current = true;

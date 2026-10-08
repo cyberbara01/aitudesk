@@ -21,7 +21,7 @@ export const en: LaunchersStrings = {
   moveUp: "Move up",
   moveDown: "Move down",
 
-  tileNames: { du: "DU", moodle: "Moodle", learn: "Learn" },
+  tileNames: { du: "DU", moodle: "LMS", learn: "Learn" },
   menuTurnOff: "Turn off shortcut",
 
   untitled: "New shortcut",

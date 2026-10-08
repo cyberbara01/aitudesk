@@ -18,6 +18,7 @@ import { MapPage } from "./MapPage";
 import { SchedulePage } from "./SchedulePage";
 import { NotesPage } from "./NotesPage";
 import { RemindersPage } from "./RemindersPage";
+import { PerfPage } from "./PerfPage";
 import { SystemPage } from "./SystemPage";
 import { TransferPage } from "./TransferPage";
 import { useRootAttribute, useSettled } from "./shell/hooks";
@@ -31,13 +32,15 @@ function renderPage(route: Route) {
     case "welcome":
       return <WelcomePage />;
     case "general":
-      return <GeneralPage />;
+      return <GeneralPage key={`general-${route.nonce}`} editId={route.edit} />;
     case "appearance":
       return <AppearancePage />;
     case "clock":
       return <ClockPage />;
     case "system":
       return <SystemPage />;
+    case "perf":
+      return <PerfPage />;
     case "launchers":
       // Remount on every navigate-with-edit so the same launcher can be opened twice in a row.
       return <LaunchersPage key={`launchers-${route.nonce}`} editId={route.edit} />;

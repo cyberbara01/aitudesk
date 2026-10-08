@@ -1,5 +1,6 @@
-// «Конфиги»: the settings as a file. «Сохранить конфиг…» writes the parts the user picks; notes are
-// personal: marked, never picked by default, and the suggested file name says when they are inside.
+// «Конфиги»: the settings as a file. «Сохранить конфиг…» writes the parts the user picks; notes and own widgets
+// are personal: marked, never picked by default, and the suggested file name says when notes are inside. Own
+// widgets travel with their pictures and are added to the ones already here, never replacing them.
 // «Выбрать конфиг…» reads one's own file or someone else's, lists the parts it holds with what is in them
 // and changes nothing until «Применить»; «Отменить» then brings back what was replaced, for as long as the page
 // stays open. The format and the pure helpers live in src/lib/config.ts, the Windows dialogs in
@@ -14,7 +15,9 @@ import { Page, Row, Section } from "../components/Section";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.transfer";
 import {
+  IMAGES_MAX,
   PARTS,
+  addWidgets,
   applyParts,
   buildConfigFile,
   defaultChoice,
@@ -30,7 +33,7 @@ import {
   type Part,
   type PartId,
 } from "../lib/config";
-import { TILE_IDS, settings, type Settings, type SettingsPatch } from "../lib/settings";
+import { TILE_IDS, newCustomId, settings, type Settings, type SettingsPatch } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { useTransient } from "./shell/hooks";
 
@@ -161,8 +164,29 @@ function Status({ tone, text }: StatusProps) {
 // «Сохранить настройки в файл»
 // ---------------------------------------------------------------------------------------------
 
-/** `noLayout`: the layout was picked but the tiles could not report it, so the file holds the rest. */
-type SaveResult = { kind: "idle" } | { kind: "saved"; path: string; noLayout: boolean } | { kind: "failed" };
+/**
+ * `noLayout`: the layout was picked but the tiles could not report it, so the file holds the rest. `widgetsLeft`:
+ * some own widgets stayed out (their pictures did not fit or could not be read).
+ */
+type SaveResult = { kind: "idle" } | { kind: "saved"; path: string; noLayout: boolean; widgetsLeft: boolean } | { kind: "failed" };
+
+/** The pictures of the own widgets for a file, by file name, while they fit in IMAGES_MAX; and whether any was left. */
+async function widgetImages(s: Settings): Promise<{ images: Record<string, string>; left: boolean }> {
+  const images: Record<string, string> = {};
+  let total = 0;
+  let left = false;
+  for (const w of s.customWidgets) {
+    if (Object.hasOwn(images, w.file)) continue;
+    const data = await invoke<string>("widget_image_base64", { file: w.file }).catch(() => null);
+    if (data === null || total + data.length > IMAGES_MAX) {
+      left = true;
+      continue;
+    }
+    images[w.file] = data;
+    total += data.length;
+  }
+  return { images, left };
+}
 
 const ALL_IDS = PARTS.map((p) => p.id);
 
@@ -180,14 +204,16 @@ function ExportSection({ s }: { s: Settings }) {
     setResult({ kind: "idle" });
     try {
       const layout = ids.includes("layout") ? await invoke<LayoutFile | null>("get_layout").catch(() => null) : null;
+      const current = settings.get();
+      const { images, left } = ids.includes("custom") ? await widgetImages(current) : { images: {}, left: false };
       const now = new Date();
-      const contents = buildConfigFile(settings.get(), ids, layout, now);
+      const contents = buildConfigFile(current, ids, layout, now, images);
       const path = await invoke<string | null>("save_config_file", {
         title: x.saveTitle,
         fileName: suggestedFileName(ids, now),
         contents,
       });
-      if (path) setResult({ kind: "saved", path, noLayout: ids.includes("layout") && !layout });
+      if (path) setResult({ kind: "saved", path, noLayout: ids.includes("layout") && !layout, widgetsLeft: left });
     } catch {
       setResult({ kind: "failed" });
     } finally {
@@ -224,7 +250,17 @@ function ExportSection({ s }: { s: Settings }) {
           <span className="tr-result">
             <Status
               tone={result.kind === "saved" ? "ok" : result.kind === "failed" ? "fail" : undefined}
-              text={result.kind === "saved" ? (result.noLayout ? x.savedNoLayout : x.saved) : result.kind === "failed" ? x.saveFailed : ""}
+              text={
+                result.kind === "saved"
+                  ? result.noLayout
+                    ? x.savedNoLayout
+                    : result.widgetsLeft
+                      ? x.savedWithoutWidgets
+                      : x.saved
+                  : result.kind === "failed"
+                    ? x.saveFailed
+                    : ""
+              }
             />
             {result.kind === "saved" && (
               <Button size="sm" variant="subtle" icon="folder_open" onClick={() => showInFolder(result.path)}>
@@ -332,6 +368,11 @@ function ImportSection({ s }: { s: Settings }) {
     setApplyError("");
     const current = settings.get();
     const patch = applyParts(current, loaded.file.settings, ids);
+    // Own widgets are added to the ones here, each picture stored in the app's folder first.
+    if (patch.customWidgets) {
+      const store = (data: string) => invoke<string>("store_widget_image", { data });
+      patch.customWidgets = await addWidgets(current.customWidgets, patch.customWidgets, loaded.file.images, store, newCustomId);
+    }
     const before = snapshotOf(current, patch);
     // Empty when only the layout was picked: nothing to write then.
     const changed = Object.keys(patch).length > 0;
@@ -397,6 +438,7 @@ function ImportSection({ s }: { s: Settings }) {
   const lessonsNow = s.schedule.lessons.length;
   const note = (id: PartId) => {
     if (id === "notes") return x.notesImportHint;
+    if (id === "custom") return x.customImportHint;
     if (id === "schedule" && lessonsNow > 0) return x.lessonsReplace(lessonsNow);
     return null;
   };
@@ -470,6 +512,7 @@ export function TransferPage() {
       <Section title={x.aboutTitle}>
         <Row label={x.plainLabel} hint={x.plainHint} />
         <Row label={x.notIncludedLabel} hint={x.notIncludedHint} />
+        <Row label={x.picturesLabel} hint={x.picturesHint} />
         <Row label={x.addressesLabel} hint={x.addressesHint} />
         <Row label={x.privacyLabel} hint={x.privacyHint} />
       </Section>

@@ -11,8 +11,10 @@
 //     "personal": ["notes"],            the personal parts inside
 //     "settings": { "tiles": …, … },    the settings keys of those parts, exactly as stored
 //     "layout": { "screen": …, "zoom": 1, "tiles": …, "defaults": […] }   only with the «layout» part:
-//                                       get_layout (src-tauri/src/layout.rs); `zoom` is the widgets' size the
+//                                       get_layout (src-tauri/src/layout.rs); `zoom` is the widgets' scale the
 //                                       rects were made at, `defaults` lists the tiles never moved
+//     "images": { "<file>": "<base64>" } only with the «custom» part: the pictures of the own widgets, by the
+//                                       names their entries use (a widget whose picture is not inside is left out)
 //   }
 // Never in a file: `version`, `onboarded` (the welcome page), `language` (a personal choice), `tileScale` (it
 // depends on the screen), autostart (a Windows setting) and whether «Все виджеты» are hidden (`tilesHidden`,
@@ -25,8 +27,19 @@
 import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
 import { extra } from "../i18n/ru.extra.transfer";
+import { extra as perfStrings } from "../i18n/ru.extra.perf";
 import { hostOf } from "./launchers";
-import { STYLE_IDS, THEME_IDS, TILE_IDS, normalize, type BuiltInLauncher, type Settings, type SettingsPatch } from "./settings";
+import {
+  STYLE_IDS,
+  THEME_IDS,
+  TILE_IDS,
+  isWidgetFile,
+  normalize,
+  type BuiltInLauncher,
+  type CustomWidget,
+  type Settings,
+  type SettingsPatch,
+} from "./settings";
 import { LOCALE } from "../i18n/lang";
 
 /** Version of the file layout. Raise it only when an older app would misread a newer file. */
@@ -35,7 +48,7 @@ export const FORMAT = 1;
 /** Settings keys a file can carry: all but `version`, `onboarded`, `language` and `tileScale`. */
 export type SettingsKey = Exclude<keyof Settings, "version" | "onboarded" | "language" | "tileScale">;
 
-export type PartId = "tiles" | "layout" | "appearance" | "clock" | "system" | "launchers" | "map" | "schedule" | "reminders" | "notes";
+export type PartId = "tiles" | "layout" | "appearance" | "clock" | "system" | "perf" | "launchers" | "map" | "schedule" | "reminders" | "custom" | "notes";
 
 export interface Part {
   id: PartId;
@@ -47,15 +60,18 @@ export interface Part {
 }
 
 const PART_LIST = [
-  { id: "tiles", label: ru.settings.general.tiles, keys: ["tiles", "lockLayout"], personal: false },
+  { id: "tiles", label: ru.settings.general.tiles, keys: ["tiles", "tileViews", "lockLayout"], personal: false },
   { id: "layout", label: extra.parts.layout, keys: [], personal: false },
   { id: "appearance", label: ru.settings.nav.appearance, keys: ["style", "theme", "accent"], personal: false },
   { id: "clock", label: ru.settings.nav.clock, keys: ["clock"], personal: false },
   { id: "system", label: ru.settings.nav.system, keys: ["system"], personal: false },
+  { id: "perf", label: ru.settings.nav.perf, keys: ["perf"], personal: false },
   { id: "launchers", label: ru.settings.nav.launchers, keys: ["launchers"], personal: false },
   { id: "map", label: ru.settings.nav.map, keys: ["map"], personal: false },
   { id: "schedule", label: ru.settings.nav.schedule, keys: ["schedule"], personal: false },
   { id: "reminders", label: ru.settings.nav.reminders, keys: ["reminders"], personal: false },
+  // Their pictures are inside the file; a picture of one's own is personal until shown on purpose.
+  { id: "custom", label: shell.custom.title, keys: ["customWidgets"], personal: true },
   { id: "notes", label: ru.settings.nav.notes, keys: ["notes"], personal: true },
 ] as const satisfies readonly Part[];
 
@@ -104,7 +120,7 @@ export interface WorkArea {
  */
 export interface LayoutFile {
   screen: WorkArea;
-  /** Zoom of the widgets the rects were made at («Размер виджетов»); 1 in files from before it. */
+  /** Zoom of the widgets the rects were made at («Масштаб виджетов»); 1 in files from before it. */
   zoom: number;
   tiles: Record<string, TileRect>;
   defaults: string[];
@@ -148,14 +164,33 @@ function stamp(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** The pictures of own widgets a file carries at most, in base64 characters (with the file's cap, files.rs). */
+export const IMAGES_MAX = 48 * 1024 * 1024;
+/** One picture in base64 (custom.rs MAX_IMAGE). */
+const IMAGE_MAX = Math.ceil((20 * 1024 * 1024) / 3) * 4 + 4;
+
 /**
  * The text of a settings file with the `chosen` parts of `s`. The layout part is written only with a
- * `layout` (get_layout); without one it is left out of `parts` too.
+ * `layout` (get_layout); without one it is left out of `parts` too. The own widgets go with their pictures
+ * (`images`, base64 by file name): a widget whose picture is not given stays out.
  */
-export function buildConfigFile(s: Settings, chosen: readonly PartId[], layout: LayoutFile | null, now: Date): string {
+export function buildConfigFile(
+  s: Settings,
+  chosen: readonly PartId[],
+  layout: LayoutFile | null,
+  now: Date,
+  images: Readonly<Record<string, string>> = {},
+): string {
   const parts = PARTS.filter((p) => chosen.includes(p.id) && (p.id !== "layout" || layout !== null));
   const values: Partial<Record<SettingsKey, unknown>> = {};
   for (const part of parts) for (const key of part.keys) values[key] = s[key];
+  let pictures: Record<string, string> | null = null;
+  if (parts.some((p) => p.id === "custom")) {
+    const kept = s.customWidgets.filter((w) => Object.hasOwn(images, w.file));
+    values.customWidgets = kept;
+    pictures = {};
+    for (const w of kept) pictures[w.file] = images[w.file];
+  }
   const file: Record<string, unknown> = {
     aitudesk: "settings",
     format: FORMAT,
@@ -175,6 +210,7 @@ export function buildConfigFile(s: Settings, chosen: readonly PartId[], layout: 
     const defaults = TILE_IDS.filter((id) => !tiles[id] && (layout.defaults ?? []).includes(id));
     file.layout = { screen: { x, y, w, h, scale }, zoom: layout.zoom, tiles, defaults };
   }
+  if (pictures) file.images = pictures;
   return `${JSON.stringify(file, null, 2)}\n`;
 }
 
@@ -201,6 +237,8 @@ export interface ConfigFile {
   /** Version of the app that saved the file, and its local save time "YYYY-MM-DDTHH:MM", when given. */
   app: string | null;
   saved: string | null;
+  /** Pictures of the own widgets (base64 by file name); checked again when stored (store_widget_image). */
+  images: Record<string, string>;
 }
 
 export type ParseError =
@@ -262,7 +300,18 @@ function usable(key: SettingsKey, v: unknown): boolean {
   if (key === "style") return (STYLE_IDS as readonly unknown[]).includes(v);
   if (key === "theme") return (THEME_IDS as readonly unknown[]).includes(v);
   if (key === "lockLayout") return typeof v === "boolean";
+  if (key === "customWidgets") return Array.isArray(v);
   return isObj(v);
+}
+
+/** The pictures of a file: well-named, each a string no longer than one picture can be. */
+function readImages(v: unknown): Record<string, string> {
+  const images: Record<string, string> = {};
+  if (!isObj(v)) return images;
+  for (const [name, data] of Object.entries(v)) {
+    if (isWidgetFile(name) && typeof data === "string" && data.length <= IMAGE_MAX) images[name] = data;
+  }
+  return images;
 }
 
 /** Reads a settings file (or the app's own store). Never throws: a file it cannot use is a typed error. */
@@ -281,6 +330,7 @@ export function parseConfigFile(text: string): ParseResult {
   let app: string | null = null;
   let saved: string | null = null;
   let declared: PartId[] = [];
+  let images: Record<string, string> = {};
   if (root.aitudesk === "settings") {
     if (!isInt(root.format, 1, Number.MAX_SAFE_INTEGER)) return { ok: false, error: "foreign" };
     if (root.format > FORMAT) return { ok: false, error: "newer" };
@@ -295,6 +345,7 @@ export function parseConfigFile(text: string): ParseResult {
     if (typeof root.app === "string" && VERSION.test(root.app)) app = root.app;
     if (typeof root.saved === "string" && STAMP.test(root.saved)) saved = root.saved;
     if (Array.isArray(root.personal)) declared = root.personal.filter(isPartId);
+    images = readImages(root.images);
   } else if (isObj(root.settings) && root.settings.version === 2) {
     source = "store";
     values = root.settings;
@@ -313,12 +364,18 @@ export function parseConfigFile(text: string): ParseResult {
       if (Object.hasOwn(values, key) && usable(key, values[key])) settings[key] = values[key];
     }
   }
+  // Own widgets come only with their pictures: the app's own store has none inside, a file may lack some.
+  if (Array.isArray(settings.customWidgets)) {
+    const withPicture = settings.customWidgets.filter((w) => isObj(w) && typeof w.file === "string" && Object.hasOwn(images, w.file));
+    if (withPicture.length > 0) settings.customWidgets = withPicture;
+    else delete settings.customWidgets;
+  }
   const parts = PARTS.filter((p) => (p.id === "layout" ? layout !== null : p.keys.some((k) => Object.hasOwn(settings, k)))).map(
     (p) => p.id,
   );
   if (parts.length === 0) return { ok: false, error: "empty" };
   const personal = parts.filter((id) => declared.includes(id) || PARTS.some((p) => p.id === id && p.personal));
-  return { ok: true, file: { source, parts, personal, settings, layout, app, saved } };
+  return { ok: true, file: { source, parts, personal, settings, layout, app, saved, images } };
 }
 
 /** "2026-10-07T15:42" → { date: "07.10.2026", time: "15:42" } for the caption of a loaded file. */
@@ -362,7 +419,7 @@ export function applyParts(current: Settings, fileSettings: ConfigFile["settings
   if (patch.notes) patch.notes = { ...patch.notes, privacy: patch.notes.privacy || current.notes.privacy };
   if (patch.system) patch.system = { ...patch.system, hideNames: patch.system.hideNames || current.system.hideNames };
   if (patch.launchers) {
-    // The tile keeps calling a built-in launcher «Moodle» or «DU», so a file may not send it to a lookalike page:
+    // The tile keeps calling a built-in launcher «LMS» or «DU», so a file may not send it to a lookalike page:
     // a change of a built-in that leads off the university's sites is not taken, that launcher stays as it is.
     const edits = { ...patch.launchers.builtInEdits };
     for (const key of Object.keys(edits) as BuiltInLauncher[]) {
@@ -385,6 +442,34 @@ function universitySite(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * The own widgets of a file added to `current` ones (never replacing them: a picture of one's own is not lost by
+ * loading someone else's file): each picture stored first by `store` (it returns the stored name, or throws for
+ * one that is not a picture), each widget with a new id. A widget already here (same picture, same name) and one
+ * whose picture is not taken are skipped. The list keeps the cap of normalize.
+ */
+export async function addWidgets(
+  current: readonly CustomWidget[],
+  fromFile: readonly CustomWidget[],
+  images: Readonly<Record<string, string>>,
+  store: (data: string) => Promise<string>,
+  newId: () => string,
+): Promise<CustomWidget[]> {
+  const out = [...current];
+  for (const w of fromFile) {
+    if (!Object.hasOwn(images, w.file)) continue;
+    let file: string;
+    try {
+      file = await store(images[w.file]);
+    } catch {
+      continue;
+    }
+    if (out.some((c) => c.file === file && c.name === w.name)) continue;
+    out.push({ ...w, id: newId(), file });
+  }
+  return out;
 }
 
 /** The current values of the keys `patch` replaces: applying this restores them exactly («Отменить»). */
@@ -467,6 +552,12 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       const base = joinAnd([ru.system.battery, ...rows]);
       return sy.hideNames ? `${base}, ${x.namesHidden}` : base;
     }
+    case "perf": {
+      const p = s.perf;
+      const names = (["cpu", "gpu", "ram", "disk"] as const).filter((k) => p[k]).map((k) => perfStrings.full[k].toLocaleLowerCase(LOCALE));
+      if (p.temp) names.push(perfStrings.temp.toLocaleLowerCase(LOCALE));
+      return perfStrings.summary(perfStrings.modes[p.mode], names.join(", "));
+    }
     case "launchers": {
       const builtIn = Object.values(s.launchers.builtIn).filter(Boolean).length;
       const own = s.launchers.custom.length;
@@ -490,6 +581,12 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       if (r.deadlines && r.deadlineFirst > 0) items.push(x.beforeDeadline(duration(r.deadlineFirst)));
       else if (r.deadlines && r.atDeadline) items.push(x.deadlines);
       return items.length === 0 ? x.remindersOff : capitalize(items.join(", "));
+    }
+    case "custom": {
+      const list = s.customWidgets;
+      if (list.length === 0) return shell.custom.summaryNone;
+      const names = list.map((w) => w.name.trim()).filter(Boolean);
+      return shell.custom.summary(list.length, names.slice(0, 3).join(", "), names.length - 3);
     }
     case "notes": {
       const notes = s.notes.notes;

@@ -12,7 +12,7 @@
   "app": {
     "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src ipc: http://ipc.localhost"
     },
     "windows": [
       {
@@ -42,6 +42,27 @@
         "url": "index.html",
         "width": 280,
         "height": 144,
+        "decorations": false,
+        "transparent": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "minimizable": false,
+        "maximizable": false,
+        "closable": false,
+        "visible": true,
+        "focus": false,
+        "x": -32000,
+        "y": -32000,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
+        "scrollBarStyle": "fluentOverlay"
+      },
+      {
+        "label": "perf",
+        "title": "AITU Desk: нагрузка",
+        "url": "index.html",
+        "width": 280,
+        "height": 132,
         "decorations": false,
         "transparent": true,
         "skipTaskbar": true,
