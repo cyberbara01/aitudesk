@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
+import { Icon } from "./Icon";
 
 interface SectionProps {
   title?: string;
@@ -51,10 +52,27 @@ interface PageProps {
   children: ReactNode;
 }
 
+/** The page a page lives in (a widget's settings inside «Виджеты»): its name and the way back. */
+export interface PageParent {
+  label: string;
+  go: () => void;
+}
+
+/** Provided by the settings shell around a page that lives inside another one; null elsewhere. */
+export const PageParentContext = createContext<PageParent | null>(null);
+
+/** A page: its title (under the parent page's name, a link back, when it lives inside one) and description. */
 export function Page({ title, description, children }: PageProps) {
+  const parent = useContext(PageParentContext);
   return (
     <div className="page">
       <div className="page-head">
+        {parent && (
+          <button type="button" className="page-parent" onClick={parent.go}>
+            <Icon name="chevron_right" size={16} className="page-parent-back" />
+            <span>{parent.label}</span>
+          </button>
+        )}
         <h1 className="page-title">{title}</h1>
         {description && <p className="page-desc" style={{ margin: 0 }}>{description}</p>}
       </div>

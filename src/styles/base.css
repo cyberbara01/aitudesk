@@ -624,6 +624,35 @@ a { color: var(--accent-text); text-decoration: none; }
 :root[data-style="aqua"] .nav-item.selected .icon { color: var(--on-accent); }
 :root[data-style="rice"] .nav-item.selected { background: var(--accent-soft); color: var(--accent-text); border: 1.5px solid var(--accent); padding: 0 calc(var(--s3) - 1.5px); }
 .sidebar-spacer { flex: 1; }
+/* The sidebar's groups (src/settings/shell/nav.ts NAV_GROUPS): a little air between them, a quiet caption over
+   the group that has one («Учёба»). */
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group + .nav-group { margin-top: var(--s3); }
+.nav-caption {
+  padding: 0 var(--s3) var(--s1);
+  color: var(--text-3);
+  font-size: var(--caption-size);
+  line-height: var(--caption-lh);
+  font-weight: 600;
+}
+
+/* A page inside another (a widget's settings inside «Виджеты»): the parent's name over the title, a way back. */
+.page-parent {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  align-self: flex-start;
+  margin: 0 0 2px -6px;
+  padding: 2px 8px 2px 4px;
+  border-radius: var(--r-ctl);
+  color: var(--text-2);
+  font-size: var(--body-size);
+  line-height: var(--body-lh);
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.page-parent:hover { background: var(--ctl-fill-hover); color: var(--text); }
+.page-parent:active { background: var(--ctl-fill-pressed); }
+.page-parent .page-parent-back { transform: scaleX(-1); color: inherit; }
 
 .content { flex: 1 1 auto; min-width: 0; overflow-y: auto; }
 .page { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s6) var(--s8) var(--s8); max-width: 820px; }

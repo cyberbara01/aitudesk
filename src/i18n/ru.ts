@@ -149,6 +149,7 @@ const RU = {
   settings: {
     nav: {
       general: "Общие",
+      widgets: "Виджеты",
       appearance: "Оформление",
       clock: "Часы",
       system: "Система",
@@ -160,6 +161,10 @@ const RU = {
       reminders: "Напоминания",
       transfer: "Конфиги",
       about: "О программе",
+    },
+    /** Подписи групп в боковой панели. */
+    navGroups: {
+      study: "Учёба",
     },
     general: {
       tiles: "Виджеты на рабочем столе",

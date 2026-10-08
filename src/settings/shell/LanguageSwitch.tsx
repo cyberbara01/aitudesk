@@ -15,7 +15,7 @@ import { useSettings } from "../../lib/useSettings";
 
 const x = extra.general;
 
-const OPTIONS: readonly { value: LanguageSetting; label: string }[] = [
+export const LANGUAGE_OPTIONS: readonly { value: LanguageSetting; label: string }[] = [
   { value: "auto", label: x.languageAuto },
   { value: "ru", label: "Русский" },
   { value: "en", label: "English" },
@@ -29,7 +29,7 @@ export function LanguageSwitch() {
   const [pending, setPending] = useState<LanguageSetting | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const current = OPTIONS.findIndex((o) => o.value === language);
+  const current = LANGUAGE_OPTIONS.findIndex((o) => o.value === language);
 
   // The menu closes on a press outside it and when the window loses focus.
   useEffect(() => {
@@ -62,10 +62,10 @@ export function LanguageSwitch() {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       if (!open) openMenu();
-      else setActive((i) => (i + (e.key === "ArrowDown" ? 1 : OPTIONS.length - 1)) % OPTIONS.length);
+      else setActive((i) => (i + (e.key === "ArrowDown" ? 1 : LANGUAGE_OPTIONS.length - 1)) % LANGUAGE_OPTIONS.length);
     } else if ((e.key === "Enter" || e.key === " ") && open) {
       e.preventDefault();
-      choose(OPTIONS[active].value);
+      choose(LANGUAGE_OPTIONS[active].value);
     } else if (e.key === "Escape" && open) {
       e.preventDefault();
       e.stopPropagation();
@@ -73,13 +73,6 @@ export function LanguageSwitch() {
     }
   };
 
-  /** Saved first (the native side reads it when it starts), then the app starts again in that language. */
-  const apply = async () => {
-    if (pending === null) return;
-    await settings.update({ language: pending });
-    await invoke("restart_app").catch(() => setPending(null));
-  };
-  const close = useCallback(() => setPending(null), []);
 
   return (
     <div ref={rootRef} className="lang-switch">
@@ -88,7 +81,7 @@ export function LanguageSwitch() {
           ref={btnRef}
           type="button"
           className={open ? "lang-btn open" : "lang-btn"}
-          aria-label={`${x.language}: ${OPTIONS[Math.max(0, current)].label}`}
+          aria-label={`${x.language}: ${LANGUAGE_OPTIONS[Math.max(0, current)].label}`}
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={() => (open ? setOpen(false) : openMenu())}
@@ -101,7 +94,7 @@ export function LanguageSwitch() {
       </Tooltip>
       {open && (
         <div className="popover lang-menu" role="menu" aria-label={x.language}>
-          {OPTIONS.map((o, i) => (
+          {LANGUAGE_OPTIONS.map((o, i) => (
             <button
               key={o.value}
               type="button"
@@ -117,22 +110,38 @@ export function LanguageSwitch() {
           ))}
         </div>
       )}
-      <Dialog
-        open={pending !== null}
-        title={x.languageTitle}
-        onClose={close}
-        width="440px"
-        footer={
-          <>
-            <Button onClick={close}>{ru.common.cancel}</Button>
-            <Button variant="accent" onClick={() => void apply()}>
-              {x.languageRestart}
-            </Button>
-          </>
-        }
-      >
-        <p className="reset-text">{x.languageText}</p>
-      </Dialog>
+      <LanguageDialog pending={pending} onClose={() => setPending(null)} />
     </div>
+  );
+}
+
+/**
+ * Asks before switching to `pending`: the setting is saved first (the native side reads it when it starts), then
+ * the app starts again in that language. Shared by this button and the «Язык» row on «Общие».
+ */
+export function LanguageDialog({ pending, onClose }: { pending: LanguageSetting | null; onClose: () => void }) {
+  const close = useCallback(() => onClose(), [onClose]);
+  const apply = async () => {
+    if (pending === null) return;
+    await settings.update({ language: pending });
+    await invoke("restart_app").catch(() => onClose());
+  };
+  return (
+    <Dialog
+      open={pending !== null}
+      title={x.languageTitle}
+      onClose={close}
+      width="440px"
+      footer={
+        <>
+          <Button onClick={close}>{ru.common.cancel}</Button>
+          <Button variant="accent" onClick={() => void apply()}>
+            {x.languageRestart}
+          </Button>
+        </>
+      }
+    >
+      <p className="reset-text">{x.languageText}</p>
+    </Dialog>
   );
 }

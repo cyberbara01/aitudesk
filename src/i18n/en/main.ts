@@ -140,6 +140,7 @@ export const en: MainStrings = {
   settings: {
     nav: {
       general: "General",
+      widgets: "Widgets",
       appearance: "Appearance",
       clock: "Clock",
       system: "System",
@@ -151,6 +152,9 @@ export const en: MainStrings = {
       reminders: "Reminders",
       transfer: "Configs",
       about: "About",
+    },
+    navGroups: {
+      study: "Study",
     },
     general: {
       tiles: "Widgets on the desktop",

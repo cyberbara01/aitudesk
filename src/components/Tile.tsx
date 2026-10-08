@@ -214,9 +214,9 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
         id: "settings",
         label: ru.menu.settings,
         icon: "settings",
-        // An own widget's settings are its editor on «Общие».
+        // An own widget's settings are its editor on «Виджеты».
         onSelect: () =>
-          void invoke("open_settings", custom ? { tab: "general", edit: customIdOf(label) } : { tab: label }).catch(() => undefined),
+          void invoke("open_settings", custom ? { tab: "widgets", edit: customIdOf(label) } : { tab: label }).catch(() => undefined),
       },
       { id: "hide", label: ru.menu.hide, icon: "eye_off", onSelect: () => void hideTile(label) },
     ];

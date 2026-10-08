@@ -10,7 +10,10 @@ export const en: ShellStrings = {
     help: "How to use",
   },
   general: {
-    desc: "Which widgets are on the desktop and how they behave",
+    desc: "Starting with Windows, the app's language and resets",
+    widgetsDesc: "Which widgets are on the desktop, their size and settings, and your own picture widgets",
+    languageSection: "Language",
+    languageHint: "Russian, English or as in Windows. The app restarts",
     allTiles: "All widgets",
     allTilesShown: "Shown on the desktop",
     allTilesHidden: "Hidden. Their settings and positions are kept",
@@ -44,7 +47,7 @@ export const en: ShellStrings = {
     everything: "Reset everything",
     everythingTitle: "Reset everything?",
     everythingText:
-      "Your notes, schedule, shortcuts and widgets, marked rooms, layout and appearance are deleted, every setting goes back to its default and starting with Windows is turned off. AITU Desk restarts as it was right after installing. This can't be undone.",
+      "Your notes, schedule, shortcuts and widgets, marked rooms, layout and appearance are deleted, and every setting goes back to its default. AITU Desk restarts as it was right after installing. This can't be undone.",
     everythingKeep: (configs: string) => `To keep your data, save a config in “${configs}” first.`,
     everythingFailed: "Couldn't reset everything. Try again",
     language: "Language · Язык",
@@ -131,8 +134,8 @@ export const en: ShellStrings = {
     desc: "A few quick tips. Everything you change in this window is saved by itself and shows on the widgets right away.",
     stepsLabel: "Tips",
     tilesTitle: "Widgets on the desktop",
-    tilesText: (general: string) =>
-      `The clock, system info, computer load, shortcuts, the AITU map, the schedule and notes sit right on the wallpaper, under all windows: to see them, minimize your windows or press Win+D. Choose which of them to show in “${general}”, where you can also add widgets of your own with a picture or a GIF.`,
+    tilesText: (widgets: string) =>
+      `The clock, system info, computer load, shortcuts, the AITU map, the schedule and notes sit right on the wallpaper, under all windows: to see them, minimize your windows or press Win+D. Choose which of them to show in “${widgets}”, where you can also add widgets of your own with a picture or a GIF.`,
     menuTitle: "Right-click",
     menuText: (move: string, open: string, done: string, size: string) =>
       `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and the clock, system, performance and shortcuts grow along with it. Ctrl+Z undoes a step, “${done}” saves. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
@@ -147,8 +150,8 @@ export const en: ShellStrings = {
     lookText: (appearance: string, a: string, b: string, c: string) =>
       `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, corners, spacing, borders and transparency can be chosen on their own instead of taken from the design. The widgets and this window change at once.`,
     startTitle: "Startup and reminders",
-    startText: (reminders: string) =>
-      `Turn on autostart so the widgets are in place after a restart. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
+    startText: (general: string, reminders: string) =>
+      `Autostart is already on: after a restart the widgets are in place. You can turn it off here or in “${general}”. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
     footer: (help: string) =>
       `You can close this window: the widgets stay. Open the settings again from the AITU Desk shortcut or its icon next to the clock on the taskbar, these tips from “${help}” at the bottom of the sidebar, and switch the app language with the “RU | EN” button under it.`,
     start: "Get started",

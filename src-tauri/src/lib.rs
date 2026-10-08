@@ -80,6 +80,8 @@ const AUTOSTART_ARG: &str = "--autostart";
 /// it: a reset asked for by the previous run is carried out (reset.rs), a UTF-8 BOM (added by some editors) is
 /// dropped, a file that still does not parse is moved aside as settings.broken-<unix time>.json, next to it,
 /// where the data can be recovered, and defaults changed since the file was saved are applied once.
+/// Returns whether the start with Windows is to be switched on now: the first start of a fresh install (no
+/// settings yet, also right after «Сбросить всё»), or settings from before it became the default.
 /// A second launch only hands its arguments to the running instance and exits; it must not touch the store file,
 /// which the running instance may be writing at that very moment. tauri-plugin-single-instance holds a mutex
 /// named «<identifier>-sim» for as long as the first instance runs.
@@ -110,43 +112,48 @@ fn roaming_app_data() -> Option<std::path::PathBuf> {
     }
 }
 
-fn protect_store_file(identifier: &str) {
+fn protect_store_file(identifier: &str) -> bool {
     if another_instance_runs(identifier) {
-        return;
+        return false;
     }
-    let Some(appdata) = roaming_app_data() else { return };
+    let Some(appdata) = roaming_app_data() else { return false };
     let dir = appdata.join(identifier);
     reset::apply_pending(&dir);
     let path = dir.join(layout::STORE_FILE);
-    let Ok(bytes) = std::fs::read(&path) else { return };
+    let Ok(bytes) = std::fs::read(&path) else { return !path.exists() };
     let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF][..]).unwrap_or(&bytes);
     if let Ok(mut store) = serde_json::from_slice::<serde_json::Value>(body) {
-        if reset::migrate(&mut store) {
+        let mut autostart = false;
+        if let Some(round) = reset::migrate(&mut store) {
+            autostart = round < reset::AUTOSTART_ROUND;
             if let Ok(json) = serde_json::to_vec_pretty(&store) {
                 let _ = std::fs::write(&path, json);
             }
         } else if body.len() != bytes.len() {
             let _ = std::fs::write(&path, body);
         }
-        return;
+        return autostart;
     }
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
         .unwrap_or(0);
     let _ = std::fs::rename(&path, dir.join(format!("settings.broken-{stamp}.json")));
+    false
 }
 
 pub fn run() {
     let context = tauri::generate_context!();
-    protect_store_file(&context.config().identifier);
+    let start_with_windows = protect_store_file(&context.config().identifier);
     let language = lang::init(&context.config().identifier);
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            // Launching the app again (its shortcut, the Start menu) while it runs opens the settings window on
-            // «Общие», where all tiles can be switched on again if they are off. A login start stays quiet.
+            // Launching the app again (its shortcut, the Start menu) while it runs opens the settings window: on
+            // «Виджеты» while every widget is hidden (the button that shows them again is there), else on
+            // «Общие». A login start stays quiet.
             if !args.iter().any(|a| a == AUTOSTART_ARG) {
-                settings_window::open(app, "general", None);
+                let tab = if layout::is_hidden(app) { "widgets" } else { "general" };
+                settings_window::open(app, tab, None);
             }
         }))
         // Every page learns the interface language before its own scripts run.
@@ -210,7 +217,7 @@ pub fn run() {
             autostart::autostart_enabled,
             autostart::set_autostart,
         ])
-        .setup(|app| {
+        .setup(move |app| {
             let handle = app.handle().clone();
             layout::restore_all(&handle);
             for label in TILES {
@@ -232,8 +239,12 @@ pub fn run() {
             tray::build(&handle)?;
             desktop_watch::install(&handle);
             reminders::start(handle.clone());
-            // An existing login entry that is not exactly right (unquoted or without `--autostart` from an older
-            // version, or an install that moved) is rewritten; none is created here.
+            // The start with Windows is on by default: written at the first start (and once for settings from before
+            // that default). Otherwise an existing login entry that is not exactly right (unquoted or without
+            // `--autostart` from an older version, or an install that moved) is rewritten, and none is created.
+            if start_with_windows {
+                let _ = autostart::enable();
+            }
             autostart::refresh();
             // Started by hand (shortcut, Start menu, after install): open the settings window too; the first
             // time it shows the welcome page. A login start shows only the tiles.

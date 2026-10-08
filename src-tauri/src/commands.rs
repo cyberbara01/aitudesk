@@ -93,13 +93,13 @@ pub fn restart_app(app: AppHandle) {
     app.request_restart();
 }
 
-/// «Сбросить всё» at the bottom of «Общие»: the app becomes as it was right after installing. The start with
-/// Windows goes now; the settings file (notes, schedule, launchers, layout, everything) and the pictures of own
-/// widgets are removed by the next start, before anything reads them (reset.rs), and the app starts again at once.
+/// «Сбросить всё» at the bottom of «Общие»: the app becomes as it was right after installing. The settings file
+/// (notes, schedule, launchers, layout, everything) and the pictures of own widgets are removed by the next start,
+/// before anything reads them (reset.rs); that start finds no settings and switches the start with Windows on, as
+/// a fresh install does. The app starts again at once.
 #[tauri::command]
 pub fn reset_everything(app: AppHandle) -> Result<(), String> {
     crate::reset::request(&app)?;
-    let _ = crate::autostart::disable();
     crate::popup::close(&app);
     std::env::set_var("AITUDESK_OPEN_SETTINGS", "general");
     app.request_restart();
@@ -185,7 +185,7 @@ pub fn set_tile_glass(window: WebviewWindow, on: bool) {
     }
 }
 
-/// «Все виджеты» in «Общие»: hide or show every tile (the choice survives a restart).
+/// «Все виджеты» in «Виджеты»: hide or show every tile (the choice survives a restart).
 #[tauri::command]
 pub fn set_tiles_hidden(app: AppHandle, hidden: bool) {
     layout::set_hidden(&app, hidden);

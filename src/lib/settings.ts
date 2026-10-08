@@ -508,7 +508,7 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   version: 2,
-  defaults: 1,
+  defaults: 2,
   language: "auto",
   tileScale: "auto",
   theme: "system",

@@ -1,8 +1,8 @@
 // Welcome page: shown instead of «Общие» the first time the settings window opens, and later from
 // «Как пользоваться». Six calm steps, each beside a small picture drawn with the real kit (tokens, the tile
 // menu's own classes, the style cards) or beside real shortcuts to the pages it mentions, then «Начать»,
-// which marks the page as seen and opens «Общие». The last step switches autostart on right here: right after
-// installing, that is the one setting that decides whether the tiles are still there after a restart.
+// which marks the page as seen and opens «Общие». The last step shows the start with Windows (on from the first
+// start) with its switch right here: it decides whether the widgets are still there after a restart.
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { autostartChanged, disable, enable, isEnabled } from "../../lib/autostart";
 import { Button } from "../../components/Button";
@@ -181,7 +181,7 @@ export function WelcomePage() {
   return (
     <Page title={onboarded ? extra.shell.help : w.title} description={w.desc}>
       <ol className="ob-steps" aria-label={w.stepsLabel}>
-        <Step n={1} title={w.tilesTitle} text={w.tilesText(nav.general)} picture={<DeskPicture desk={desk} />} />
+        <Step n={1} title={w.tilesTitle} text={w.tilesText(nav.widgets)} picture={<DeskPicture desk={desk} />} />
         <Step
           n={2}
           title={w.menuTitle}
@@ -221,7 +221,7 @@ export function WelcomePage() {
         <Step
           n={6}
           title={w.startTitle}
-          text={w.startText(nav.reminders)}
+          text={w.startText(nav.general, nav.reminders)}
           actions={
             <>
               <AutostartSwitch />

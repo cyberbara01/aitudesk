@@ -12,7 +12,7 @@ use tauri_plugin_store::StoreExt;
 pub const STORE_FILE: &str = "settings.json";
 const LAYOUT_KEY: &str = "layout";
 pub const SETTINGS_KEY: &str = "settings";
-/// «Все виджеты» switched off in «Общие»: kept across restarts.
+/// «Все виджеты» switched off in «Виджеты»: kept across restarts.
 const HIDDEN_KEY: &str = "tilesHidden";
 /// Far enough that no monitor arrangement reaches it (Windows itself parks minimized windows at -32000).
 const PARK: i32 = -32000;
@@ -38,7 +38,7 @@ pub struct WorkArea {
 /// Which tiles are parked off-screen and why.
 #[derive(Default)]
 pub struct Visibility {
-    /// «Все виджеты» switched off in «Общие» (persisted as `tilesHidden`).
+    /// «Все виджеты» switched off in «Виджеты» (persisted as `tilesHidden`).
     pub hidden: Mutex<bool>,
     /// Tiles switched off in settings.
     pub disabled: Mutex<HashSet<String>>,
@@ -530,7 +530,7 @@ fn unpark(app: &AppHandle, win: &WebviewWindow, label: &str) {
 }
 
 /// Hide = park off-screen (hide() would drop the acrylic); show = move back to the saved rect. The choice is
-/// saved, so tiles switched off stay off after a restart until they are switched on in «Общие».
+/// saved, so tiles switched off stay off after a restart until they are switched on in «Виджеты».
 pub fn set_hidden(app: &AppHandle, hidden: bool) {
     let vis = app.state::<Visibility>();
     // Set first: a page that reports its first frame while the tiles are being shown must find them shown.
@@ -551,7 +551,7 @@ pub fn set_hidden(app: &AppHandle, hidden: bool) {
         store.set(HIDDEN_KEY, json!(hidden));
         let _ = store.save();
     }
-    // The settings window shows this state («Все виджеты» in «Общие»).
+    // The settings window shows this state («Все виджеты» in «Виджеты»).
     let _ = app.emit("tiles-hidden", hidden);
 }
 
@@ -559,7 +559,7 @@ pub fn is_hidden(app: &AppHandle) -> bool {
     *app.state::<Visibility>().hidden.lock().unwrap()
 }
 
-/// «Общие», the switch of one tile: park or restore it.
+/// «Виджеты», the switch of one tile: park or restore it.
 pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
     if !crate::is_tile(label) {
         return;

@@ -1,10 +1,13 @@
 // Settings window (label "settings"): sidebar with brand + navigation, scrolling content with one page.
+// The sidebar has eight entries in three groups (shell/nav.ts NAV_GROUPS); a widget's own settings are pages
+// inside «Виджеты»: the sidebar keeps «Виджеты» lit and their title leads back to it.
 // Initial tab from ?tab=&edit=, later from the "settings-navigate" event; arrow keys move within the sidebar.
 // The window starts hidden and is shown once its first real frame is ready (src/lib/ready.ts); pages render
 // only after the stored settings are loaded. The first time the window opens on «Общие», it shows the
 // welcome page instead; «Как пользоваться» at the bottom of the sidebar opens it again later.
-import { Fragment, useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "../components/Icon";
+import { PageParentContext } from "../components/Section";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
 import { settings } from "../lib/settings";
@@ -21,9 +24,10 @@ import { RemindersPage } from "./RemindersPage";
 import { PerfPage } from "./PerfPage";
 import { SystemPage } from "./SystemPage";
 import { TransferPage } from "./TransferPage";
+import { WidgetsPage } from "./WidgetsPage";
 import { useRootAttribute, useSettled } from "./shell/hooks";
 import { LanguageSwitch } from "./shell/LanguageSwitch";
-import { NavigateContext, TABS, acceptsEdit, readInitialRoute, type PageId, type Route, type TabId } from "./shell/nav";
+import { NAV_GROUPS, NavigateContext, SIDEBAR_TABS, acceptsEdit, readInitialRoute, sidebarTabOf, type PageId, type Route, type TabId } from "./shell/nav";
 import { useNavigateEvent } from "./shell/useNavigateEvent";
 import { WelcomePage } from "./shell/WelcomePage";
 
@@ -32,7 +36,9 @@ function renderPage(route: Route) {
     case "welcome":
       return <WelcomePage />;
     case "general":
-      return <GeneralPage key={`general-${route.nonce}`} editId={route.edit} />;
+      return <GeneralPage />;
+    case "widgets":
+      return <WidgetsPage key={`widgets-${route.nonce}`} editId={route.edit} />;
     case "appearance":
       return <AppearancePage />;
     case "clock":
@@ -60,7 +66,7 @@ function renderPage(route: Route) {
 }
 
 /** Sidebar order for the arrow keys: the tabs, then «Как пользоваться» at the bottom. */
-const NAV_ORDER: readonly PageId[] = [...TABS.map((t) => t.id), "welcome"];
+const NAV_ORDER: readonly PageId[] = [...SIDEBAR_TABS.map((t) => t.id), "welcome"];
 
 export function SettingsWindow() {
   const [route, setRoute] = useState<Route>(readInitialRoute);
@@ -113,11 +119,15 @@ export function SettingsWindow() {
     contentRef.current?.scrollTo(0, 0);
   }, [route.tab]);
 
+  // A widget's own settings live inside «Виджеты»: their title has the way back.
+  const inWidgets = sidebarTabOf(route.tab) === "widgets" && route.tab !== "widgets";
+  const parent = useMemo(() => (inWidgets ? { label: ru.settings.nav.widgets, go: () => go("widgets") } : null), [inWidgets, go]);
+
   const onNavKey = (e: KeyboardEvent<HTMLElement>) => {
     if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     // The language button has its own keys (its menu and its dialog).
     if ((e.target as HTMLElement).closest(".lang-switch")) return;
-    const i = NAV_ORDER.indexOf(route.tab);
+    const i = NAV_ORDER.indexOf(sidebarTabOf(route.tab));
     const n = NAV_ORDER.length;
     let next: number;
     if (e.key === "ArrowDown") next = (i + 1) % n;
@@ -132,7 +142,7 @@ export function SettingsWindow() {
   };
 
   const navButton = (id: PageId, icon: string, label: string) => {
-    const selected = id === route.tab;
+    const selected = id === sidebarTabOf(route.tab);
     return (
       <button
         key={id}
@@ -163,7 +173,16 @@ export function SettingsWindow() {
         </div>
 
         <nav ref={navRef} className="sidebar-nav" aria-label={extra.shell.navLabel} onKeyDown={onNavKey}>
-          {TABS.map((t) => navButton(t.id, t.icon, ru.settings.nav[t.id]))}
+          {NAV_GROUPS.map((group, i) => (
+            <div key={i} className="nav-group" role="group" aria-label={group.caption ? ru.settings.navGroups[group.caption] : undefined}>
+              {group.caption && (
+                <span className="nav-caption" aria-hidden="true">
+                  {ru.settings.navGroups[group.caption]}
+                </span>
+              )}
+              {group.tabs.map((t) => navButton(t.id, t.icon, ru.settings.nav[t.id]))}
+            </div>
+          ))}
           <div className="sidebar-spacer" />
           <div className="sidebar-foot">
             {navButton("welcome", "book_open", extra.shell.help)}
@@ -174,7 +193,9 @@ export function SettingsWindow() {
 
       <main ref={contentRef} className={animate ? "content anim" : "content"}>
         <NavigateContext.Provider value={go}>
-          {loaded && <Fragment key={route.tab}>{renderPage(route)}</Fragment>}
+          <PageParentContext.Provider value={parent}>
+            {loaded && <Fragment key={route.tab}>{renderPage(route)}</Fragment>}
+          </PageParentContext.Provider>
         </NavigateContext.Provider>
       </main>
     </div>
