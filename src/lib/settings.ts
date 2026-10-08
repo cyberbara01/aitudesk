@@ -216,6 +216,7 @@ export interface BuiltInEdit {
   /** Shown in the settings and, instead of the short original caption, under the icon on the tile. */
   name?: string;
   url?: string;
+  /** Only an icon the user picked: the real site icon of DU, LMS or Learn is bundled and never stored here. */
   icon?: LauncherIcon;
 }
 
@@ -307,14 +308,20 @@ export interface Note {
 
 /**
  * Order of the notes on the tile and in the settings: by deadline (nearest first, notes without one after
- * them), newest added first, or oldest added first. Done notes always go last.
+ * them), newest added first, oldest added first, or «Свой порядок» ("manual": the order of `notes` itself, set
+ * by dragging the notes). Done notes always go last.
  */
-export type NoteSort = "deadline" | "newest" | "oldest";
-export const NOTE_SORTS: readonly NoteSort[] = ["deadline", "newest", "oldest"];
+export type NoteSort = "deadline" | "newest" | "oldest" | "manual";
+export const NOTE_SORTS: readonly NoteSort[] = ["deadline", "newest", "oldest", "manual"];
 
 export interface NotesSettings {
   notes: Note[];
   sort: NoteSort;
+  /**
+   * The stored order was set by hand (a note was dragged). Choosing «Свой порядок» again then brings that order
+   * back instead of writing down the order shown at that moment (src/lib/notes.ts setNoteSort).
+   */
+  arranged: boolean;
   showDone: boolean;
   /** Mask note texts on the desktop with password dots (hover + eye reveals). */
   privacy: boolean;
@@ -488,6 +495,7 @@ export const DEFAULT_SCHEDULE: ScheduleSettings = {
 export const DEFAULT_NOTES: NotesSettings = {
   notes: [],
   sort: "deadline",
+  arranged: false,
   showDone: false,
   privacy: false,
   background: true,
@@ -847,6 +855,7 @@ export function normalize(saved: unknown): Settings {
   const notes: NotesSettings = {
     notes: notesRaw.slice(0, LIMIT.notes).map(migrateNote).filter((x): x is Note => x !== null),
     sort: oneOf(n.sort, NOTE_SORTS, d.notes.sort),
+    arranged: bool(n.arranged, d.notes.arranged),
     showDone: bool(n.showDone, d.notes.showDone),
     privacy: bool(n.privacy, d.notes.privacy),
     background: bool(n.background, d.notes.background),
@@ -928,7 +937,7 @@ function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
     case "schedule":
       return { schedule: { ...d.schedule, lessons: s.schedule.lessons, privacy: s.schedule.privacy } };
     case "notes":
-      return { notes: { ...d.notes, notes: s.notes.notes, privacy: s.notes.privacy } };
+      return { notes: { ...d.notes, notes: s.notes.notes, arranged: s.notes.arranged, privacy: s.notes.privacy } };
     case "reminders":
       return { reminders: d.reminders };
   }

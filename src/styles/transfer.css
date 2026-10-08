@@ -1,6 +1,8 @@
-/* «Конфиги» page of the settings window: the lists of parts (one row per part, the personal one
-   tinted and badged), the warning before saving notes, the file caption and the result lines. Kit checkboxes,
-   buttons, sections and rows are used as they are. Tokens only; caution marks what is personal. */
+/* «Конфиги» page of the settings window: the lists of parts (one row per part, the personal ones, notes and
+   own widgets, tinted and badged), the warning before saving them, the file caption and the result lines. Kit
+   checkboxes, buttons, sections and rows are used as they are. Tokens only; caution marks what is personal.
+   Every text wraps at word breaks, and inside a word only one that would not fit (a file name, a path), so
+   nothing is cut or overlaps at the window's 720px. */
 
 /* ---- The line above a list: the count or the file caption, and «Выбрать всё» / «Снять всё» ---- */
 .tr-head {
@@ -33,11 +35,11 @@
   font-size: var(--caption-size); line-height: var(--caption-lh);
 }
 .tr-part-summary { color: var(--text-3); overflow-wrap: anywhere; }
-.tr-part-note { color: var(--text-3); }
+.tr-part-note { color: var(--text-3); overflow-wrap: anywhere; }
 /* A note says what happens to the part (it goes into the file, it replaces yours): in caution once picked. */
 .tr-part.on .tr-part-note { color: var(--caution); }
 
-/* ---- The personal part (notes): a caution tint and a lock badge, stronger once picked ---- */
+/* ---- The personal parts (notes, own widgets): a caution tint and a lock badge, stronger once picked ---- */
 .tr-part.personal { background-color: color-mix(in srgb, var(--caution) 5%, transparent); }
 .tr-part.personal:hover { background-color: color-mix(in srgb, var(--caution) 8%, transparent); }
 .tr-part.personal.on { background-color: color-mix(in srgb, var(--caution) 11%, transparent); }
@@ -82,3 +84,4 @@
   color: var(--text);
 }
 .tr-warning .icon { color: var(--caution); }
+.tr-warning > span { min-width: 0; overflow-wrap: anywhere; }

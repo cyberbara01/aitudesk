@@ -10,7 +10,9 @@ import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.launchers";
 import {
   DEFAULT_FLUENT_ICON,
+  builtInDef,
   builtInOriginal,
+  bundledSiteIcon,
   hasSpaces,
   isBuiltInOriginal,
   isIconMarkup,
@@ -57,16 +59,35 @@ const MODE_OPTIONS = [
 const NAME_MAX = 40;
 
 /**
+ * Longest wait for a site icon. favicon.rs tries up to nine addresses with 8 s each, so on a network without
+ * internet (connected, nothing answers) the lookup could keep «Сохранить» busy for a minute; after this the
+ * editor treats it as failed (the lookup ends on its own in the background and its result is dropped).
+ */
+const FETCH_DEADLINE_MS = 45_000;
+
+/** `p`, or null when it has not settled within `ms`. A later rejection of `p` is absorbed by the race. */
+function withDeadline<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  let timer = 0;
+  const late = new Promise<null>((resolve) => {
+    timer = window.setTimeout(() => resolve(null), ms);
+  });
+  return Promise.race([p, late]).finally(() => window.clearTimeout(timer));
+}
+
+/**
  * «Добавить ярлык» / «Изменить ярлык»: live cell preview, name, URL, icon mode (site, Fluent set, letter)
  * and colour, for custom and built-in launchers alike.
- * - Site: the icon is fetched once on save (fetch_site_icon, the only network use); on failure the dialog
- *   stays open with an explanation, and a second «Сохранить» keeps the letter fallback.
+ * - Site: an address on DU, LMS or Learn takes the icon bundled with the app (bundledSiteIcon), so it needs
+ *   no network. Any other site's icon is fetched once on save (fetch_site_icon, the only network use, cut
+ *   off after FETCH_DEADLINE_MS); on failure the dialog stays open with an explanation, and a second
+ *   «Сохранить» keeps the letter fallback.
  * - Fluent: two rows of popular icons right here, «Смотреть все» opens the full set in its own scrollable
  *   window. Saving stores the icon's markup in the launcher (icon.svg), so the desktop tile draws it
  *   without loading the full icon set.
- * - Built-in: saving keeps only what differs from the original (saveBuiltIn). While the form differs from
- *   the original, «Вернуть как было» puts the original name, address, icon and colour back into the form;
- *   «Сохранить» then stores them, «Отмена» keeps the launcher as it was.
+ * - Built-in: saving keeps only what differs from the original (saveBuiltIn); its original icon is the
+ *   bundled site icon, never stored. While the form differs from the original, «Вернуть как было» puts the
+ *   original name, address, site icon and colour back into the form; «Сохранить» then stores them, «Отмена»
+ *   keeps the launcher as it was.
  * Focus and Esc are the kit's job: the Dialog focuses its first form field (the name) and routes Esc to the
  * top-most dialog, so the nested icon picker closes first and the editor stays open.
  */
@@ -77,15 +98,17 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
   const [name, setName] = useState(item?.name ?? "");
   const [url, setUrl] = useState(item?.url ?? "");
   const [mode, setMode] = useState<IconMode>(item?.icon.kind ?? "site");
-  // A built-in shown with a site or letter icon still offers its own icon first in the Fluent mode.
+  // A built-in shown with its site icon (or a letter) offers its own Fluent icon first in the Fluent mode.
   const [fluent, setFluent] = useState<FluentChoice>(
-    () => fluentOf(item?.icon) ?? fluentOf(original?.icon) ?? { name: DEFAULT_FLUENT_ICON },
+    () => fluentOf(item?.icon) ?? { name: builtIn ? builtInDef(builtIn).fluent : DEFAULT_FLUENT_ICON },
   );
   const [color, setColor] = useState(() => item?.color ?? nextLauncherColor(settings.get()));
   const [touched, setTouched] = useState({ name: false, url: false });
   const [loading, setLoading] = useState(false);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  /** False after «Вернуть как было»: a site image the launcher fetched before gives way to the original one. */
+  const [keepOwnImage, setKeepOwnImage] = useState(true);
   /** False once unmounted, so a fetch that outlives the dialog does not set state or save. */
   const alive = useRef(true);
   /** One id per editor: a repeated «Сохранить» (double click, held Enter) replaces, never duplicates. */
@@ -110,9 +133,16 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
 
   const trimmedName = name.trim();
   const trimmedUrl = url.trim();
-  /** The cached site icon stays valid only while the URL is unchanged. */
-  const cachedData =
-    item?.icon.kind === "site" && isImageDataUrl(item.icon.data) && item.url === trimmedUrl ? item.icon.data : undefined;
+  /** The site image the launcher already has stays valid only while the URL is unchanged. */
+  const ownData =
+    keepOwnImage && item?.icon.kind === "site" && isImageDataUrl(item.icon.data) && item.url === trimmedUrl
+      ? item.icon.data
+      : undefined;
+  /** An address on DU, LMS or Learn takes the icon bundled with the app: nothing to fetch. */
+  const bundled = bundledSiteIcon(trimmedUrl);
+  const cachedData = ownData ?? bundled;
+  /** The icon in use is the bundled one (a built-in's own, or one taken for such an address): the hint says so. */
+  const usesBundled = bundled !== undefined && cachedData === bundled;
   const previewIcon: LauncherIconSpec =
     mode === "fluent"
       ? { kind: "fluent", name: fluent.name, svg: fluent.svg }
@@ -149,7 +179,7 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
     setLoading(true);
     let data: unknown = null;
     try {
-      data = await invoke<string>("fetch_site_icon", { url: trimmedUrl });
+      data = await withDeadline(invoke<string>("fetch_site_icon", { url: trimmedUrl }), FETCH_DEADLINE_MS);
     } catch {
       data = null;
     }
@@ -182,7 +212,9 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
     setName(original.name);
     setUrl(original.url);
     setMode(original.icon.kind);
-    setFluent((f) => fluentOf(original.icon) ?? f);
+    // Its own icon from the set comes back too (the one offered first when «Из набора» is chosen).
+    if (builtIn) setFluent({ name: builtInDef(builtIn).fluent });
+    setKeepOwnImage(false);
     setColor(original.color);
     // The button goes away with the difference: keep the keyboard on the step that follows.
     document.getElementById(saveId)?.focus();
@@ -198,6 +230,7 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
   let siteHint: string = ru.settings.launchers.iconSiteHint;
   if (loading) siteHint = ru.settings.launchers.iconLoading;
   else if (failed) siteHint = ru.settings.launchers.iconFailed;
+  else if (usesBundled) siteHint = extra.siteIconBundled;
   else if (cachedData) siteHint = extra.siteIconReady;
 
   // The picker is a sibling of the editor's Dialog, not its child: while the editor plays its entrance

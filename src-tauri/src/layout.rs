@@ -262,6 +262,11 @@ pub fn scale_saved(app: &AppHandle, f: impl Fn(&Rect) -> Rect) {
     }
 }
 
+/// The rect a tile was given by hand (moved or resized); None while it keeps its default place and size.
+pub fn saved_rect(app: &AppHandle, label: &str) -> Option<Rect> {
+    load_layout(app).get(label).copied()
+}
+
 fn load_layout(app: &AppHandle) -> HashMap<String, Rect> {
     app.store(STORE_FILE)
         .ok()

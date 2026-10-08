@@ -1,15 +1,17 @@
 // Settings → «Заметки»: every note in the tile's order («Сортировка»: by deadline, newest or oldest added
-// first; done last) with the «выполнено» toggle, the deadline and the time left (and a mark when its reminders
-// are off), «Изменить» / «Удалить»; «Добавить заметку»; the tile options (done notes, privacy, background) and
-// the section reset. `editId` (from the tile's context menu) opens the editor on that note once; NEW_NOTE opens
-// it on an empty note.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+// first, or «Свой порядок»; done last) with the «выполнено» toggle, the deadline and the time left (and a mark
+// when its reminders are off), «Изменить» / «Удалить»; «Добавить заметку»; the tile options (done notes,
+// privacy, background) and the section reset. Notes are dragged into any order within their group (active or
+// done; useDragReorder): from anywhere on the row or by the grip that shows on hover at its left edge, which
+// also takes Alt+ArrowUp / Alt+ArrowDown. A move switches the sort to «Свой порядок». `editId` (from the tile's
+// context menu) opens the editor on that note once; NEW_NOTE opens it on an empty note.
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Button, IconButton } from "../components/Button";
 import { EmptyState } from "../components/EmptyState";
 import { Icon } from "../components/Icon";
 import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
-import { Segmented, type SegmentedOption } from "../components/Segmented";
+import { Select, type SelectOption } from "../components/Select";
 import { Switch } from "../components/Switch";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
@@ -21,20 +23,24 @@ import {
   displayText,
   formatDeadline,
   fullDate,
+  moveNote,
   orderNotes,
   removeNote,
+  setNoteSort,
   timeOf,
   toggleNote,
   useDeadlineClock,
 } from "../lib/notes";
 import { NOTE_SORTS, settings, type Note, type NoteSort, type NotesSettings } from "../lib/settings";
+import { useDragReorder } from "../lib/useDragReorder";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { NoteCheck } from "./notes/NoteCheck";
 import { NoteEditor } from "./notes/NoteEditor";
 
 const P = extra.page;
 
-const SORT_OPTIONS: readonly SegmentedOption<NoteSort>[] = NOTE_SORTS.map((value) => ({ value, label: P.sorts[value] }));
+const SORT_OPTIONS: readonly SelectOption<NoteSort>[] = NOTE_SORTS.map((value) => ({ value, label: P.sorts[value] }));
+const pickSort = (sort: NoteSort) => void setNoteSort(sort);
 
 interface EditorState {
   /** Changes on every open so the editor remounts with fresh form state. */
@@ -53,6 +59,25 @@ export function NotesPage({ editId }: { editId?: string | null }) {
   const nowDate = useMemo(() => new Date(now), [now]);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const handledEdit = useRef<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const ids = useMemo(() => ordered.map((it) => it.note.id), [ordered]);
+  // A screen reader hears where a moved note landed (its place within its group) once the new order shows.
+  const movedId = useRef<string | null>(null);
+  const [moveSaid, setMoveSaid] = useState("");
+  const onMove = useCallback((id: string, before: string | null) => {
+    movedId.current = id;
+    void moveNote(id, before);
+  }, []);
+  useEffect(() => {
+    const id = movedId.current;
+    const at = ordered.findIndex((it) => it.note.id === id);
+    if (at < 0) return;
+    movedId.current = null;
+    const group = ordered.filter((it) => it.note.done === ordered[at].note.done);
+    setMoveSaid(P.moved(group.findIndex((it) => it.note.id === id) + 1, group.length));
+  }, [ordered]);
+  const reorder = useDragReorder(listRef, { ids, onMove });
+  const dragHintId = useId();
 
   // Deep link from the tile: «Изменить» on a note, or «Добавить заметку».
   useEffect(() => {
@@ -100,10 +125,16 @@ export function NotesPage({ editId }: { editId?: string | null }) {
           <>
             <div className="notes-sort">
               <Row label={P.sort} hint={P.sortHint}>
-                <Segmented<NoteSort> size="sm" options={SORT_OPTIONS} value={sort} onChange={(v) => update({ sort: v })} ariaLabel={P.sort} />
+                <Select<NoteSort> className="notes-sort-select" options={SORT_OPTIONS} value={sort} onChange={pickSort} ariaLabel={P.sort} />
               </Row>
             </div>
-            <div className="note-items" role="list">
+            <span id={dragHintId} hidden>
+              {P.dragHint}
+            </span>
+            <span className="sr-only" aria-live="polite">
+              {moveSaid}
+            </span>
+            <div ref={listRef} className="note-items" role="list" onPointerDown={reorder.onPointerDown} onKeyDown={reorder.onKeyDown}>
               {ordered.map(({ note, due }) => {
                 let meta = <>{P.noDeadline}</>;
                 if (due !== null) {
@@ -130,8 +161,30 @@ export function NotesPage({ editId }: { editId?: string | null }) {
                     );
                   }
                 }
+                // Only a group of two or more can be reordered: a lone note gets no grip.
+                const movable = (note.done ? doneCount : activeCount) > 1;
                 return (
-                  <div key={note.id} className={note.done ? "note-item done" : "note-item"} role="listitem">
+                  <div
+                    key={note.id}
+                    className={note.done ? "note-item done" : "note-item"}
+                    role="listitem"
+                    data-reorder-id={note.id}
+                    data-reorder-group={note.done ? "done" : "active"}
+                  >
+                    {movable && (
+                      <Tooltip text={P.dragHint} className="note-item-grip">
+                        <button
+                          type="button"
+                          className="note-item-grip-btn"
+                          aria-label={P.drag}
+                          aria-describedby={dragHintId}
+                          aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                          data-drag-handle
+                        >
+                          <Icon name="re_order_dots_vertical" size={16} />
+                        </button>
+                      </Tooltip>
+                    )}
                     <NoteCheck done={note.done} color={note.color} onToggle={() => void toggleNote(note.id)} />
                     <div className="note-item-text">
                       <span className="note-item-title">{displayText(note.text)}</span>

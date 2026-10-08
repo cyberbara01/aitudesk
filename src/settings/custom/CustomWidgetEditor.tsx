@@ -1,7 +1,15 @@
-// «Новый виджет» / «Свой виджет»: a live preview, the name, the picture (the Windows open dialog; the file is
-// checked and copied by src-tauri/src/custom.rs), how it fills the widget and whether it sits on glass. An own
+// «Новый виджет» / «Свой виджет»: a live preview beside the name, the picture (the Windows open dialog; the file
+// is checked and copied by src-tauri/src/custom.rs), how it fills the widget and whether it sits on glass. An own
 // widget can be deleted here, after a confirmation; the built-in ones only switch off.
-import { useCallback, useState, type KeyboardEvent } from "react";
+//
+// The preview is the desktop widget itself (src/tiles/Custom.tsx: the real .tile material and .custom-picture) on
+// the accent desk of the other settings previews (.sys-desk), so design, palette, accent, «Как показывать» and
+// «Фон виджета» show as they will. The picture is the one chosen in this dialog before it is saved (the copy
+// pick_widget_image has already made), an animation moves; it is a square of a new widget's size
+// (custom.rs DEFAULT_SIZE), since nothing tells the settings how an existing one was resized. Nothing ticks:
+// the picture's blob URLs live as long as the dialog (useWidgetImage revokes them), so a GIF moves only while it
+// is open.
+import { useCallback, useEffect, useId, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "../../components/Button";
 import { Dialog } from "../../components/Dialog";
@@ -11,7 +19,7 @@ import { Switch } from "../../components/Switch";
 import { TextField } from "../../components/TextField";
 import { ru } from "../../i18n/ru";
 import { extra as shell } from "../../i18n/ru.extra.shell";
-import { CUSTOM_NAME_MAX, newCustomId, settings, type CustomWidget } from "../../lib/settings";
+import { CUSTOM_NAME_MAX, customLabel, newCustomId, settings, type CustomWidget } from "../../lib/settings";
 import { useWidgetImage } from "../../lib/widgetImage";
 
 const c = shell.custom;
@@ -20,6 +28,9 @@ const FIT_OPTIONS = [
   { value: "cover", label: c.fitCover },
   { value: "contain", label: c.fitContain },
 ] as const satisfies readonly SegmentedOption<CustomWidget["fit"]>[];
+
+/** The empty preview's shortcut to «Выбрать картинку» keeps the focus where it was (the form has the real button). */
+const keepFocus = (e: MouseEvent) => e.preventDefault();
 
 /** Why a picture was not taken, from pick_widget_image's error. */
 function pickError(e: unknown): string {
@@ -44,8 +55,25 @@ export function CustomWidgetEditor({ widget, onClose }: Props) {
   const [picking, setPicking] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const image = useWidgetImage(file);
+  // An existing widget's proportions, from the rect it was given on the desktop (also while it is folded to an
+  // icon); a new one, or one never resized, is the default square.
+  const [aspect, setAspect] = useState(1);
+  useEffect(() => {
+    if (!widget) return;
+    let alive = true;
+    invoke<{ w: number; h: number } | null>("get_tile_rect", { label: customLabel(widget.id) })
+      .then((r) => {
+        if (alive && r && r.w > 0 && r.h > 0) setAspect(Math.min(4, Math.max(0.25, r.w / r.h)));
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [widget]);
   const missing = image === "missing";
+  const ready = image !== null && image !== "missing";
   const closeConfirm = useCallback(() => setConfirm(false), []);
+  const previewId = useId();
 
   const pick = async () => {
     setPicking(true);
@@ -91,12 +119,18 @@ export function CustomWidgetEditor({ widget, onClose }: Props) {
   if (error) pictureHint = error;
   else if (missing) pictureHint = c.pictureMissing;
 
+  // No picture yet (or its file is gone): a dashed place that invites to choose one. A picture still being read
+  // leaves the widget empty for that moment instead of flashing the invitation.
+  const blank = file === null || missing;
+  const tileCls = ["tile tile-custom cw-tile", background ? "" : "no-bg", blank ? "is-empty" : ""].filter(Boolean).join(" ");
+
   return (
     <>
       <Dialog
         open
         title={widget ? c.editTitle : c.newTitle}
         onClose={onClose}
+        width="640px"
         footer={
           <>
             {widget && (
@@ -111,20 +145,8 @@ export function CustomWidgetEditor({ widget, onClose }: Props) {
           </>
         }
       >
+        {/* The form comes first, so the Dialog focuses the name; the preview is laid out to its left (custom.css). */}
         <div className="cw-editor">
-          <div className="cw-preview" role="img" aria-label={ru.common.preview}>
-            <div className={background ? "cw-preview-tile" : "cw-preview-tile no-bg"}>
-              {image && image !== "missing" ? (
-                <img src={image.url} alt="" draggable={false} style={{ objectFit: fit }} />
-              ) : (
-                <span className="cw-preview-empty">
-                  <Icon name="image" size={24} />
-                  <span className="caption">{missing ? c.pictureMissing : c.noPicture}</span>
-                </span>
-              )}
-            </div>
-          </div>
-
           <div className="cw-form">
             <TextField
               label={c.name}
@@ -154,6 +176,34 @@ export function CustomWidgetEditor({ widget, onClose }: Props) {
             </div>
 
             <Switch checked={background} onChange={setBackground} label={c.background} hint={c.backgroundHint} />
+          </div>
+
+          <div className="cw-stage">
+            <span id={previewId} className="cw-field-label">
+              {c.previewTitle}
+            </span>
+            <div className="sys-desk cw-desk">
+              <div
+                className={tileCls}
+                role={ready ? "img" : undefined}
+                aria-labelledby={ready ? previewId : undefined}
+                // Wide: the full width and lower; tall: the full height and narrower (custom.css --cw-side).
+                style={{ aspectRatio: String(aspect), width: aspect < 1 ? `calc(var(--cw-side) * ${aspect.toFixed(3)})` : undefined }}
+              >
+                {ready ? (
+                  <img className="custom-picture" src={image.url} alt="" draggable={false} style={{ objectFit: fit }} />
+                ) : (
+                  blank && (
+                    // A shortcut for the mouse; the keyboard has the same button in the form.
+                    <button type="button" className="cw-pick" tabIndex={-1} onMouseDown={keepFocus} onClick={() => void pick()} disabled={picking}>
+                      <Icon name={missing ? "image" : "image_add"} size={24} />
+                      <span className="caption">{missing ? c.pictureMissing : c.previewChoose}</span>
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+            <span className="cw-hint">{widget ? c.previewHint : c.previewHintNew}</span>
           </div>
         </div>
       </Dialog>

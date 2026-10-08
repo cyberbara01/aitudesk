@@ -18,7 +18,10 @@ export interface LauncherLook {
 
 const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(" ");
 
-/** Cached site image 28×28; falls back to the letter if the data URL cannot be decoded. */
+/**
+ * Site image 28×28: a fetched icon cached in the launcher, or the bundled icon of a university site (the
+ * built-ins' original look), both data: URLs. Falls back to the letter if the data URL cannot be decoded.
+ */
 function SiteImage({ data, fallback }: { data: string; fallback: ReactNode }) {
   const [broken, setBroken] = useState(false);
   useEffect(() => {
@@ -30,8 +33,8 @@ function SiteImage({ data, fallback }: { data: string; fallback: ReactNode }) {
 
 /**
  * Fluent glyph, cheapest source first: the markup cached in the launcher (no icon-set load at all), then the
- * icon set by name (launchers saved before the cache, and the built-ins' own icons, which are in the eager
- * set), then the letter for a name that is not in the set.
+ * icon set by name (launchers saved before the cache, and a built-in's Fluent icon when its address leads off
+ * the university's sites, which is in the eager set), then the letter for a name that is not in the set.
  */
 function FluentGlyph({ name, svg, fallback }: { name: string; svg?: string; fallback: ReactNode }) {
   const cached = useMemo(() => trustedIconSvg({ kind: "fluent", name, svg }), [name, svg]);
@@ -41,9 +44,9 @@ function FluentGlyph({ name, svg, fallback }: { name: string; svg?: string; fall
 }
 
 /**
- * 36×36 square tinted with the launcher colour: Fluent icon (20 px) · site image (28 px) · first letter.
- * The glyph takes the colour in a tone that reads on the square (launcherInk, picked by palette in CSS).
- * Purely visual.
+ * 36×36 square tinted with the launcher colour: Fluent icon (20 px) · site image (28 px, the built-ins'
+ * default) · first letter. The glyph takes the colour in a tone that reads on the square (launcherInk, picked
+ * by palette in CSS); a site image keeps its own colours. Purely visual.
  */
 export function LauncherIcon({ look, className }: { look: LauncherLook; className?: string }) {
   const { icon, color, name, url } = look;

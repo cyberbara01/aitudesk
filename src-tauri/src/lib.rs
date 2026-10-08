@@ -194,6 +194,7 @@ pub fn run() {
             commands::reset_layout,
             commands::test_reminder,
             commands::get_layout,
+            commands::get_tile_rect,
             commands::set_layout,
             commands::save_config_file,
             commands::open_config_file,

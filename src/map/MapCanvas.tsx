@@ -1,18 +1,36 @@
-// Map viewport with its own zoom engine. The <svg> is laid out at its real size (fit × zoom), so
-// Chromium re-rasterises it on every zoom change and the plan stays crisp from 1× to 6×; it is panned with a
-// translate-only transform, snapped to whole device pixels (a layer at a fractional offset is resampled and goes
-// soft), never with a CSS scale. Strokes are non-scaling (map.css): one screen pixel at any zoom.
+// Map viewport with its own zoom engine. At rest the <svg> is laid out at its real size (fit × zoom), so Chromium
+// rasterises the plan at the zoom it is seen at and it stays crisp from 1× to 6×; it is moved with a translate
+// snapped to whole device pixels (a layer at a fractional offset is resampled and goes soft). Strokes are
+// non-scaling (map.css): one screen pixel at any zoom once the view rests. During a gesture or a move the laid-out
+// plan is scaled by the compositor, its lines with it (between half and twice their width), until the next lay-out.
+//
+// Zooming does not lay the drawing out again per step. A new size means shaping every room code again (SVG text is
+// laid out at its size on screen), recording the whole plan and rasterising it: far too much for the integrated
+// GPU and CPU of a laptop at the rate a wheel or a touchpad pinch sends events. So a view change only updates the
+// view (refs) and asks for a frame; the frame writes one transform, the translate plus a scale from the size the
+// svg is laid out at. The svg is its own compositor layer (will-change), and Chromium keeps such a layer's raster
+// while only its transform changes, so a zoom step costs no layout, paint or raster: the compositor magnifies or
+// shrinks the existing plan (text a little soft meanwhile). When the view has rested for 150 ms the real size is
+// laid out (crisp again) together with the level-of-detail pass. A gesture that drifts beyond 2× either way from
+// the laid-out size lays out on the way, so the magnified plan never gets too soft and a zoom-out never asks the
+// compositor for much more plan than it has rasterised. Hit-testing and getBoundingClientRect follow the transform,
+// so clicks, the paint hover and the lesson bubble are right at every moment.
+//
+// Animated moves (the +/− buttons, «Вписать», the focus on found rooms) step the same transform along the eased
+// path, one write per frame, within the same 2× bound: a frame that would drift further lays the plan out ahead on
+// the path (twice or half its zoom, never past the end), so it covers the next fourfold of the move. A step of
+// the buttons lays out only at its end, a fit from 6× or a focus from 1× once or twice on the way, and no frame
+// ever shows the plan blurry.
 //
 // Wheel zooms towards the cursor (×1.1 per 100 px of deltaY, 1× to 6×), the left button drags with pointer capture,
 // a double click fits (250 ms, --ease-move), the +/− buttons step ×1.5 around the centre (167 ms). Panning is
 // clamped to the host while the drawing is larger than it and centred while it is not. The view lives in refs and
 // is written to the element directly, so wheel and drag never re-render the floor drawings.
 //
-// Level of detail (lod.ts): labels and pictograms too small to read are hidden; the check runs at most once per
-// animation frame after a zoom or resize and synchronously when a floor mounts, so a floor never shows a frame of
-// unreadable text. Search highlight, marked rooms, the lesson marker (lessonMarker.ts) and the paint hover are
-// classes and attributes on the room groups, written here. Floor changes keep the view and play the 250 ms slide
-// (12 screen px).
+// Level of detail (lod.ts): labels and pictograms too small to read are hidden; the check runs whenever the real
+// size is laid out and synchronously when a floor mounts, so a floor never shows a frame of unreadable text.
+// Search highlight, marked rooms, the lesson marker (lessonMarker.ts) and the paint hover are classes and
+// attributes on the room groups, written here. Floor changes keep the view and play the 250 ms slide (12 screen px).
 //
 // Paint mode: a press that moves less than 4 px is a click and paints the room under it; more is a drag that pans.
 import {
@@ -78,7 +96,7 @@ interface Props {
 
 const NO_ROOMS: readonly string[] = [];
 
-/** How a view change is shown: at once (wheel, drag, resize) or with the base / slow motion token. */
+/** How a view change is shown: on the next frame (wheel, pinch, drag, resize) or moving with the base / slow token. */
 type Motion = "none" | "base" | "slow";
 
 interface View {
@@ -86,6 +104,16 @@ interface View {
   /** Translation of the svg inside the host, CSS px. */
   x: number;
   y: number;
+}
+
+/** An animated move, stepped once per frame from the view on screen to the target. */
+interface Tween {
+  from: View;
+  to: View;
+  ms: number;
+  ease: (p: number) => number;
+  /** Frame time of the first step; -1 until that frame. */
+  start: number;
 }
 
 interface Box {
@@ -147,7 +175,16 @@ const CLICK_SLOP = 4;
 /** Focus on found rooms: they fill at most this share of the host, and the zoom stops here (codes read from ~2×). */
 const FOCUS_FILL = 0.35;
 const FOCUS_MAX_ZOOM = 3.5;
-const DURATION: Record<Motion, string> = { none: "0ms", base: "var(--t-base)", slow: "var(--t-slow)" };
+/** Duration token of each animated move. */
+const MOTION_TOKEN: Record<Exclude<Motion, "none">, string> = { base: "--t-base", slow: "--t-slow" };
+/** The view rests this long (ms) before the real size is laid out: crisp text and the level of detail. */
+const SETTLE_MS = 150;
+/**
+ * Largest scale, and its inverse the smallest, that a gesture or a move shows the laid-out plan at before it lays out
+ * on the way: magnified further the text turns blurry, shrunk further the screen shows over 4 times the plan area that was
+ * in view, all of it for the compositor to rasterise. One lay-out per doubling of the zoom, not one per event.
+ */
+const MAX_DRIFT = 2;
 
 const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
 
@@ -170,6 +207,32 @@ function readMs(name: string): number {
   return Number.isFinite(v) ? v : 0;
 }
 
+/**
+ * Reads an easing token (--ease-move) as a function of the time fraction, so the frame-stepped moves follow the
+ * same curve the CSS transitions used: a cubic-bezier() is solved for its time parameter by bisection (x grows
+ * monotonically for control points in 0..1, as CSS requires). Anything else falls back to linear.
+ */
+function readEase(name: string): (p: number) => number {
+  const css = getComputedStyle(document.documentElement).getPropertyValue(name);
+  const m = /cubic-bezier\(([^)]*)\)/.exec(css);
+  const c = m ? m[1].split(",").map(Number) : [];
+  if (c.length !== 4 || !c.every(Number.isFinite)) return (p) => p;
+  const [x1, y1, x2, y2] = c;
+  const bezier = (a: number, b: number, t: number) => 3 * (1 - t) * (1 - t) * t * a + 3 * (1 - t) * t * t * b + t * t * t;
+  return (p) => {
+    if (p <= 0) return 0;
+    if (p >= 1) return 1;
+    let lo = 0;
+    let hi = 1;
+    for (let i = 0; i < 20; i++) {
+      const t = (lo + hi) / 2;
+      if (bezier(x1, x2, t) < p) lo = t;
+      else hi = t;
+    }
+    return bezier(y1, y2, (lo + hi) / 2);
+  };
+}
+
 export const MapCanvas = memo(
   forwardRef<MapCanvasHandle, Props>(function MapCanvas(
     { floor, query, favorites, painting, onPaint, reserve, onMatches, focusSeq, onFocusResult, mark, onMarkHover, codesFromZoom },
@@ -182,10 +245,18 @@ export const MapCanvas = memo(
     reserveRef.current = reserve;
     const codesFrom = useRef(codesFromZoom);
     codesFrom.current = codesFromZoom;
+    // `view`: where the map is going (clamped; what the zoom point, the clamping and the drag read and write).
+    // `onScreen`: what the element shows now. They differ until the next frame, and during an animated move.
     const view = useRef<View>({ zoom: MIN_ZOOM, x: 0, y: 0 });
+    const onScreen = useRef<View>({ zoom: MIN_ZOOM, x: 0, y: 0 });
+    /** Width the svg is laid out (rasterised) at, CSS px; 0 before the first measure. The transform scales the rest. */
+    const laidW = useRef(0);
+    // The requested frame (0: none), the pending lay-out of a resting view (0: none), the running animated move.
+    const frame = useRef(0);
+    const settleTimer = useRef(0);
+    const tween = useRef<Tween | null>(null);
     const press = useRef<Press | null>(null);
     const lod = useRef<{ shared: LodItem[]; floor: LodItem[] }>({ shared: [], floor: [] });
-    const lodFrame = useRef(0);
     const hovered = useRef<Element | null>(null);
     const markHovered = useRef<Element | null>(null);
     // The pointer handlers read the latest props from here.
@@ -221,7 +292,8 @@ export const MapCanvas = memo(
       if (layer) markRooms(layer, mark && mark.floor === floor ? mark.rooms : NO_ROOMS);
     }, [floor, mark]);
 
-    // ---- Level of detail: at most once per frame after a view change, at once when a floor mounts ----
+    // ---- Level of detail: whenever the real size is laid out, at once when a floor mounts ----
+    // It reads the target zoom, which is also what the screen shows outside an animated move.
     const runLod = useCallback(() => {
       const ppu = (box.current.fitW / VIEWBOX.w) * view.current.zoom;
       if (ppu <= 0) return;
@@ -235,59 +307,157 @@ export const MapCanvas = memo(
       runLod();
     }, [codesFromZoom, runLod]);
 
-    const scheduleLod = useCallback(() => {
-      if (lodFrame.current) return;
-      lodFrame.current = requestAnimationFrame(() => {
-        lodFrame.current = 0;
+    // ---- Writing the view: lay-outs (rare, crisp) and transforms (every frame of a gesture or a move, cheap) ----
+
+    /** Lays the svg out at its real size for `zoom` (Chromium rasterises it afresh, crisp) with the level of detail. */
+    const layOut = useCallback(
+      (zoom: number) => {
+        const svg = svgRef.current;
+        if (!svg) return;
+        const { fitW, fitH } = box.current;
+        svg.style.width = `${fitW * zoom}px`;
+        svg.style.height = `${fitH * zoom}px`;
+        laidW.current = fitW * zoom;
         runLod();
-      });
-    }, [runLod]);
+      },
+      [runLod],
+    );
+
+    /**
+     * Shows `v` with a single transform: the translate snapped to device pixels as at rest, plus the scale from the
+     * laid-out size to v's about the top left corner (map.css). The scale is left out once the two match, so a
+     * resting view is translate-only and crisp. The layout and the raster stay as they are.
+     */
+    const place = useCallback((v: View) => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const { fitW, left, top } = box.current;
+      const s = laidW.current > 0 ? (fitW * v.zoom) / laidW.current : 1;
+      const dpr = window.devicePixelRatio || 1;
+      const tx = Math.round((left + v.x) * dpr) / dpr - left;
+      const ty = Math.round((top + v.y) * dpr) / dpr - top;
+      svg.style.transform = s === 1 ? `translate(${tx}px, ${ty}px)` : `translate(${tx}px, ${ty}px) scale(${s})`;
+      onScreen.current = v;
+    }, []);
+
+    /** Ends a gesture, a move or a resize: the target view laid out at its real size and shown crisp, now. */
+    const settle = useCallback(() => {
+      window.clearTimeout(settleTimer.current);
+      settleTimer.current = 0;
+      cancelAnimationFrame(frame.current);
+      frame.current = 0;
+      tween.current = null;
+      layOut(view.current.zoom);
+      place(view.current);
+    }, [layOut, place]);
+
+    /**
+     * One frame, the only place a gesture or a move writes the element: however many wheel, pinch or drag events
+     * came since the last frame, the transform is written once. An animated move takes its next eased step and lays
+     * out its end when it ends. Otherwise the target view is shown, and the lay-out waits until the view has rested
+     * for SETTLE_MS (every frame that changes it starts the wait again), unless the scale has drifted too far.
+     */
+    const step = useCallback(
+      (now: number) => {
+        frame.current = 0;
+        const t = tween.current;
+        if (t) {
+          if (t.start < 0) t.start = now;
+          const p = (now - t.start) / t.ms;
+          if (p >= 1) {
+            settle();
+            return;
+          }
+          const e = t.ease(p);
+          const { from, to } = t;
+          const zoom = from.zoom + (to.zoom - from.zoom) * e;
+          const s = (box.current.fitW * zoom) / laidW.current;
+          if (!(s <= MAX_DRIFT && s >= 1 / MAX_DRIFT)) {
+            layOut(to.zoom > zoom ? Math.min(to.zoom, zoom * MAX_DRIFT) : Math.max(to.zoom, zoom / MAX_DRIFT));
+          }
+          place({ zoom, x: from.x + (to.x - from.x) * e, y: from.y + (to.y - from.y) * e });
+          frame.current = requestAnimationFrame(step);
+          return;
+        }
+        const s = (box.current.fitW * view.current.zoom) / laidW.current;
+        // Also true for NaN and Infinity, before the first lay-out.
+        if (!(s <= MAX_DRIFT && s >= 1 / MAX_DRIFT)) {
+          settle();
+          return;
+        }
+        place(view.current);
+        window.clearTimeout(settleTimer.current);
+        settleTimer.current = 0;
+        if (s === 1) return;
+        settleTimer.current = window.setTimeout(() => {
+          // A frame requested meanwhile brings more input and starts the wait again.
+          if (!frame.current) settle();
+        }, SETTLE_MS);
+      },
+      [layOut, place, settle],
+    );
+
+    const request = useCallback(() => {
+      if (!frame.current) frame.current = requestAnimationFrame(step);
+    }, [step]);
 
     useEffect(
       () => () => {
-        cancelAnimationFrame(lodFrame.current);
-        lodFrame.current = 0;
+        cancelAnimationFrame(frame.current);
+        window.clearTimeout(settleTimer.current);
+        frame.current = 0;
+        settleTimer.current = 0;
       },
       [],
     );
 
     // ---- Lesson marker hover: entering and leaving a marked room is reported (the tile shows the lesson in a bubble) ----
-    const setMarkHover = useCallback((g: Element | null) => {
-      if (markHovered.current === g) return;
-      markHovered.current = g;
-      live.current.onMarkHover(g ? g.getBoundingClientRect() : null);
-    }, []);
-
-    /** Writes the view to the element: real size, translate snapped to device pixels, transition for `motion`. */
-    const apply = useCallback(
-      (motion: Motion) => {
-        const svg = svgRef.current;
-        if (!svg) return;
-        // The room under a lesson bubble moves: the bubble goes (the next pointer move brings it back).
-        setMarkHover(null);
-        const { fitW, fitH, left, top } = box.current;
-        const { zoom, x, y } = view.current;
-        const dpr = window.devicePixelRatio || 1;
-        const tx = Math.round((left + x) * dpr) / dpr - left;
-        const ty = Math.round((top + y) * dpr) / dpr - top;
-        const st = svg.style;
-        st.transitionDuration = DURATION[motion];
-        st.width = `${fitW * zoom}px`;
-        st.height = `${fitH * zoom}px`;
-        st.transform = `translate(${tx}px, ${ty}px)`;
-        scheduleLod();
+    const setMarkHover = useCallback(
+      (g: Element | null) => {
+        if (markHovered.current === g) return;
+        markHovered.current = g;
+        // A frame still to be written moves the room: it is written first, so the box is where the room shows.
+        if (g && frame.current) {
+          cancelAnimationFrame(frame.current);
+          step(performance.now());
+        }
+        live.current.onMarkHover(g ? g.getBoundingClientRect() : null);
       },
-      [scheduleLod, setMarkHover],
+      [step],
     );
 
+    /**
+     * Sets the target view (clamped) and shows it: on the next frame for "none", along the eased path for a move.
+     * A move starts from what is on screen and follows the path the CSS transitions of the size and the translate
+     * took before (zoom and translate eased alike, so the zoom point stays put); step() keeps it within MAX_DRIFT
+     * of the laid-out size and lays out the end when it ends. With no motion time (reduced motion), or nowhere to
+     * go, the view is laid out at once.
+     */
     const setView = useCallback(
       (zoom: number, x: number, y: number, motion: Motion) => {
         const b = box.current;
         const z = clampZoom(zoom);
         view.current = { zoom: z, x: clampAxis(x, b.hostW, b.fitW * z, b.biasX), y: clampAxis(y, b.hostH, b.fitH * z) };
-        apply(motion);
+        // The room under a lesson bubble moves: the bubble goes (the next pointer move brings it back).
+        setMarkHover(null);
+        if (motion === "none") {
+          tween.current = null;
+          request();
+          return;
+        }
+        const ms = readMs(MOTION_TOKEN[motion]);
+        const from = onScreen.current;
+        const to = view.current;
+        if (ms <= 0 || (from.zoom === to.zoom && from.x === to.x && from.y === to.y)) {
+          settle();
+          return;
+        }
+        window.clearTimeout(settleTimer.current);
+        settleTimer.current = 0;
+        tween.current = { from, to, ms, ease: readEase("--ease-move"), start: -1 };
+        request();
       },
-      [apply],
+      [request, settle, setMarkHover],
     );
 
     /** Multiplies the zoom by `factor` keeping the drawing point under (cx, cy), host coordinates, in place. */
@@ -329,8 +499,10 @@ export const MapCanvas = memo(
       const fy = prev.fitH > 0 ? (prev.hostH / 2 - y) / (prev.fitH * zoom) : 0.5;
       const biasX = side === "left" ? keep / 2 : side === "right" ? -keep / 2 : 0;
       box.current = { hostW, hostH, fitW, fitH, left: r.left, top: r.top, biasX };
+      // A new fit (or origin) changes the size the svg must have: laid out at once, before the next frame paints.
       setView(zoom, hostW / 2 - fx * fitW * zoom, hostH / 2 - fy * fitH * zoom, "none");
-    }, [setView]);
+      settle();
+    }, [setView, settle]);
 
     useLayoutEffect(() => {
       const host = hostRef.current;
@@ -455,7 +627,8 @@ export const MapCanvas = memo(
         return;
       }
       if (live.current.painting) setHover(roomGroupAt(e.target as Element, live.current.floor));
-      else setMarkHover((e.target as Element).closest("g.room-next"));
+      // No lesson bubble while a move carries the rooms along: its box would be left behind.
+      else if (!tween.current) setMarkHover((e.target as Element).closest("g.room-next"));
     };
 
     const endPress = (e: ReactPointerEvent<HTMLDivElement>, cancelled: boolean) => {
@@ -473,7 +646,7 @@ export const MapCanvas = memo(
     const [leaving, setLeaving] = useState<Leaving | null>(null);
     if (floor !== prevFloor) {
       setPrevFloor(floor);
-      const ppu = (box.current.fitW / VIEWBOX.w) * view.current.zoom;
+      const ppu = (box.current.fitW / VIEWBOX.w) * onScreen.current.zoom;
       setLeaving({ floor: prevFloor, dir: floor > prevFloor ? 1 : -1, shift: ppu > 0 ? SLIDE_PX / ppu : 0 });
     }
 

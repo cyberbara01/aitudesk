@@ -83,7 +83,7 @@ const PART_LIST = [
 type EveryKeyInAPart<Assigned extends SettingsKey> =
   Exclude<SettingsKey, Assigned> extends never ? readonly Part[] : { notInAnyPart: Exclude<SettingsKey, Assigned> };
 
-/** Every part in list order: the sidebar order, the personal part last. Each settings key is in one part. */
+/** Every part in list order: the sidebar order, the personal parts last. Each settings key is in one part. */
 export const PARTS: EveryKeyInAPart<(typeof PART_LIST)[number]["keys"][number]> = PART_LIST;
 
 const isPartId = (v: unknown): v is PartId => PARTS.some((p) => p.id === v);
@@ -215,10 +215,13 @@ export function buildConfigFile(
   return `${JSON.stringify(file, null, 2)}\n`;
 }
 
-/** «AITU Desk настройки 07.10.2026.json», with «с заметками» when the notes go into the file. */
+/**
+ * «Конфиг AITU Desk 07.10.2026.json», with «с заметками», «со своими виджетами» or both when those personal parts
+ * are in `chosen` (the page leaves a part out of it when nothing of it went into the file).
+ */
 export function suggestedFileName(chosen: readonly PartId[], now: Date): string {
   const date = `${pad(now.getDate())}.${pad(now.getMonth() + 1)}.${now.getFullYear()}`;
-  return extra.fileName(date, chosen.includes("notes"));
+  return extra.fileName(date, chosen.includes("notes"), chosen.includes("custom"));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -511,6 +514,28 @@ function duration(minutes: number): string {
 }
 
 const capitalize = (s: string) => s.charAt(0).toLocaleUpperCase(LOCALE) + s.slice(1);
+
+/**
+ * Bytes of the pictures `files` name in `images` (base64, as a file carries them), each picture once: what the own
+ * widgets of a loaded file bring. Only string lengths are read, so it costs nothing however big the pictures are.
+ */
+export function imagesBytes(images: Readonly<Record<string, string>>, files: Iterable<string>): number {
+  let bytes = 0;
+  for (const name of new Set(files)) {
+    if (!Object.hasOwn(images, name)) continue;
+    const data = images[name].trim();
+    const padding = data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0;
+    bytes += Math.max(0, Math.floor((data.length * 3) / 4) - padding);
+  }
+  return bytes;
+}
+
+/** «350 КБ», «2,4 МБ»: a size as Explorer counts it (1 КБ = 1024 bytes), never below 1 КБ. */
+export function sizeText(bytes: number): string {
+  const kb = bytes / 1024;
+  if (kb < 1000) return extra.size.kb(String(Math.max(1, Math.ceil(kb))));
+  return extra.size.mb(new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 }).format(kb / 1024));
+}
 
 /**
  * One line about what a part holds in `s`, under its name in the lists: «12 пар в неделю», «5 заметок, 2 с

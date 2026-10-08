@@ -855,3 +855,13 @@ a { color: var(--accent-text); text-decoration: none; }
 .ln-grid:hover,
 .ln-icon-scroll:hover,
 .textarea-input:hover { --sb-thumb: var(--sb-color); }
+
+/* Text only a screen reader gets (an announcement in an aria-live region). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

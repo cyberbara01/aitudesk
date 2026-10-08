@@ -1,7 +1,7 @@
-// Notes model shared by the «Заметки» tile and its settings page: deadline parsing, ordering, the countdown
-// wording, one light scheduler for the whole tile, the «ЧЧ:ММ» input mask, quick deadlines, when deadline
-// reminders come, and CRUD on settings.notes (always through functional updates, so edits from other windows
-// are never lost).
+// Notes model shared by the «Заметки» tile and its settings page: deadline parsing, ordering (and moving a note
+// by hand into «Свой порядок»), the countdown wording, one light scheduler for the whole tile, the «ЧЧ:ММ» input
+// mask, quick deadlines, when deadline reminders come, and CRUD on settings.notes (always through functional
+// updates, so edits from other windows are never lost).
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { extra } from "../i18n/ru.extra.notes";
@@ -160,12 +160,14 @@ export interface DueNote {
  * in the settings list):
  * - "deadline": notes with a deadline by deadline (so overdue ones come first, the most overdue on top, then
  *   the nearest upcoming), then notes without one, newest first;
- * - "newest" / "oldest": by when the note was added.
- * Ties go by id, so the order never depends on the current time or on the stored order.
+ * - "newest" / "oldest": by when the note was added;
+ * - "manual" («Свой порядок»): as they are stored, which is the order the notes were dragged into.
+ * Otherwise ties go by id, so the order never depends on the current time or on the stored order.
  */
 export function orderNotes(notes: readonly Note[], sort: NoteSort): DueNote[] {
-  return notes
-    .map((note) => ({ note, due: deadlineMs(note.deadline) }))
+  const items = notes.map((note) => ({ note, due: deadlineMs(note.deadline) }));
+  if (sort === "manual") return [...items.filter((it) => !it.note.done), ...items.filter((it) => it.note.done)];
+  return items
     .sort((a, b) => {
       if (a.note.done !== b.note.done) return a.note.done ? 1 : -1;
       if (sort === "deadline") {
@@ -371,6 +373,43 @@ export function toggleNote(id: string): Promise<void> {
   return settings.update((s) => ({
     notes: { ...s.notes, notes: s.notes.notes.map((n) => (n.id === id ? { ...n, done: !n.done } : n)) },
   }));
+}
+
+/**
+ * A note dragged to a new place (or moved with Alt+arrows in the settings list): `id` goes right before the
+ * note `before`, or to the end of its group (active or done) when `before` is null, is gone or has meanwhile
+ * landed in the other group. The stored list is rewritten in the order shown, with this one move applied, and
+ * the sort becomes «Свой порядок»: every window shows the new order at once and no other note moves. Works on
+ * the stored notes at write time, like every edit here.
+ */
+export function moveNote(id: string, before: string | null): Promise<void> {
+  return settings.update((s) => {
+    const order = orderNotes(s.notes.notes, s.notes.sort).map((it) => it.note);
+    const from = order.findIndex((n) => n.id === id);
+    if (from < 0) return {};
+    const [note] = order.splice(from, 1);
+    let to = before === null ? -1 : order.findIndex((n) => n.id === before);
+    if (to < 0 || order[to].done !== note.done) {
+      to = note.done ? order.length : order.findIndex((n) => n.done);
+      if (to < 0) to = order.length;
+    }
+    order.splice(to, 0, note);
+    return { notes: { ...s.notes, notes: order, sort: "manual", arranged: true } };
+  });
+}
+
+/**
+ * «Сортировка». The other sorts never touch the stored order, so a return to «Свой порядок» brings back the order
+ * the notes were dragged into. Until a note has been dragged, choosing «Свой порядок» first writes the notes
+ * down in the order they are shown right now, so the list stays exactly as it was and from then on changes only
+ * when a note is dragged (new notes come on top).
+ */
+export function setNoteSort(sort: NoteSort): Promise<void> {
+  return settings.update((s) => {
+    const snapshot = sort === "manual" && !s.notes.arranged;
+    const notes = snapshot ? orderNotes(s.notes.notes, s.notes.sort).map((it) => it.note) : s.notes.notes;
+    return { notes: { ...s.notes, notes, sort } };
+  });
 }
 
 export function removeNote(id: string): Promise<void> {

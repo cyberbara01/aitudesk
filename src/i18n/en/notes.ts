@@ -40,12 +40,16 @@ export const en: NotesStrings = {
     desc: "Short tasks and deadlines. The widget shows your notes and counts down to each deadline",
     list: "All notes",
     sort: "Sort order",
-    sortHint: "The widget uses the same order",
+    sortHint: "The widget uses the same order. Drag a note with the mouse, here or on the widget, to put them in your own order",
     sorts: {
       deadline: "By deadline",
       newest: "Newest first",
       oldest: "Oldest first",
+      manual: "My order",
     },
+    drag: "Move note",
+    dragHint: "Drag to move it. From the keyboard: Alt with the up or down arrow",
+    moved: (place: number, of: number) => `Note moved: ${place} of ${of}`,
     noReminders: "No deadline reminders",
     summary: (active: number, done: number) => {
       if (active === 0) return `All done: ${notesCount(done)}`;

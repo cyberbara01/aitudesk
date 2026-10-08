@@ -1,5 +1,13 @@
 // Launcher model shared by the "Ярлыки" tile and the settings window.
+//
+// The built-in launchers show the real icons of the university's sites. They are bundled (src/assets/sites,
+// inlined by Vite as data: URLs through `?inline`), so they show offline, pass the same data: URL check as a
+// fetched site icon and need no change to the content security policy. A built-in stores only what the user
+// changed (builtInEdits), so its own icon never reaches settings.json or a config file.
 import { invoke } from "@tauri-apps/api/core";
+import duSiteIcon from "../assets/sites/du.png?inline";
+import learnSiteIcon from "../assets/sites/learn.png?inline";
+import lmsSiteIcon from "../assets/sites/lms.png?inline";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.launchers";
 import { SWATCHES, hexToRgb, isHex, luminance, rgbToHex, shade } from "./design";
@@ -37,26 +45,54 @@ export interface BuiltInDef {
   /** Tile caption: the full names do not fit a 64 px cell. */
   short: string;
   url: string;
-  icon: string;
+  /**
+   * Fluent icon of the launcher: offered first when the user picks an icon from the set, and shown when its
+   * address was moved off the university's sites without an icon of its own (originalIcon).
+   */
+  fluent: string;
 }
 
 export const BUILT_IN: readonly BuiltInDef[] = [
-  { id: "du", name: ru.launchers.du, short: extra.tileNames.du, url: "https://du.astanait.edu.kz/login", icon: "building_bank" },
+  { id: "du", name: ru.launchers.du, short: extra.tileNames.du, url: "https://du.astanait.edu.kz/login", fluent: "building_bank" },
   {
     id: "moodle",
     name: ru.launchers.moodle,
     short: extra.tileNames.moodle,
     url: "https://lms.astanait.edu.kz/login/index.php",
-    icon: "book_open",
+    fluent: "book_open",
   },
   {
     id: "learn",
     name: ru.launchers.learn,
     short: extra.tileNames.learn,
     url: "https://learn.astanait.edu.kz/login?next=%2F",
-    icon: "hat_graduation",
+    fluent: "hat_graduation",
   },
 ];
+
+/**
+ * The real icons of the university's sites, by host, as bundled data: URLs, taken once from the sites
+ * themselves as small PNGs. DU: its favicon (the logo on white), drawn again at 128 px from the logo the DU site
+ * serves, since the favicon itself is 48 px; LMS: the Moodle favicon; Learn: its 256 px favicon. A Map, so a
+ * host like «constructor» cannot reach an Object prototype member.
+ */
+const SITE_ICONS: ReadonlyMap<string, string> = new Map([
+  ["du.astanait.edu.kz", duSiteIcon],
+  ["lms.astanait.edu.kz", lmsSiteIcon],
+  ["learn.astanait.edu.kz", learnSiteIcon],
+]);
+
+/**
+ * The bundled icon of the university site `url` leads to (DU, LMS or Learn, any page, http or https), or
+ * undefined for any other address. Needs no network: the editor uses it instead of fetching these sites.
+ */
+export function bundledSiteIcon(url: string): string | undefined {
+  try {
+    return SITE_ICONS.get(new URL(url.trim()).hostname.toLowerCase());
+  } catch {
+    return undefined;
+  }
+}
 
 export const isBuiltInKey = (id: string): id is BuiltInLauncher => BUILT_IN.some((b) => b.id === id);
 
@@ -64,34 +100,49 @@ export function builtInDef(id: BuiltInLauncher): BuiltInDef {
   return BUILT_IN.find((b) => b.id === id) ?? BUILT_IN[0];
 }
 
-/** True for the built-in's own Fluent icon, cached markup or not (it is in the eager set and never stored). */
-const isOriginalIcon = (def: BuiltInDef, icon: LauncherIcon): boolean => icon.kind === "fluent" && icon.name === def.icon;
+/**
+ * The icon a built-in shows while the user has not picked one: the real icon of the university site its
+ * address leads to (bundled, so the original address always has it), else its Fluent icon (an address the
+ * user moved elsewhere must not wear a university site's icon). Never stored: it follows from the address.
+ */
+function originalIcon(def: BuiltInDef, url: string): LauncherIcon {
+  const site = bundledSiteIcon(url);
+  return site ? { kind: "site", data: site } : { kind: "fluent", name: def.fluent };
+}
+
+/** True when `icon` is what the built-in shows at `url` without an icon edit (a cached copy of Fluent markup aside). */
+function isOriginalIcon(def: BuiltInDef, icon: LauncherIcon, url: string): boolean {
+  const own = originalIcon(def, url);
+  if (own.kind === "site") return icon.kind === "site" && icon.data === own.data;
+  return own.kind === "fluent" && icon.kind === "fluent" && icon.name === own.name;
+}
 
 /** A built-in launcher as it shows now: the user's edits over the original, with its colour. */
 export function builtInItem(ln: LaunchersSettings, key: BuiltInLauncher): LauncherItem {
   const def = builtInDef(key);
   const edit = ln.builtInEdits[key];
+  const url = edit?.url ?? def.url;
   return {
     id: key,
     kind: "builtin",
     name: edit?.name ?? def.name,
     caption: edit?.name ?? def.short,
-    url: edit?.url ?? def.url,
-    icon: edit?.icon ?? { kind: "fluent", name: def.icon },
+    url,
+    icon: edit?.icon ?? originalIcon(def, url),
     color: ln.builtInColors[key],
   };
 }
 
-/** The untouched built-in launcher: original name, address and icon, default colour. */
+/** The untouched built-in launcher: original name, address and site icon, default colour. */
 export const builtInOriginal = (key: BuiltInLauncher): LauncherItem => builtInItem(DEFAULT_LAUNCHERS, key);
 
-/** True when `look` is the untouched built-in `key` (a cached copy of the icon markup aside). */
+/** True when `look` is the untouched built-in `key`. */
 export function isBuiltInOriginal(key: BuiltInLauncher, look: LauncherDraft): boolean {
   const def = builtInDef(key);
   return (
     look.name.trim() === def.name &&
     look.url.trim() === def.url &&
-    isOriginalIcon(def, look.icon) &&
+    isOriginalIcon(def, look.icon, def.url) &&
     look.color.toUpperCase() === DEFAULT_LAUNCHERS.builtInColors[key].toUpperCase()
   );
 }
@@ -151,7 +202,10 @@ export function isIconMarkup(svg: string): boolean {
   return svg.length <= ICON_MARKUP_MAX && ICON_MARKUP.test(svg);
 }
 
-/** Site icons are cached as data: URLs only; anything else would make the tile load it from the network. */
+/**
+ * Site icons are data: URLs only (fetched and cached, or bundled for the university's sites); anything else
+ * would make the tile load it from the network.
+ */
 export function isImageDataUrl(data: string | undefined): data is string {
   return typeof data === "string" && data.startsWith("data:image/");
 }
@@ -326,7 +380,8 @@ export function setBuiltIn(key: BuiltInLauncher, enabled: boolean): Promise<void
 /**
  * Save the editor's values of a built-in launcher: only the fields that differ from the original go into
  * builtInEdits (none left = the entry is dropped, the launcher is the original again), the colour goes into
- * builtInColors.
+ * builtInColors. The icon counts as original when it is what the saved address shows anyway (originalIcon),
+ * so the bundled site icons are never written to the settings.
  */
 export function saveBuiltIn(key: BuiltInLauncher, look: LauncherDraft): Promise<void> {
   const def = builtInDef(key);
@@ -335,7 +390,7 @@ export function saveBuiltIn(key: BuiltInLauncher, look: LauncherDraft): Promise<
   const url = look.url.trim();
   if (name !== def.name) edit.name = name;
   if (url !== def.url) edit.url = url;
-  if (!isOriginalIcon(def, look.icon)) edit.icon = look.icon;
+  if (!isOriginalIcon(def, look.icon, url)) edit.icon = look.icon;
   return patchLaunchers((ln) => {
     const builtInEdits = { ...ln.builtInEdits };
     if (Object.keys(edit).length > 0) builtInEdits[key] = edit;

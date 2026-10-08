@@ -10,4 +10,8 @@ the source code.
 | [Inter](https://github.com/rsms/inter) | Rasmus Andersson | SIL Open Font License 1.1 | [src/fonts/LICENSE-Inter.txt](src/fonts/LICENSE-Inter.txt) |
 | [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) | JetBrains | SIL Open Font License 1.1 | [src/fonts/LICENSE-JetBrainsMono.txt](src/fonts/LICENSE-JetBrainsMono.txt) |
 
+The icons of the DU, LMS and Learn sites ([src/assets/sites](src/assets/sites)) belong to Astana IT University.
+They are taken from the sites' own favicons and are used only to mark the shortcuts that lead to the
+university's services. They are the university's marks and are not covered by this repository's MIT licence.
+
 Libraries installed by npm and Cargo (Tauri, React and others) come with their own licences in their packages.

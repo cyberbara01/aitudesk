@@ -1,6 +1,9 @@
 // «Конфиги»: the settings as a file. «Сохранить конфиг…» writes the parts the user picks; notes and own widgets
-// are personal: marked, never picked by default, and the suggested file name says when notes are inside. Own
-// widgets travel with their pictures and are added to the ones already here, never replacing them.
+// are personal and treated alike: tinted with a lock badge in both lists, never picked by default, a hint under
+// the part while it is off and a warning above the button once it is on (both only when the part holds
+// something), and the suggested file name says which of them went in. Own widgets travel with their pictures
+// inside the file and are added to the ones already here, never replacing them; the list of a loaded file says
+// so, with the size of the pictures and how many still fit under CUSTOM_MAX.
 // «Выбрать конфиг…» reads one's own file or someone else's, lists the parts it holds with what is in them
 // and changes nothing until «Применить»; «Отменить» then brings back what was replaced, for as long as the page
 // stays open. The format and the pure helpers live in src/lib/config.ts, the Windows dialogs in
@@ -21,11 +24,13 @@ import {
   applyParts,
   buildConfigFile,
   defaultChoice,
+  imagesBytes,
   parseConfigFile,
   partSummary,
   previewOf,
   resolveLayout,
   savedAt,
+  sizeText,
   snapshotOf,
   suggestedFileName,
   type ConfigFile,
@@ -33,7 +38,7 @@ import {
   type Part,
   type PartId,
 } from "../lib/config";
-import { TILE_IDS, newCustomId, settings, type Settings, type SettingsPatch } from "../lib/settings";
+import { CUSTOM_MAX, TILE_IDS, newCustomId, settings, type Settings, type SettingsPatch } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { useTransient } from "./shell/hooks";
 
@@ -67,13 +72,13 @@ interface PartListProps {
   onChange: (next: Choice) => void;
   /** What the part holds, under its name. */
   summary: (id: PartId) => string;
-  /** One more line for some parts (the personal warning, what gets replaced); `on` = the part is picked. */
+  /** One more line for some parts (the personal hint, what gets replaced or added); `on` = the part is picked. */
   note?: (id: PartId, on: boolean) => string | null;
 }
 
 /**
  * One kit-like row per part: the checkbox with the part's name, what it holds under the name, and the
- * personal part tinted with a lock badge. A click anywhere on a row toggles it (unless it ends a text
+ * personal parts tinted with a lock badge. A click anywhere on a row toggles it (unless it ends a text
  * selection); the checkbox itself stays the keyboard target.
  */
 function PartList({ label, id, parts, chosen, onChange, summary, note }: PartListProps) {
@@ -123,7 +128,7 @@ interface ListHeadProps {
 }
 
 /**
- * The line above a list. «Выбрать всё» picks every part that is not personal (the personal one is picked
+ * The line above a list. «Выбрать всё» picks every part that is not personal (the personal ones are picked
  * only on purpose); once those are all picked, «Снять всё» clears the whole list. With fewer than two such
  * parts the checkboxes say it all, so there is no button.
  */
@@ -166,36 +171,52 @@ function Status({ tone, text }: StatusProps) {
 
 /**
  * `noLayout`: the layout was picked but the tiles could not report it, so the file holds the rest. `widgetsLeft`:
- * some own widgets stayed out (their pictures did not fit or could not be read).
+ * how many own widgets stayed out (their pictures did not fit or could not be read).
  */
-type SaveResult = { kind: "idle" } | { kind: "saved"; path: string; noLayout: boolean; widgetsLeft: boolean } | { kind: "failed" };
+type SaveResult = { kind: "idle" } | { kind: "saved"; path: string; noLayout: boolean; widgetsLeft: number } | { kind: "failed" };
 
-/** The pictures of the own widgets for a file, by file name, while they fit in IMAGES_MAX; and whether any was left. */
-async function widgetImages(s: Settings): Promise<{ images: Record<string, string>; left: boolean }> {
+/**
+ * The pictures of the own widgets for a file, by file name, while they fit in IMAGES_MAX; and how many widgets
+ * were left out for want of theirs. A picture that failed once is not read again for another widget.
+ */
+async function widgetImages(s: Settings): Promise<{ images: Record<string, string>; left: number }> {
   const images: Record<string, string> = {};
+  const failed = new Set<string>();
   let total = 0;
-  let left = false;
   for (const w of s.customWidgets) {
-    if (Object.hasOwn(images, w.file)) continue;
+    if (Object.hasOwn(images, w.file) || failed.has(w.file)) continue;
     const data = await invoke<string>("widget_image_base64", { file: w.file }).catch(() => null);
     if (data === null || total + data.length > IMAGES_MAX) {
-      left = true;
+      failed.add(w.file);
       continue;
     }
     images[w.file] = data;
     total += data.length;
   }
-  return { images, left };
+  return { images, left: s.customWidgets.filter((w) => !Object.hasOwn(images, w.file)).length };
 }
 
 const ALL_IDS = PARTS.map((p) => p.id);
+
+/**
+ * The warning above «Сохранить конфиг…» for the personal parts that are picked and hold something (an empty
+ * notes list or no own widgets puts nothing personal into the file).
+ */
+function personalWarning(notes: boolean, widgets: boolean): string | null {
+  if (notes && widgets) return x.bothWarning;
+  if (notes) return x.notesWarning;
+  if (widgets) return x.customWarning;
+  return null;
+}
 
 function ExportSection({ s }: { s: Settings }) {
   const [chosen, setChosen] = useState<Choice>(() => new Set(defaultChoice(ALL_IDS)));
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SaveResult>({ kind: "idle" });
   const summaries = useMemo(() => new Map(PARTS.map((p) => [p.id, partSummary(p.id, s)])), [s]);
-  const withNotes = chosen.has("notes");
+  const hasNotes = s.notes.notes.length > 0;
+  const hasWidgets = s.customWidgets.length > 0;
+  const warning = personalWarning(hasNotes && chosen.has("notes"), hasWidgets && chosen.has("custom"));
 
   const save = async () => {
     const ids = ALL_IDS.filter((id) => chosen.has(id));
@@ -205,12 +226,16 @@ function ExportSection({ s }: { s: Settings }) {
     try {
       const layout = ids.includes("layout") ? await invoke<LayoutFile | null>("get_layout").catch(() => null) : null;
       const current = settings.get();
-      const { images, left } = ids.includes("custom") ? await widgetImages(current) : { images: {}, left: false };
+      const { images, left } = ids.includes("custom") ? await widgetImages(current) : { images: {}, left: 0 };
       const now = new Date();
       const contents = buildConfigFile(current, ids, layout, now, images);
+      // The name tells only what really went in: no notes, or not one own widget, is nothing to point out.
+      const named = ids.filter((id) =>
+        id === "notes" ? current.notes.notes.length > 0 : id === "custom" ? current.customWidgets.length > left : true,
+      );
       const path = await invoke<string | null>("save_config_file", {
         title: x.saveTitle,
-        fileName: suggestedFileName(ids, now),
+        fileName: suggestedFileName(named, now),
         contents,
       });
       if (path) setResult({ kind: "saved", path, noLayout: ids.includes("layout") && !layout, widgetsLeft: left });
@@ -219,6 +244,14 @@ function ExportSection({ s }: { s: Settings }) {
     } finally {
       setBusy(false);
     }
+  };
+
+  // Under a personal part while it is off; once it is on, the warning above the button says it instead.
+  const note = (id: PartId, on: boolean) => {
+    if (on) return null;
+    if (id === "notes" && hasNotes) return x.notesExportHint;
+    if (id === "custom" && hasWidgets) return x.customExportHint;
+    return null;
   };
 
   const showInFolder = (path: string) => void revealItemInDir(path).catch(() => undefined);
@@ -234,13 +267,13 @@ function ExportSection({ s }: { s: Settings }) {
         chosen={chosen}
         onChange={setChosen}
         summary={(id) => summaries.get(id) ?? ""}
-        note={(id, on) => (id === "notes" && !on ? x.notesExportHint : null)}
+        note={note}
       />
       <div className="tr-actions">
-        {withNotes && (
+        {warning && (
           <p className="tr-warning">
             <Icon name="warning" />
-            <span>{x.notesWarning}</span>
+            <span>{warning}</span>
           </p>
         )}
         <div className="tr-buttons">
@@ -252,10 +285,10 @@ function ExportSection({ s }: { s: Settings }) {
               tone={result.kind === "saved" ? "ok" : result.kind === "failed" ? "fail" : undefined}
               text={
                 result.kind === "saved"
-                  ? result.noLayout
-                    ? x.savedNoLayout
-                    : result.widgetsLeft
-                      ? x.savedWithoutWidgets
+                  ? result.widgetsLeft > 0
+                    ? x.savedWithoutWidgets(result.widgetsLeft, result.noLayout)
+                    : result.noLayout
+                      ? x.savedNoLayout
                       : x.saved
                   : result.kind === "failed"
                     ? x.saveFailed
@@ -435,13 +468,43 @@ function ImportSection({ s }: { s: Settings }) {
     moveFocus("choose");
   };
 
+  // What loading a part does to what is here, under the part (in caution once it is picked).
   const lessonsNow = s.schedule.lessons.length;
+  const notesNow = s.notes.notes.length;
+  const widgetsNow = s.customWidgets.length;
+  // Own widgets are added, and only while there is room under CUSTOM_MAX (normalize drops the rest). The list of
+  // the file is the one apply hands to addWidgets: preview's, already through normalize. addWidgets skips a widget
+  // whose picture is not in the file, and one already here (a picture's stored name follows its bytes, so the same
+  // picture has the same name here; plus the same widget name): the counts below leave both out, so they are exact
+  // (a backup loaded on the PC it came from adds nothing and copies nothing).
+  const widgetsNote = () => {
+    if (!loaded || !preview) return null;
+    const images = loaded.file.images ?? {};
+    const incoming = preview.customWidgets.filter((w) => Object.hasOwn(images, w.file));
+    if (incoming.length === 0) return null;
+    const fresh = incoming.filter((w) => !s.customWidgets.some((c) => c.file === w.file && c.name === w.name));
+    if (fresh.length === 0) return x.customHere;
+    const room = CUSTOM_MAX - widgetsNow;
+    if (room <= 0) return x.customFull(CUSTOM_MAX);
+    // Only pictures not in the folder yet are copied.
+    const files = new Set(fresh.map((w) => w.file).filter((f) => !s.customWidgets.some((c) => c.file === f)));
+    const pictures = files.size > 0 ? x.customPictures(files.size, sizeText(imagesBytes(images, files))) : null;
+    const what = fresh.length > room ? x.customSome(room, fresh.length, CUSTOM_MAX) : widgetsNow > 0 ? x.customAdd : null;
+    return [what, pictures].filter(Boolean).join(". ") || null;
+  };
   const note = (id: PartId) => {
-    if (id === "notes") return x.notesImportHint;
-    if (id === "custom") return x.customImportHint;
+    if (id === "notes" && notesNow > 0) return x.notesReplace(notesNow);
+    if (id === "custom") return widgetsNote();
     if (id === "schedule" && lessonsNow > 0) return x.lessonsReplace(lessonsNow);
     return null;
   };
+  // Under the list. Own widgets are the one part that adds instead of replacing: named as the exception, and a file
+  // of nothing but own widgets needs no line about replacing (its row says it all).
+  const withWidgets = loaded?.file.parts.includes("custom") ?? false;
+  const replacesHint =
+    loaded && !(withWidgets && loaded.file.parts.length === 1)
+      ? x.replaces(withWidgets ? (PARTS.find((p) => p.id === "custom")?.label ?? null) : null)
+      : null;
 
   // One status line for both views, so it stays mounted and «Конфиг загружен» is announced.
   let status: StatusProps = { text: "" };
@@ -471,7 +534,7 @@ function ImportSection({ s }: { s: Settings }) {
         </>
       )}
       <div className={loaded ? "tr-actions" : "tr-actions first"}>
-        {loaded && <p className="tr-hint">{x.replaces}</p>}
+        {replacesHint && <p className="tr-hint">{replacesHint}</p>}
         <div className="tr-buttons">
           {loaded ? (
             <>

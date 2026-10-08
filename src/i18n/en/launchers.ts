@@ -28,6 +28,7 @@ export const en: LaunchersStrings = {
   restore: "Restore the original",
   urlSpaces: "Remove the spaces from the address",
   siteIconReady: "Site icon loaded",
+  siteIconBundled: "The AITU site icon comes with the app and shows without internet",
   saveAnyway: "Click “Save” again to keep the letter, or pick an icon from the set",
   letterHint: "The first letter of the name in a colored square",
   popular: "Popular icons",

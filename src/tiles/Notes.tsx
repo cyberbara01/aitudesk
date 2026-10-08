@@ -1,8 +1,10 @@
-// «Заметки»: notes in the order chosen in the settings (by the nearest deadline with overdue ones on top, or
-// newest / oldest added first), done ones last and dimmed when «Показывать выполненные» is on. Each row: a round
-// «выполнено» toggle, the text (two lines at most) and a countdown chip; on a tall tile the absolute deadline
-// sits next to the chip. One scheduler drives every countdown (see useDeadlineClock): per second only while a
-// deadline is within the hour, otherwise on the minute, and no timer at all without deadlines.
+// «Заметки»: notes in the order chosen in the settings (by the nearest deadline with overdue ones on top,
+// newest / oldest added first, or «Свой порядок»), done ones last and dimmed when «Показывать выполненные» is
+// on. Each row: a round «выполнено» toggle, the text (two lines at most) and a countdown chip; on a tall tile the
+// absolute deadline sits next to the chip. A row dragged with the mouse moves within its group (active or done;
+// useDragReorder, pointer only, as the widget never takes the keyboard) and the sort becomes «Свой порядок»;
+// not while the widget itself is being moved. One scheduler drives every countdown (see useDeadlineClock): per
+// second only while a deadline is within the hour, otherwise on the minute, and no timer at all without deadlines.
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MenuItemSpec } from "../components/ContextMenu";
 import { EmptyState } from "../components/EmptyState";
@@ -16,6 +18,7 @@ import {
   countdown,
   displayText,
   formatDeadline,
+  moveNote,
   openNotesSettings,
   orderNotes,
   removeNote,
@@ -25,6 +28,7 @@ import {
 } from "../lib/notes";
 import type { Note } from "../lib/settings";
 import { useFolded } from "../lib/tileView";
+import { useDragReorder } from "../lib/useDragReorder";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { usePowerSaver } from "../lib/useSystemInfo";
 import { NoteCheck } from "../settings/notes/NoteCheck";
@@ -36,6 +40,7 @@ const FADE_THRESHOLD = 1;
 const NO_DEADLINES: readonly number[] = [];
 
 const addNote = () => void openNotesSettings(NEW_NOTE);
+const onMove = (id: string, before: string | null) => void moveNote(id, before);
 
 interface NoteRowProps {
   note: Note;
@@ -50,7 +55,13 @@ interface NoteRowProps {
 const NoteRow = memo(function NoteRow({ note, chip, tone, when }: NoteRowProps) {
   const text = useMemo(() => displayText(note.text), [note.text]);
   return (
-    <div className={note.done ? "note-row reveal-row done" : "note-row reveal-row"} data-note={note.id} role="listitem">
+    <div
+      className={note.done ? "note-row reveal-row done" : "note-row reveal-row"}
+      data-note={note.id}
+      data-reorder-id={note.id}
+      data-reorder-group={note.done ? "done" : "active"}
+      role="listitem"
+    >
       <NoteCheck done={note.done} color={note.color} onToggle={() => void toggleNote(note.id)} />
       <div className="note-body">
         <MaskedText id={note.id} text={text} className="note-text" />
@@ -129,6 +140,14 @@ export function NotesTile() {
     return () => ro.disconnect();
   }, [layoutList, visible]);
 
+  // Dragging rows: the list is the scroller it auto-scrolls. In edit mode a press moves the whole widget instead.
+  const ids = useMemo(() => visible.map((it) => it.note.id), [visible]);
+  const reorder = useDragReorder(listRef, {
+    ids,
+    onMove,
+    enabled: () => !listRef.current?.closest(".tile.editing"),
+  });
+
   const menuItems = useCallback(
     (target: HTMLElement): MenuItemSpec[] => {
       const add: MenuItemSpec = { id: "add-note", label: extra.tile.add, icon: "add", onSelect: addNote };
@@ -170,7 +189,14 @@ export function NotesTile() {
   } else {
     const listCls = ["notes-list", fadeTop ? "fade-top" : "", fadeBottom ? "fade-bottom" : ""].filter(Boolean).join(" ");
     body = (
-      <div ref={listRef} className={listCls} role="list" aria-label={ru.tiles.notes} onScroll={updateFades}>
+      <div
+        ref={listRef}
+        className={listCls}
+        role="list"
+        aria-label={ru.tiles.notes}
+        onScroll={updateFades}
+        onPointerDown={reorder.onPointerDown}
+      >
         {visible.map(({ note, due }) => {
           const pending = !note.done && due !== null;
           const c = pending ? countdown(due, now, live) : null;

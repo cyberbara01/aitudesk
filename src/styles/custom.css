@@ -61,39 +61,43 @@
 }
 .cw-foot .cw-hint { flex: 1 1 200px; min-width: 0; }
 
-/* The editor (Dialog): a live preview over the form, as in the launcher editor. */
-.cw-editor { display: flex; flex-direction: column; gap: var(--s4); }
-.cw-preview {
-  display: flex;
-  justify-content: center;
-  padding: var(--s4);
-  border-radius: var(--r-card);
-  background: var(--surface-3);
-  border: 1px solid var(--divider);
-}
-.cw-preview-tile {
+/* The editor (Dialog, 640 px): the live preview on the left of the form, so all of it fits the settings window at
+   its smallest (720×560) without scrolling. The form is first in the DOM (the Dialog focuses the name field). */
+.cw-editor {
   display: grid;
-  place-items: center;
-  width: 220px;
-  height: 160px;
-  overflow: hidden;
-  border-radius: var(--r-tile);
-  background: var(--tile-fill);
-  border: 1px solid var(--tile-border);
-  box-shadow: inset 0 1px 0 var(--tile-edge);
+  grid-template-columns: calc(var(--cw-side) + 2 * var(--s6)) minmax(0, 1fr);   /* the desk: widget + .sys-desk padding */
+  grid-template-areas: "preview form";
+  align-items: start;
+  gap: var(--s5);
+  --cw-side: 220px;   /* a new widget's size, src-tauri/src/custom.rs DEFAULT_SIZE */
 }
-.cw-preview-tile.no-bg { background: transparent; border-color: transparent; box-shadow: none; }
-.cw-preview-tile img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; }
-.cw-preview-empty {
+/* Narrower than the settings window ever is at 100 % (only a zoomed page gets here): the preview above the form. */
+@media (max-width: 600px) {
+  .cw-editor { grid-template-columns: minmax(0, 1fr); grid-template-areas: "preview" "form"; }
+}
+.cw-stage { grid-area: preview; display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
+.cw-stage > .cw-hint { margin-top: var(--s1); }
+/* The real widget (.tile.tile-custom, as on the desktop) on the settings desk; square, smaller only if the desk is.
+   Its height comes from the aspect ratio, so what fills it is placed absolutely rather than at height: 100%. */
+.cw-desk > .tile.cw-tile { width: min(100%, var(--cw-side)); height: auto; aspect-ratio: 1; }
+.cw-tile > :is(.custom-picture, .cw-pick) { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Waiting for a picture: a dashed outline marks the widget's place, with or without its background. */
+.cw-desk > .tile.cw-tile.is-empty { border-style: dashed; border-color: color-mix(in srgb, var(--text) 28%, transparent); }
+.cw-pick {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--s2);
-  padding: var(--s3);
-  color: var(--text-3);
+  padding: var(--s4);
+  color: var(--text-2);
   text-align: center;
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
 }
-.cw-form { display: flex; flex-direction: column; gap: var(--s4); }
+.cw-pick:hover:not(:disabled) { background: var(--ctl-fill-hover); color: var(--text); }
+.cw-pick:active:not(:disabled) { background: var(--ctl-fill-pressed); }
+.cw-pick .icon { color: inherit; }
+.cw-form { grid-area: form; display: flex; flex-direction: column; gap: var(--s4); min-width: 0; }
 .cw-field { display: flex; flex-direction: column; gap: var(--s2); }
 .cw-field-label { color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); }
 .cw-picture { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2) var(--s3); }

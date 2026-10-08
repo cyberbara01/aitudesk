@@ -18,9 +18,11 @@
   overflow: hidden;
   touch-action: none;
 }
-/* Sized and translated by MapCanvas: real width/height = fit × zoom, translate only (never a CSS scale), so every
-   zoom step is rasterised afresh. The inline transition-duration is 0 for wheel, drag and resize, --t-base for
-   the buttons and --t-slow for «Вписать». */
+/* Sized and moved by MapCanvas. At rest: real width/height = fit × zoom and a translate only, so the plan is
+   rasterised at the zoom it is seen at (crisp). While a zoom gesture or a move is under way the transform adds a
+   scale from that laid-out size, about the top left corner, written once per frame from script (no CSS transitions):
+   will-change keeps the layer's raster, so the compositor only magnifies or shrinks it, with no layout, paint or
+   raster per step, until the real size is laid out again. */
 .map-svg {
   position: absolute;
   top: 0;
@@ -28,10 +30,8 @@
   display: block;
   overflow: visible;
   will-change: transform;
+  transform-origin: 0 0;
   shape-rendering: geometricPrecision;
-  transition-property: transform, width, height;
-  transition-duration: 0ms;
-  transition-timing-function: var(--ease-move);
 }
 
 /* ---- Overlays: floor switch and zoom column on the switch side; search field and paint dock on the other ---- */

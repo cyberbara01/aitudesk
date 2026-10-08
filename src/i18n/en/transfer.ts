@@ -52,6 +52,10 @@ export const en: TransferStrings = {
     hours: (n: number) => `${n} h`,
     days: (n: number) => `${n} ${pluralEn(n, "day", "days")}`,
   },
+  size: {
+    kb: (n: string) => `${n}${NBSP}KB`,
+    mb: (n: string) => `${n}${NBSP}MB`,
+  },
 
   exportTitle: "Save your config",
   exportDesc: "To move your settings to another computer or share them with a friend",
@@ -60,14 +64,25 @@ export const en: TransferStrings = {
   selectAll: "Select all",
   clearAll: "Clear all",
   notesExportHint: "Leave it off if you give the config to someone else",
+  customExportHint: "The pictures are saved inside the config. Leave it off if you give it to someone else",
   notesWarning: "The config will contain your notes. Don't send it to other people",
+  customWarning: "The config will contain the widgets with your pictures, so the file will be bigger. Don't send it to other people",
+  bothWarning:
+    "The config will contain your notes and the widgets with your pictures, so the file will be bigger. Don't send it to other people",
   save: "Save config…",
   saveTitle: "Save AITU Desk config",
-  fileName: (date: string, withNotes: boolean) =>
-    withNotes ? `AITU Desk config with notes ${date}.json` : `AITU Desk config ${date}.json`,
+  fileName: (date: string, withNotes: boolean, withWidgets: boolean) => {
+    const inside = withNotes && withWidgets ? " with notes and your widgets" : withNotes ? " with notes" : withWidgets ? " with your widgets" : "";
+    return `AITU Desk config${inside} ${date}.json`;
+  },
   saved: "Config saved",
   savedNoLayout: "Config saved, but without the widget layout",
-  savedWithoutWidgets: "Config saved without some of your widgets: their pictures are too large or missing",
+  savedWithoutWidgets: (left: number, noLayout: boolean) =>
+    `Config saved without ${noLayout ? "the widget layout and without " : ""}${left} of your widgets: ${pluralEn(
+      left,
+      "its picture is missing or didn't fit",
+      "their pictures are missing or didn't fit",
+    )} in the config`,
   saveFailed: "Couldn't save the config. Try another folder",
   showInFolder: "Show in folder",
 
@@ -80,9 +95,18 @@ export const en: TransferStrings = {
   savedAt: (date: string, time: string) => `saved on ${date} at ${time}`,
   fromVersion: (version: string) => `version ${version}`,
   storeFile: "the app's own settings file",
-  replaces: "The checked parts replace yours completely, together with the lists of classes, shortcuts and rooms",
-  notesImportHint: "Notes from the config replace yours instead of being added to them",
-  customImportHint: "Widgets from the config are added to yours, yours stay",
+  replaces: (widgets: string | null) =>
+    `The checked parts replace yours completely, together with the lists of classes, notes, shortcuts and rooms${
+      widgets ? `. Only “${widgets}” are added to yours instead of replacing them` : ""
+    }`,
+  notesReplace: (n: number) => `Notes from the config replace yours instead of being added to them. You have ${n} ${pluralEn(n, "note", "notes")} now`,
+  customAdd: "Widgets from the config are added to yours, yours stay",
+  customSome: (fit: number, total: number, max: number) =>
+    `Only ${fit} of the ${total} widgets from the config ${pluralEn(fit, "is", "are")} added: you can have at most ${max} of your own`,
+  customHere: "You already have these widgets, nothing is added",
+  customFull: (max: number) => `You already have ${max} widgets of your own, so none from the config can be added`,
+  customPictures: (n: number, size: string) =>
+    n === 1 ? `The picture (${size}) is copied into the app's folder` : `The pictures (${size}) are copied into the app's folder`,
   lessonsReplace: (n: number) => `Classes from the config replace yours; the schedule has ${n} ${pluralEn(n, "class", "classes")} now`,
   apply: "Apply",
   applied: "Config loaded",

@@ -1,9 +1,9 @@
 /* =====================================================================================
    Notes: «Заметки»
    Tile: round «выполнено» toggle, text (two lines), countdown chip; the list scrolls, its thumb shows under
-   the pointer (base.css).
-   Plus the settings page, the note editor and two kit components that live here for now: TextArea and
-   DatePicker. Tokens only, so the three styles and every palette apply by themselves.
+   the pointer (base.css). Rows of the tile and of the settings list are dragged into any order.
+   Plus the settings page, the note editor and three kit pieces that live here for now: TextArea, DatePicker
+   and the look of drag reordering. Tokens only, so the three styles and every palette apply by themselves.
    ===================================================================================== */
 
 /* ---- «Выполнено» toggle (tile and settings list) ---- */
@@ -79,18 +79,24 @@
 /* Rows carry 4 px above and below (8 px between rows); the list reaches 4 px into the tile padding so the
    first line still starts at the padding edge. On the right it reaches into the padding by the scrollbar
    gutter (base.css) plus 4 px it pads back, so the rows keep their width and the thumb sits where the
-   launcher grid has it; fades hint at hidden rows. */
+   launcher grid has it; on the left it reaches 4 px out and pads them back too, so the card of a dragged row
+   and the check's full 28 px target are not cut by the list's edge. Fades hint at hidden rows. */
 .notes-list {
   position: relative;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  margin: calc(-1 * var(--s1)) calc(-1 * var(--s1) - var(--sb-w)) calc(-1 * var(--s1)) 0;
-  padding-right: var(--s1);
+  margin: calc(-1 * var(--s1)) calc(-1 * var(--s1) - var(--sb-w)) calc(-1 * var(--s1)) calc(-1 * var(--s1));
+  padding: 0 var(--s1);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
+  /* A dragged row: its card 2 px wider on each side and 1 % larger, inside the 4 px padding on a widget of the
+     usual width; on a very wide one its sides are clipped by a hair rather than the list scrolling sideways. */
+  --reorder-scale: 1.01;
+  --reorder-inset: 0 -2px;
 }
 /* Fades cover the rows only: the scrollbar strip on the right stays whole (the second mask layer). */
 .notes-list.fade-top { --fade-mask: linear-gradient(to bottom, transparent, #000 20px); }
@@ -188,9 +194,19 @@
 
 /* «Сортировка» between the list head and the notes; in a narrow window the choice drops under its label. */
 .notes-sort > .row { flex-wrap: wrap; row-gap: var(--s2); border-top: 1px solid var(--divider); }
+.notes-sort-select .select-btn { min-width: 176px; }
 
-.note-items { display: flex; flex-direction: column; }
+/* The rows are dragged, so a press on their text does not select it (the editor shows all of it). A dragged
+   row's card is the whole row, grip included, and while it is held it may stand out past the section's edges. */
+.note-items {
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.section:has(> .section-body > .note-items > [data-reorder]) { overflow: visible; }
 .note-item {
+  position: relative;
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) auto;
   align-items: center;
@@ -199,6 +215,33 @@
   padding: var(--s2) var(--s5);
   border-top: 1px solid var(--divider);
 }
+/* The divider stays in the list instead of travelling with the card. */
+.note-item:is([data-reorder="lift"], [data-reorder="drop"]) { border-top-color: transparent; }
+/* Grip in the row's left padding: shows while the row is hovered or dragged, or the grip has the keyboard focus. */
+.note-item-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  width: var(--s5);
+}
+.note-item-grip-btn {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.note-item:hover .note-item-grip-btn,
+.note-item[data-reorder="lift"] .note-item-grip-btn,
+.note-item-grip-btn:focus-visible { opacity: 1; }
+.note-item-grip-btn:hover { color: var(--text); }
+/* The ring goes inside: at the card's edge an outer one would be cut off. */
+.note-item-grip-btn:focus-visible { outline-offset: -2px; }
 .note-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .note-item-title {
   display: -webkit-box;
@@ -242,6 +285,48 @@
 .note-due-past { color: var(--caution); }
 /* «Напоминать о дедлайне»: a row of its own under the date, time and quick choices. */
 .note-remind { padding-top: var(--s1); }
+
+/* =====================================================================================
+   Kit: drag reordering (src/lib/useDragReorder.ts)
+   The hook writes each row's state into data-reorder and its offset into `translate`; the lift, the card and
+   the motion are here. Only translate, scale and opacity animate, and only around a drag: nothing at rest.
+   A list tunes the lift with --reorder-scale and --reorder-inset (the card against the row's edges).
+   ===================================================================================== */
+[data-reorder] { position: relative; }
+/* The row in the hand: above the others and a little larger, on a raised card (the surface and shadow of the
+   menus). Its offset follows the pointer as is; only the lift itself animates. */
+[data-reorder="lift"] {
+  z-index: 2;
+  scale: var(--reorder-scale, 1.02);
+  transition: scale var(--t-fast) var(--ease-in);
+}
+[data-reorder="lift"]::before,
+[data-reorder="drop"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: var(--reorder-inset, 0);
+  border-radius: var(--r-card);
+  background: var(--surface-raised);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .28), inset 0 1px 0 var(--tile-edge);
+  pointer-events: none;
+  transition: opacity var(--t-base) var(--ease-in);
+}
+/* The rows it passes slide aside to open the gap. */
+[data-reorder="shift"] { transition: translate var(--t-base) var(--ease-in); }
+/* After a drop, a cancel or a move from the keyboard every row glides to its place; the dropped one settles
+   back onto the list while its card fades. */
+[data-reorder="settle"],
+[data-reorder="drop"] { transition: translate var(--t-base) var(--ease-in), scale var(--t-base) var(--ease-in); }
+[data-reorder="drop"] { z-index: 2; }
+[data-reorder="drop"]::before { opacity: 0; }
+/* While a row is dragged the pointer holds it everywhere, and nothing gets selected on the way. */
+:root[data-reorder-drag],
+:root[data-reorder-drag] * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
 
 /* =====================================================================================
    Kit: TextArea (src/components/TextArea.tsx)
