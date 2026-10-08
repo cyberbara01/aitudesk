@@ -77,6 +77,9 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
   const { floor, setFloor, text, query, setQueryText, clear } = useRoomSearch(initial);
   const canvas = useRef<MapCanvasHandle>(null);
   const [painting, setPainting] = useState(false);
+  // The zoom buttons grey out where they would do nothing: «Приблизить» at the largest zoom, the other two fitted.
+  const [limits, setLimits] = useState({ atMax: false, atFit: true });
+  const onLimits = useCallback((atMax: boolean, atFit: boolean) => setLimits({ atMax, atFit }), []);
   // Rooms the query matches on the shown floor; «Ничего не найдено» when a query matches none.
   const [matches, setMatches] = useState(0);
   const notFound = query !== "" && matches === 0;
@@ -355,6 +358,7 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
           mark={lesson}
           onMarkHover={onMarkHover}
           codesFromZoom={map.labelsWhenZoomed ? LABELS_ZOOM : 1}
+          onLimits={onLimits}
         />
         {(map.showSearch || flash) && (
           <MapSearch
@@ -369,9 +373,9 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
         <FloorSwitch floor={floor} onChange={setFloor} dot={lesson && lesson.floor !== floor ? lesson.floor : null} />
         {map.showZoom && (
           <div className="map-zoom">
-            <IconButton icon="add" label={ru.map.zoomIn} onClick={() => canvas.current?.zoomIn()} />
-            <IconButton icon="subtract" label={ru.map.zoomOut} onClick={() => canvas.current?.zoomOut()} />
-            <IconButton icon="arrow_reset" label={ru.map.fit} onClick={() => canvas.current?.fit()} />
+            <IconButton icon="add" label={ru.map.zoomIn} disabled={limits.atMax} onClick={() => canvas.current?.zoomIn()} />
+            <IconButton icon="subtract" label={ru.map.zoomOut} disabled={limits.atFit} onClick={() => canvas.current?.zoomOut()} />
+            <IconButton icon="arrow_reset" label={ru.map.fit} disabled={limits.atFit} onClick={() => canvas.current?.fit()} />
           </div>
         )}
         <PaintDock

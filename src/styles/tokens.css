@@ -83,10 +83,12 @@
   --focus-ring: #FFFFFF;
   --tooltip-fill: #2C2C2C;
 
+  /* The map's floor plate (map.css): on the tile's glass a step above the tile colour, on the bare wallpaper deeper.
+     Room fill and stroke: the plan in the onboarding pictures (settings.css). */
+  --map-plate: #2B2C33;
+  --map-plate-bare: #1B1C22;
   --map-room-fill: rgba(255, 255, 255, .08);
   --map-room-stroke: rgba(255, 255, 255, .22);
-  --map-void: rgba(0, 0, 0, .35);
-  --map-label: rgba(255, 255, 255, .78);
 
   --tint-alpha: 18%;
 }
@@ -100,7 +102,8 @@
   --surface: #15161B;
   --surface-raised: #1F2026;
   --tooltip-fill: #202228;
-  --map-void: rgba(0, 0, 0, .45);
+  --map-plate: #212227;
+  --map-plate-bare: #121317;
 }
 
 :root[data-theme="black"] {
@@ -118,9 +121,10 @@
   --ctl-fill-hover: rgba(255, 255, 255, .12);
   --ctl-fill-pressed: rgba(255, 255, 255, .05);
   --tooltip-fill: #141414;
+  --map-plate: #151515;
+  --map-plate-bare: #0A0A0A;
   --map-room-fill: rgba(255, 255, 255, .10);
   --map-room-stroke: rgba(255, 255, 255, .26);
-  --map-void: rgba(255, 255, 255, .04);
 }
 
 :root[data-theme="light"],
@@ -161,10 +165,10 @@
   --focus-ring: #000000;
   --tooltip-fill: #F2F2F2;
 
+  --map-plate: #DADBDF;
+  --map-plate-bare: #D6D7DB;
   --map-room-fill: rgba(0, 0, 0, .06);
   --map-room-stroke: rgba(0, 0, 0, .25);
-  --map-void: rgba(0, 0, 0, .35);
-  --map-label: rgba(0, 0, 0, .60);
 
   --tint-alpha: 28%;
 }
@@ -181,6 +185,8 @@
   --ctl-fill-hover: rgba(255, 255, 255, .80);
   --ctl-fill-pressed: rgba(255, 255, 255, .35);
   --tooltip-fill: #FFFFFF;
+  --map-plate: #C8C9CE;
+  --map-plate-bare: #C8C9CE;
 }
 
 /* ---- Palette: glass. Frosted acrylic like the Aqua settings window; light or dark follows Windows.
@@ -205,7 +211,8 @@
   --ctl-stroke: rgba(255, 255, 255, .10);
   --divider: rgba(255, 255, 255, .10);
   --tooltip-fill: #34353D;
-  --map-void: rgba(0, 0, 0, .28);
+  --map-plate: #34353B;
+  --map-plate-bare: #1F2025;
   --frost: rgba(34, 35, 42, .50);
 }
 
@@ -240,10 +247,10 @@
   --focus-ring: #000000;
   --tooltip-fill: #F7F7F9;
 
+  --map-plate: #D3D4D9;
+  --map-plate-bare: #D0D1D6;
   --map-room-fill: rgba(0, 0, 0, .06);
   --map-room-stroke: rgba(0, 0, 0, .25);
-  --map-void: rgba(0, 0, 0, .30);
-  --map-label: rgba(0, 0, 0, .62);
 
   --tint-alpha: 28%;
   --frost: rgba(248, 248, 250, .55);

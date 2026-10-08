@@ -313,17 +313,35 @@
 }
 
 /* =====================================================================================
-   Colour schemes: variables on [data-map-scheme] (the tile's .map-root and the legends in settings). Hues are
-   data. A light hue that is darkened by a dark background turns olive or brown (sand, peach), so on dark palettes
-   the coloured schemes keep their fills luminous: the hues at high alpha over the glass with dark codes, never
-   mixed with the dark surface. Light palettes get light tints. Rooms without a letter, the most common kind,
-   take the calm cream so the typed rooms (P, K, L) carry the colour.
-     --mp-fill-p / -k / -l / -o   rooms by the data-name suffix (P, K, L, none)
-     --mp-fill-x                  gym, coworking and the named areas (library, dining and assembly hall, Mediker)
-     --mp-fill-wc / -exit / -tech toilets, escape routes, technical rooms (subdued)
-     --mp-stroke / -wall / -outline   room edges (1 px), walls (1.25 px), building outline (1.5 px)
+   Colour schemes: variables on [data-map-scheme] (the tile's .map-root and the legends in settings).
+
+   The plan is drawn the way indoor maps are: in fills, not lines. The building's silhouette is a floor plate in
+   one calm tone (the corridors), rooms are solid fills on it, and neighbours are parted by a seam: every room edge
+   is stroked in the plate's own colour, so the plate shows between them as an even gap. All colours are opaque,
+   mixed from the plate, the palette's ink or white, never with transparent: two rooms stroke their shared edge,
+   and an opaque seam drawn twice looks exactly like one, so every seam has the same weight, and the building's
+   curves and slanted walls are the anti-aliased edges of fills, smooth at any pixel ratio. (A 1 px hairline in a
+   translucent colour lands between pixels, turns grey and soft, shows steps on shallow curves, and doubles where
+   two rooms draw it.) Codes are text on those fills and need no halo. No filter anywhere: the plan is one layer
+   of plain fills and strokes, as cheap to rasterise at rest as the lines were.
+   Hues are data. A light hue darkened by a dark background turns olive or brown (sand, peach), so on dark palettes
+   the coloured schemes keep their fills luminous: the hues mostly undiluted with dark codes. Light palettes get
+   light tints. Rooms without a letter, the most common kind, take the calm cream so the typed rooms (P, K, L)
+   carry the colour.
+     --mp-ink                      the palette's text hue, opaque: white on dark palettes, black on light ones
+     --mp-plate                    floor plate and corridors; the seams and the lesson ring's gap take it too
+     --mp-seam / --mp-seam-w       room edges: colour and width in screen px
+     --mp-edge / --mp-edge-w       the building's edge (the silhouette's stroke)
+     --mp-bg-fill                  the silhouette's fill: the plate, or none (no surface on the wallpaper)
+     --mp-fill-p / -k / -l / -o    rooms by the data-name suffix (P, K, L, none)
+     --mp-fill-x                   gym, coworking and the named areas (library, dining and assembly hall, Mediker)
+     --mp-fill-wc / -exit / -tech  toilets, escape routes, technical rooms (subdued)
+     --mp-stairs / --mp-void       stairwells and the atrium voids: wells below the plate
+     --mp-wall                     the few lines on the plate: walls in the corridors, atrium rails, coworking curves
+     --mp-mark                     lines on a fill: the gym court
      --mp-label / -label-free / -block   room codes, free lettering, the block names C1.1 / C1.2 / C1.3
-     --mp-pict-* / --mp-glyph-*   pictogram plate and glyph per kind (toilet, exit, stairs)
+     --mp-pict-* / --mp-glyph-*    pictogram plate and glyph per kind (toilet, exit, stairs)
+     --mp-halo                     the halo of lettering that lies on the wallpaper (no glass)
    ===================================================================================== */
 [data-map-scheme] {
   /* «Пастель» hues */
@@ -344,66 +362,91 @@
   --viv-exit: 248 113 113; /* #F87171 */
   --viv-tech: 148 163 184; /* #94A3B8 */
 
-  /* «Стекло»: the v1 monochrome plan (tokens.css --map-*). */
-  --mp-fill-p: var(--map-room-fill);
-  --mp-fill-k: var(--map-room-fill);
-  --mp-fill-l: var(--map-room-fill);
-  --mp-fill-o: var(--map-room-fill);
-  --mp-fill-x: var(--map-room-fill);
-  --mp-fill-wc: var(--map-room-fill);
-  --mp-fill-exit: var(--map-room-fill);
-  --mp-fill-tech: var(--map-room-fill);
-  --mp-stroke: var(--map-room-stroke);
-  --mp-wall: var(--map-room-stroke);
-  --mp-outline: color-mix(in srgb, var(--text) 30%, transparent);
-  --mp-stairs: var(--map-void);
-  --mp-void: var(--map-void);
-  --mp-label: var(--map-label);
-  --mp-label-free: var(--text-2);
-  --mp-block: var(--text-3);
-  --mp-pict-wc: var(--text-3);
-  --mp-pict-exit: var(--text-3);
-  --mp-pict-stairs: var(--text-3);
-  --mp-glyph-wc: var(--surface-base);
-  --mp-glyph-exit: var(--surface-base);
-  --mp-glyph-stairs: var(--surface-base);
-  --mp-bg-fill: none;
-  /* Halos when the plan lies on the wallpaper (no glass): free lettering always; room codes only where they sit
-     on a see-through fill (transparent when the fills are opaque enough to carry them). */
-  --mp-halo: color-mix(in srgb, var(--surface-base) 72%, transparent);
-  --mp-label-halo: var(--mp-halo);
+  /* The plate is a palette token (tokens.css): on the glass a step above the tile colour, the building raised from
+     it; on the bare wallpaper (below) a deeper one. Stairwells and voids are wells below the plate. Dark palettes: */
+  --mp-ink: #FFFFFF;
+  --mp-plate: var(--map-plate);
+  --mp-seam: var(--mp-plate);
+  --mp-seam-w: 1.5px;
+  /* The plate's own edge is a seam wide: it reaches as far out as the seam of a room at the facade, so the plate
+     ends at one line beside rooms and corridors alike. The rim lies outside it. */
+  --mp-edge: var(--mp-plate);
+  --mp-edge-w: var(--mp-seam-w);
+  --mp-rim: color-mix(in srgb, var(--mp-ink) 20%, var(--mp-plate));
+  --mp-rim-v: 2px;
+  --mp-bg-fill: var(--mp-plate);
+  --mp-stairs: color-mix(in srgb, var(--mp-plate) 70%, black);
+  --mp-void: var(--mp-stairs);
+  --mp-wall: color-mix(in srgb, var(--mp-ink) 22%, var(--mp-plate));
+  --mp-label-free: color-mix(in srgb, var(--mp-ink) 80%, var(--mp-plate));
+  --mp-block: color-mix(in srgb, var(--mp-ink) 62%, var(--mp-plate));
+  --mp-shade: color-mix(in srgb, var(--mp-plate) 70%, black);
+  --mp-gap: var(--mp-plate);
+  --mp-hover: color-mix(in srgb, var(--mp-ink) 90%, var(--mp-plate));
+
+  /* «Стекло»: monochrome, the rooms a lighter tone of the plate in a cool frosted white, light codes. */
+  --mp-frost: #D8E2FF;
+  --mp-room: color-mix(in srgb, var(--mp-frost) 23%, var(--mp-plate));
+  --mp-fill-p: var(--mp-room);
+  --mp-fill-k: var(--mp-room);
+  --mp-fill-l: var(--mp-room);
+  --mp-fill-o: var(--mp-room);
+  --mp-fill-x: var(--mp-room);
+  --mp-fill-wc: var(--mp-room);
+  --mp-fill-exit: var(--mp-room);
+  --mp-fill-tech: color-mix(in srgb, var(--mp-frost) 9%, var(--mp-plate));
+  --mp-label: color-mix(in srgb, var(--mp-ink) 88%, var(--mp-room));
+  --mp-pict-wc: color-mix(in srgb, var(--mp-frost) 58%, var(--mp-plate));
+  --mp-pict-exit: var(--mp-pict-wc);
+  --mp-pict-stairs: var(--mp-pict-wc);
+  --mp-glyph-wc: var(--mp-plate);
+  --mp-glyph-exit: var(--mp-plate);
+  --mp-glyph-stairs: var(--mp-plate);
+  --mp-court: color-mix(in srgb, var(--mp-ink) 16%, var(--mp-fill-x));
+  /* The settings legend draws its swatches with these. */
+  --mp-stroke: var(--mp-seam);
+}
+/* On the wallpaper (no glass) the deeper plate: on dark palettes the building is one dark solid on any wallpaper
+   but the darkest, with the rooms lit on it. In the pop-up too: its card is a solid sheet in about the colour of
+   the raised plate. */
+.tile:is(.no-bg, .in-popup) .map-root { --mp-plate: var(--map-plate-bare); }
+
+/* Light palettes: a light grey plate, near-white rooms, dark codes; wells a shade below the plate. */
+:root[data-scheme="light"] [data-map-scheme] {
+  --mp-ink: #000000;
+  --mp-rim: color-mix(in srgb, var(--mp-ink) 30%, var(--mp-plate));
+  --mp-stairs: color-mix(in srgb, var(--mp-plate) 86%, black);
+  --mp-label-free: color-mix(in srgb, var(--mp-ink) 66%, var(--mp-plate));
+  --mp-block: color-mix(in srgb, var(--mp-ink) 58%, var(--mp-plate));
+  --mp-shade: color-mix(in srgb, var(--mp-plate) 40%, white);
+  --mp-room: color-mix(in srgb, var(--surface-base) 30%, white);
+  --mp-fill-tech: color-mix(in srgb, var(--mp-room) 45%, var(--mp-plate));
+  --mp-label: color-mix(in srgb, var(--mp-ink) 64%, var(--mp-room));
+  --mp-pict-wc: color-mix(in srgb, var(--mp-ink) 55%, var(--mp-plate));
+  --mp-glyph-wc: var(--mp-room);
+  --mp-glyph-exit: var(--mp-room);
+  --mp-glyph-stairs: var(--mp-room);
 }
 
-/* «Стекло», light palettes: stairwells and the atrium void as soft wells instead of the dark v1 blocks. */
-:root[data-scheme="light"] [data-map-scheme="glass"] {
-  --mp-stairs: color-mix(in srgb, var(--text) 14%, transparent);
-  --mp-void: color-mix(in srgb, var(--text) 20%, transparent);
-}
-
-/* «Пастель», dark palettes: luminous pastels over the glass, cream for rooms without a letter, dark codes,
-   dark seams; pictograms as dark plates with the glyph in its colour. */
+/* «Пастель», dark palettes: luminous pastels (the hue with a little of the plate), cream for rooms without a
+   letter, dark codes; pictograms as dark plates with the glyph in its colour. */
 [data-map-scheme="pastel"] {
-  --mp-fill-p: rgb(var(--hue-p) / .86);
-  --mp-fill-k: rgb(var(--hue-k) / .80);
-  --mp-fill-l: rgb(var(--hue-l) / .86);
-  --mp-fill-o: color-mix(in srgb, color-mix(in srgb, rgb(var(--hue-o)) 60%, white) 90%, transparent);
-  --mp-fill-x: color-mix(in srgb, color-mix(in srgb, rgb(var(--hue-x)) 85%, white) 86%, transparent);
-  --mp-fill-wc: rgb(var(--hue-wc) / .78);
-  --mp-fill-exit: rgb(var(--hue-exit) / .86);
-  --mp-fill-tech: rgb(var(--hue-tech) / .22);
-  --mp-stroke: rgb(0 0 0 / .32);
-  --mp-wall: color-mix(in srgb, var(--text) 30%, transparent);
-  --mp-outline: color-mix(in srgb, var(--text) 40%, transparent);
-  --mp-stairs: color-mix(in srgb, var(--text) 14%, transparent);
+  --mp-fill-p: color-mix(in srgb, rgb(var(--hue-p)) 86%, var(--mp-plate));
+  --mp-fill-k: color-mix(in srgb, rgb(var(--hue-k)) 80%, var(--mp-plate));
+  --mp-fill-l: color-mix(in srgb, rgb(var(--hue-l)) 86%, var(--mp-plate));
+  --mp-fill-o: color-mix(in srgb, color-mix(in srgb, rgb(var(--hue-o)) 60%, white) 90%, var(--mp-plate));
+  --mp-fill-x: color-mix(in srgb, color-mix(in srgb, rgb(var(--hue-x)) 85%, white) 86%, var(--mp-plate));
+  --mp-fill-wc: color-mix(in srgb, rgb(var(--hue-wc)) 78%, var(--mp-plate));
+  --mp-fill-exit: color-mix(in srgb, rgb(var(--hue-exit)) 86%, var(--mp-plate));
+  --mp-fill-tech: color-mix(in srgb, rgb(var(--hue-tech)) 22%, var(--mp-plate));
   --mp-label: rgb(0 0 0 / .78);
-  --mp-pict-wc: color-mix(in srgb, var(--surface-base) 88%, transparent);
-  --mp-pict-exit: color-mix(in srgb, var(--surface-base) 88%, transparent);
-  --mp-pict-stairs: color-mix(in srgb, var(--surface-base) 88%, transparent);
+  --mp-pict-wc: color-mix(in srgb, var(--mp-plate) 70%, black);
+  --mp-pict-exit: var(--mp-pict-wc);
+  --mp-pict-stairs: var(--mp-pict-wc);
   --mp-glyph-wc: rgb(var(--hue-wc));
   --mp-glyph-exit: rgb(var(--hue-exit));
-  --mp-glyph-stairs: var(--text);
-  --mp-bg-fill: color-mix(in srgb, var(--text) 3%, transparent);
-  --mp-label-halo: transparent;
+  --mp-glyph-stairs: var(--mp-ink);
+  --mp-court: color-mix(in srgb, black 20%, var(--mp-fill-x));
 }
 /* «Пастель», light palettes: light tints of the same hues, dark codes; pictograms as deep plates, light glyphs. */
 :root[data-scheme="light"] [data-map-scheme="pastel"] {
@@ -415,21 +458,16 @@
   --mp-fill-wc: color-mix(in srgb, rgb(var(--hue-wc)) 45%, white);
   --mp-fill-exit: color-mix(in srgb, rgb(var(--hue-exit)) 55%, white);
   --mp-fill-tech: color-mix(in srgb, rgb(var(--hue-tech)) 45%, white);
-  --mp-stroke: color-mix(in srgb, var(--text) 22%, transparent);
-  --mp-wall: color-mix(in srgb, var(--text) 30%, transparent);
-  --mp-outline: color-mix(in srgb, var(--text) 42%, transparent);
-  --mp-stairs: color-mix(in srgb, var(--text) 9%, transparent);
-  --mp-void: color-mix(in srgb, var(--text) 11%, transparent);
+  --mp-label: rgb(0 0 0 / .78);
   --mp-pict-wc: #0E7490;
   --mp-pict-exit: #B91C1C;
-  --mp-pict-stairs: var(--text-2);
-  --mp-glyph-wc: var(--surface-base);
-  --mp-glyph-exit: var(--surface-base);
-  --mp-glyph-stairs: var(--surface-base);
-  --mp-bg-fill: color-mix(in srgb, var(--text) 2%, transparent);
+  --mp-pict-stairs: color-mix(in srgb, var(--mp-ink) 62%, var(--mp-plate));
+  --mp-glyph-wc: #FFFFFF;
+  --mp-glyph-exit: #FFFFFF;
+  --mp-glyph-stairs: #FFFFFF;
 }
 
-/* «Яркая», dark palettes: saturated opaque fills (sand stays the calm base), dark codes, dark seams. */
+/* «Яркая», dark palettes: saturated opaque fills (sand stays the calm base), dark codes. */
 [data-map-scheme="vivid"] {
   --mp-fill-p: rgb(var(--viv-p));
   --mp-fill-k: rgb(var(--viv-k));
@@ -438,40 +476,35 @@
   --mp-fill-x: rgb(var(--viv-x));
   --mp-fill-wc: rgb(var(--viv-wc));
   --mp-fill-exit: rgb(var(--viv-exit));
-  --mp-fill-tech: rgb(var(--viv-tech) / .50);
-  --mp-stroke: rgb(0 0 0 / .45);
-  --mp-wall: color-mix(in srgb, var(--text) 50%, transparent);
-  --mp-outline: color-mix(in srgb, var(--text) 60%, transparent);
-  --mp-stairs: color-mix(in srgb, var(--text) 22%, transparent);
+  --mp-fill-tech: color-mix(in srgb, rgb(var(--viv-tech)) 50%, var(--mp-plate));
+  --mp-wall: color-mix(in srgb, var(--mp-ink) 36%, var(--mp-plate));
   --mp-label: rgb(0 0 0 / .85);
-  --mp-label-free: var(--text);
-  --mp-block: var(--text-2);
-  --mp-pict-wc: color-mix(in srgb, var(--surface-base) 88%, transparent);
-  --mp-pict-exit: color-mix(in srgb, var(--surface-base) 88%, transparent);
-  --mp-pict-stairs: color-mix(in srgb, var(--surface-base) 88%, transparent);
+  --mp-label-free: var(--mp-ink);
+  --mp-pict-wc: color-mix(in srgb, var(--mp-plate) 70%, black);
+  --mp-pict-exit: var(--mp-pict-wc);
+  --mp-pict-stairs: var(--mp-pict-wc);
   --mp-glyph-wc: rgb(var(--viv-wc));
   --mp-glyph-exit: rgb(var(--viv-exit));
-  --mp-glyph-stairs: var(--text);
-  --mp-bg-fill: color-mix(in srgb, var(--text) 4%, transparent);
-  --mp-label-halo: transparent;
+  --mp-glyph-stairs: var(--mp-ink);
+  --mp-court: color-mix(in srgb, black 24%, var(--mp-fill-x));
 }
-/* «Яркая», light palettes: the same saturated fills, strong edges, deep pictogram plates. */
+/* «Яркая», light palettes: the same saturated fills, deep pictogram plates. */
 :root[data-scheme="light"] [data-map-scheme="vivid"] {
   --mp-fill-tech: color-mix(in srgb, rgb(var(--viv-tech)) 60%, white);
-  --mp-stroke: color-mix(in srgb, var(--text) 40%, transparent);
-  --mp-wall: color-mix(in srgb, var(--text) 45%, transparent);
-  --mp-outline: color-mix(in srgb, var(--text) 60%, transparent);
-  --mp-stairs: color-mix(in srgb, var(--text) 14%, transparent);
-  --mp-void: color-mix(in srgb, var(--text) 14%, transparent);
+  --mp-wall: color-mix(in srgb, var(--mp-ink) 36%, var(--mp-plate));
+  --mp-label-free: color-mix(in srgb, var(--mp-ink) 80%, var(--mp-plate));
   --mp-pict-wc: #0E7490;
   --mp-pict-exit: #B91C1C;
-  --mp-pict-stairs: var(--text);
-  --mp-glyph-wc: var(--surface-base);
-  --mp-glyph-exit: var(--surface-base);
-  --mp-glyph-stairs: var(--surface-base);
+  --mp-pict-stairs: var(--mp-ink);
+  --mp-glyph-wc: #FFFFFF;
+  --mp-glyph-exit: #FFFFFF;
+  --mp-glyph-stairs: #FFFFFF;
 }
 
-/* «Контур»: lines and labels only; every fill is empty, pictograms in the secondary text colour. */
+/* «Контур»: lines and labels only. Every fill is empty and the edges are the lines, in one opaque colour, so a
+   shared edge drawn twice keeps its weight: 1.5 px, so a slanted line keeps an even weight too, in a calmer tone
+   than a thinner line would need. The building's outline is a 2 px line of a stronger tone; it is the building's
+   edge, so there is no rim outside it. Only «Подложка» puts the plate under them. */
 [data-map-scheme="outline"] {
   --mp-fill-p: none;
   --mp-fill-k: none;
@@ -481,64 +514,89 @@
   --mp-fill-wc: none;
   --mp-fill-exit: none;
   --mp-fill-tech: none;
-  --mp-stroke: color-mix(in srgb, var(--text) 55%, transparent);
-  --mp-wall: color-mix(in srgb, var(--text) 38%, transparent);
-  --mp-outline: color-mix(in srgb, var(--text) 55%, transparent);
+  --mp-bg-fill: none;
+  --mp-seam: color-mix(in srgb, var(--mp-ink) 48%, var(--mp-plate));
+  --mp-edge: color-mix(in srgb, var(--mp-ink) 62%, var(--mp-plate));
+  --mp-edge-w: 2px;
+  --mp-rim: none;
   --mp-stairs: none;
   --mp-void: none;
-  --mp-label: var(--text-2);
-  --mp-pict-wc: var(--text-2);
-  --mp-pict-exit: var(--text-2);
-  --mp-pict-stairs: var(--text-2);
+  --mp-wall: color-mix(in srgb, var(--mp-ink) 32%, var(--mp-plate));
+  --mp-court: var(--mp-wall);
+  --mp-label: color-mix(in srgb, var(--mp-ink) 80%, var(--mp-plate));
+}
+/* (The light palette block above sets these for every scheme, so «Контур» restates its own.) */
+:root[data-scheme="light"] [data-map-scheme="outline"] {
+  --mp-fill-tech: none;
+  --mp-stairs: none;
+  --mp-rim: none;
+  --mp-label: color-mix(in srgb, var(--mp-ink) 80%, var(--mp-plate));
 }
 
-/* «Фон карты» without the glass. «Подложка»: a 60 % surface silhouette under the building outline (the wallpaper
-   still shows through, a busy one no longer swallows the room lines), slightly stronger room lines in the
-   line-carried schemes. «Нет»: nothing behind the plan at all. The building base, the atrium voids, the
-   stairwells and the technical areas (up to 16 000 units² on floor 1) become outlines, so no filled block reads as
-   a backdrop; rooms and halls keep their scheme fills. Lines are drawn stronger in the line-carried schemes and
-   the whole plan gets a thin contrast halo (dark around light lines, light around dark ones), so it stays legible
-   on a busy wallpaper. The halo is a compositor filter on the plan's own layer: zoom and pan do not repaint it. */
-.tile.no-bg .map-root[data-silhouette="on"] { --mp-bg-fill: color-mix(in srgb, var(--surface-base) 60%, transparent); }
-.tile.no-bg .map-root:is([data-map-scheme="glass"], [data-map-scheme="outline"])[data-silhouette="on"] {
-  --mp-stroke: color-mix(in srgb, var(--text) 30%, transparent);
-}
+/* «Фон карты» off: the plan lies on the wallpaper. «Подложка» keeps the plate as the building's silhouette, rim
+   and all. «Нет» drops both: the rooms stand on the wallpaper as tiles; the corridors, the atrium voids and the
+   stairwells are open, and the seams take a deep tone of the palette that reads as the building's edges on light
+   and dark wallpapers alike; the building's outline is a band in that tone, and the lesson ring's gap takes it
+   too. Technical rooms stay tiles, in their subdued tone. Lettering outside the rooms then lies on the wallpaper
+   and gets a shade (below). */
 .tile.no-bg .map-root[data-silhouette="off"] {
   --mp-bg-fill: none;
-  --mp-stairs: none;
+  --mp-rim: none;
   --mp-void: none;
-  --mp-fill-tech: none;
-  --mp-wall: color-mix(in srgb, var(--text) 52%, transparent);
-  --mp-outline: color-mix(in srgb, var(--text) 75%, transparent);
-  --mp-line-halo: rgb(0 0 0 / .72);
+  --mp-stairs: none;
 }
-.tile.no-bg .map-root:is([data-map-scheme="glass"], [data-map-scheme="outline"])[data-silhouette="off"] {
-  --mp-stroke: color-mix(in srgb, var(--text) 62%, transparent);
+.tile.no-bg .map-root[data-silhouette="off"]:not([data-map-scheme="outline"]) {
+  --mp-edge: var(--mp-seam);
+  --mp-edge-w: 2px;
+  --mp-wall: var(--mp-seam);
+  --mp-gap: var(--mp-seam);
 }
-:root[data-scheme="light"] .tile.no-bg .map-root[data-silhouette="off"] { --mp-line-halo: rgb(255 255 255 / .85); }
-.tile.no-bg .map-root[data-silhouette="off"] .map-svg {
-  filter: drop-shadow(0 0 1px var(--mp-line-halo)) drop-shadow(0 0 .5px var(--mp-line-halo));
+/* Light palettes: light rooms on a light wallpaper need darker seams than the light plate. */
+:root[data-scheme="light"] .tile.no-bg .map-root[data-silhouette="off"]:not([data-map-scheme="outline"]) {
+  --mp-seam: color-mix(in srgb, var(--mp-plate) 70%, black);
 }
+.tile.no-bg .map-root[data-map-scheme="outline"][data-silhouette="on"] { --mp-bg-fill: var(--mp-plate); }
+/* The block names lie on the wallpaper in both: bright lettering (dark on light palettes) on a soft shade. */
+.tile.no-bg .map-root { --mp-block: color-mix(in srgb, var(--mp-ink) 84%, var(--mp-plate)); }
 
 /* =====================================================================================
    The drawing (geometry from aitumap; every colour comes from the scheme variables above). Strokes do not
-   scale: 1 px room edges, 1.25 px walls, 1.5 px building outline at any zoom.
+   scale: seams, walls and the building's edge keep their screen width at any zoom. Round joins: the drawing's
+   room outlines double back along inner walls, and a mitred seam would end those in a spike.
    ===================================================================================== */
 .map-svg .bg {
   fill: var(--mp-bg-fill);
-  stroke: var(--mp-outline);
-  stroke-width: 1.5;
+  stroke: var(--mp-edge);
+  stroke-width: var(--mp-edge-w);
+  stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+}
+/* The rim: a copy of the silhouette's outline under the backdrop (MapCanvas), stroked about the outline. The plate
+   and its edge cover the inner part, so the rim shows as an even band of --mp-rim-v outside the plate's edge, beside
+   rooms and corridors alike, under everything the floors draw (the lesson ring and the paint hover stay whole). */
+.map-svg .map-rim {
+  fill: none;
+  stroke: var(--mp-rim);
+  stroke-width: calc(var(--mp-edge-w) + 2 * var(--mp-rim-v));
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 .map-svg .label-huge { fill: var(--mp-block); stroke: none; pointer-events: none; }
 
 /* Rooms and room-like areas. `pointer-events: visible` keeps the interior clickable in «Контур» (fill none). */
 .map-svg g[data-name] { transition: opacity var(--t-base) var(--ease-in); }
 .map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) :is(polygon, polyline, line, rect),
-.map-svg g[data-name] > :is(polygon, polyline, line, rect) {
+.map-svg g[data-name] > :is(polygon, polyline, line, rect),
+.map-svg .map-groups-gym > :is(polygon, polyline, line, rect),
+.map-svg :is(.map-groups-wcs, .map-groups-escapes, .map-groups-techs) :is(polygon, polyline, line, rect),
+.map-svg .map-groups-coworking-atameken :is(polygon, polyline, line, rect),
+.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) > :is(polygon, polyline),
+.map-svg .map-groups-void :is(path, polygon, polyline, line, rect) {
   fill: var(--mp-fill-o);
-  stroke: var(--mp-stroke);
-  stroke-width: 1;
+  stroke: var(--mp-seam);
+  stroke-width: var(--mp-seam-w);
+  stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
   pointer-events: visible;
   transition: fill var(--t-base) var(--ease-in), stroke var(--t-base) var(--ease-in);
@@ -549,46 +607,29 @@
 /* Named areas (data-name holds aliases separated by «|»), the gym and the coworking shapes. */
 .map-svg g[data-name*="|"] > :is(polygon, polyline, line, rect),
 .map-svg .map-groups-gym > :is(polygon, polyline, line, rect),
-.map-svg .map-groups-coworking-atameken :is(polygon, polyline, line, rect) {
-  fill: var(--mp-fill-x);
-  stroke: var(--mp-stroke);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
+.map-svg .map-groups-coworking-atameken :is(polygon, polyline, line, rect) { fill: var(--mp-fill-x); }
 /* Services. */
-.map-svg :is(.map-groups-wcs, .map-groups-escapes, .map-groups-techs) :is(polygon, polyline, line, rect) {
-  stroke: var(--mp-stroke);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
 .map-svg .map-groups-wcs :is(polygon, polyline, line, rect) { fill: var(--mp-fill-wc); }
 .map-svg .map-groups-escapes :is(polygon, polyline, line, rect) { fill: var(--mp-fill-exit); }
 .map-svg .map-groups-techs :is(polygon, polyline, line, rect) { fill: var(--mp-fill-tech); }
-/* Walls, gym markings and the coworking curves: lines only, quiet. */
+/* Stairs and voids: wells below the plate. */
+.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) > :is(polygon, polyline) { fill: var(--mp-stairs); }
+.map-svg .map-groups-void :is(path, polygon, polyline, line, rect) { fill: var(--mp-void); }
+/* Walls and the coworking curves: the few lines on the plate, in a quiet tone of it (a strong 1 px line steps on a
+   slant at 100 %). The gym court: lines on its fill, a shade of that fill. Round ends and joins: no spikes. */
 .map-svg .map-groups-walls :is(polygon, polyline, line, rect, path:not(.label)),
 .map-svg .map-groups-gym-pole :is(path, polygon, polyline, line, rect),
 .map-svg g.map-groups-coworking-atameken > path {
   fill: none;
   stroke: var(--mp-wall);
-  stroke-width: 1.25;
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
   vector-effect: non-scaling-stroke;
   transition: stroke var(--t-base) var(--ease-in);
 }
-.map-svg .map-groups-gym-pole :is(path, polygon, polyline, line, rect),
-.map-svg g.map-groups-coworking-atameken > path { stroke-width: 1; }
-/* Stairs and voids. */
-.map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) > :is(polygon, polyline) {
-  fill: var(--mp-stairs);
-  stroke: var(--mp-stroke);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
-.map-svg .map-groups-void :is(path, polygon, polyline, line, rect) {
-  fill: var(--mp-void);
-  stroke: var(--mp-stroke);
-  stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-}
+.map-svg .map-groups-gym-pole :is(path, polygon, polyline, line, rect) { stroke: var(--mp-court); stroke-width: 1.25px; }
+.map-svg g.map-groups-coworking-atameken > path { stroke-width: 1.25px; }
 
 /* Room codes: the scheme's label colour, no stroke, never a pointer target. (The coworking group holds open
    curves and the Mediker group its logo: those are not labels.) */
@@ -609,7 +650,7 @@
   pointer-events: none;
 }
 
-/* Lettering outside the rooms (atrium, coworking, the hall, open space): it lies on the glass, not on a fill. */
+/* Lettering outside the rooms (atrium, coworking, the hall, open space): it lies on the plate, not on a fill. */
 .map-svg path.label,
 .map-svg g.label path,
 .map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) > g:not([data-name]) > path { fill: var(--mp-label-free); stroke: none; pointer-events: none; }
@@ -637,20 +678,17 @@
 .map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path:nth-child(1) { fill: var(--mp-pict-stairs); }
 .map-svg :is(.map-groups-stairs, .map-groups-stairs-fill) g path:nth-child(2) { fill: var(--mp-glyph-stairs); }
 
-/* Lettering on the wallpaper (no glass): a halo under the glyphs, 2.5 screen px. Not on rooms painted in a solid
-   colour (marked, found, the next lesson): their codes take the colour that reads on that fill. */
+/* Lettering on the wallpaper (no glass): the block names always, and with «Нет» the lettering outside the rooms,
+   which then lies on an open corridor. A soft shade under the glyphs (dark under light lettering, light under
+   dark), like the labels of desktop icons. Never a stroke around them: on small glyphs it fills the counters. */
 .tile.no-bg .map-svg .label-huge,
-.tile.no-bg .map-svg :is(path.label, g.label path),
-.tile.no-bg .map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) > g:not([data-name]) > path,
-.tile.no-bg .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.room-next):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) {
-  paint-order: stroke fill;
-  stroke: var(--mp-halo);
-  stroke-width: 2.5;
-  stroke-linejoin: round;
-  vector-effect: non-scaling-stroke;
+.tile.no-bg .map-root[data-silhouette="off"] .map-svg :is(path.label, g.label path),
+.tile.no-bg .map-root[data-silhouette="off"] .map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) > g:not([data-name]) > path,
+.tile.no-bg .map-root[data-map-scheme="outline"][data-silhouette="off"] .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.room-next):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path {
+  filter: drop-shadow(0 0 1.5px var(--mp-shade));
 }
-.tile.no-bg .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.room-next):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) {
-  stroke: var(--mp-label-halo);
+.tile.no-bg .map-root[data-map-scheme="outline"][data-silhouette="off"] .map-svg g[data-name]:not([data-fav]):not(.room-found):not(.room-next) > text.map-code {
+  text-shadow: 0 0 1px var(--mp-shade), 0 0 2.5px var(--mp-shade);
 }
 
 /* =====================================================================================
@@ -691,23 +729,16 @@
   g[data-name] > g:not([data-name])
 ) { display: none; }
 
-/* ---- Marked rooms: the room keeps its own colour over any scheme; the code takes the colour that reads on it ---- */
-.map-svg g[data-name][data-fav] > :is(polygon, polyline, line, rect) {
-  fill: var(--fav);
-  stroke: color-mix(in srgb, var(--fav) 55%, var(--text));
-}
+/* ---- Marked rooms: the room keeps its own colour over any scheme, with its seams; the code takes the colour that
+   reads on it ---- */
+.map-svg g[data-name][data-fav] > :is(polygon, polyline, line, rect) { fill: var(--fav); }
 .map-svg g[data-name][data-fav]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) { fill: var(--fav-on); }
 .map-svg g.map-groups-coworking-atameken[data-name][data-fav] > path { stroke: var(--fav); }
 .map-svg g[data-name^="MEDIKER"][data-fav] > path:nth-of-type(1) { fill: var(--fav-on); }
 .map-svg g[data-name^="MEDIKER"][data-fav] > path:nth-of-type(2) { fill: var(--fav); }
 
-/* ---- Search: found room = accent fill .9, code in on-accent, 2 px accent edge; the rest at .35 ---- */
-.map-svg g[data-name].room-found > :is(polygon, polyline, line, rect) {
-  fill: var(--accent);
-  fill-opacity: .9;
-  stroke: var(--accent);
-  stroke-width: 2;
-}
+/* ---- Search: found room = solid accent fill with its seams, code in on-accent; the rest at .35 ---- */
+.map-svg g[data-name].room-found > :is(polygon, polyline, line, rect) { fill: var(--accent); }
 .map-svg g[data-name].room-found:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) { fill: var(--on-accent); }
 .map-svg g.map-groups-coworking-atameken[data-name].room-found > path { stroke: var(--accent); }
 .map-svg g[data-name^="MEDIKER"].room-found > path:nth-of-type(1) { fill: var(--on-accent); }
@@ -716,14 +747,12 @@
 .map-svg.searching g[data-name]:not(.room-found):not(:has(.room-found)) { opacity: .35; }
 
 /* ---- Next lesson (src/map/nextLesson.ts, lessonMarker.ts): the room in the accent with its code in on-accent, like
-   a search hit (a room with a colour mark keeps its colour), and a static ring drawn over the floor: a 7 px accent
-   stroke under a 3 px surface stroke along the outline, which leaves a 2 px accent ring outside a 1.5 px gap. The
-   gap tells the room apart from neighbours of a similar hue (the sky rooms of «Пастель» and a blue accent). ---- */
-.map-svg g[data-name].room-next:not([data-fav]) > :is(polygon, polyline, line, rect) {
-  fill: var(--accent);
-  fill-opacity: .9;
-  stroke: var(--accent);
-}
+   a search hit (a room with a colour mark keeps its colour), and a static ring drawn over the floor, the rim
+   included: a 7 px accent stroke under a 3 px stroke in the gap colour along the outline, which leaves a 2 px
+   accent ring outside the room, parted from it by a line in the colour of the room seams (the plate; the deep tone
+   in «Нет»; the plate's colour in «Контур» too, where the seams are lines). It tells the room apart from
+   neighbours of a similar hue (the sky rooms of «Пастель» and a blue accent). ---- */
+.map-svg g[data-name].room-next:not([data-fav]) > :is(polygon, polyline, line, rect) { fill: var(--accent); }
 .map-svg g[data-name].room-next:not([data-fav]):not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > :is(path, text.map-code) { fill: var(--on-accent); }
 .map-svg .map-next-ring { pointer-events: none; }
 .map-svg .map-next-ring :is(polygon, rect) {
@@ -732,11 +761,11 @@
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
-.map-svg .map-next-ring .ring { stroke-width: 7; }
-.map-svg .map-next-ring .gap { stroke: var(--surface-base); stroke-width: 3; }
+.map-svg .map-next-ring .ring { stroke-width: 7px; }
+.map-svg .map-next-ring .gap { stroke: var(--mp-gap); stroke-width: 3px; }
 /* A search dims the ring with its room, unless it found that room; in paint mode its gap shows the hover colour. */
 .map-svg.searching .floor:not(:has(g.room-next.room-found)) > .map-next-ring { opacity: .35; }
-.map-svg .floor:has(g.room-next.paint-hover) > .map-next-ring .gap { stroke: var(--text); }
+.map-svg .floor:has(g.room-next.paint-hover) > .map-next-ring .gap { stroke: var(--mp-hover); }
 
 /* Bubble over the next lesson's room (src/map/LessonTip.tsx): the kit tooltip, the title above the time, wrapping. */
 .tooltip.map-next-tip {
@@ -748,14 +777,15 @@
 }
 .map-next-tip-title { font-weight: 600; }
 
-/* ---- Paint mode: a 2 px outline in the text colour on the room under the pointer ---- */
+/* ---- Paint mode: a 2 px outline in the ink on the room under the pointer ---- */
 .map-svg g[data-name].paint-hover > :is(polygon, polyline, line, rect) {
-  stroke: var(--text);
-  stroke-width: 2;
+  stroke: var(--mp-hover);
+  stroke-width: 2px;
 }
 
 /* =====================================================================================
-   Settings → «Карта»: scheme legends in the option cards, the list of marked rooms
+   Settings → «Карта»: scheme legends in the option cards (swatches on the scheme's plate, parted like the rooms;
+   the inset line is the edge in «Контур» and the plate's own colour elsewhere), the list of marked rooms
    ===================================================================================== */
 .map-scheme-grid { width: 100%; }
 .map-legend {
@@ -763,7 +793,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: var(--s1);
   padding: var(--s2);
-  background: var(--surface-base);
+  background: var(--mp-plate);
   border: 1px solid var(--divider);
 }
 .map-legend-sw {

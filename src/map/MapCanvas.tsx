@@ -1,8 +1,9 @@
 // Map viewport with its own zoom engine. At rest the <svg> is laid out at its real size (fit × zoom), so Chromium
 // rasterises the plan at the zoom it is seen at and it stays crisp from 1× to 6×; it is moved with a translate
 // snapped to whole device pixels (a layer at a fractional offset is resampled and goes soft). Strokes are
-// non-scaling (map.css): one screen pixel at any zoom once the view rests. During a gesture or a move the laid-out
-// plan is scaled by the compositor, its lines with it (between half and twice their width), until the next lay-out.
+// non-scaling (map.css): the seams between rooms and the few lines keep their screen width at any zoom once the view
+// rests. During a gesture or a move the laid-out plan is scaled by the compositor, its seams and lines with it
+// (between half and twice their width), until the next lay-out.
 //
 // Zooming does not lay the drawing out again per step. A new size means shaping every room code again (SVG text is
 // laid out at its size on screen), recording the whole plan and rasterising it: far too much for the integrated
@@ -92,6 +93,9 @@ interface Props {
   onMarkHover: (box: DOMRect | null) => void;
   /** Room codes show from this zoom on (1: whenever they are big enough to read). */
   codesFromZoom: number;
+  /** The view rests at the largest zoom, or fitted (zooming out or fitting would do nothing): told when either
+   *  changes, never per frame, so the zoom buttons can grey out. */
+  onLimits?: (atMax: boolean, atFit: boolean) => void;
 }
 
 const NO_ROOMS: readonly string[] = [];
@@ -235,11 +239,12 @@ function readEase(name: string): (p: number) => number {
 
 export const MapCanvas = memo(
   forwardRef<MapCanvasHandle, Props>(function MapCanvas(
-    { floor, query, favorites, painting, onPaint, reserve, onMatches, focusSeq, onFocusResult, mark, onMarkHover, codesFromZoom },
+    { floor, query, favorites, painting, onPaint, reserve, onMatches, focusSeq, onFocusResult, mark, onMarkHover, codesFromZoom, onLimits },
     ref,
   ) {
     const hostRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement>(null);
+    const rimRef = useRef<SVGPathElement>(null);
     const box = useRef<Box>({ hostW: 0, hostH: 0, fitW: 0, fitH: 0, left: 0, top: 0, biasX: 0 });
     const reserveRef = useRef(reserve);
     reserveRef.current = reserve;
@@ -260,8 +265,9 @@ export const MapCanvas = memo(
     const hovered = useRef<Element | null>(null);
     const markHovered = useRef<Element | null>(null);
     // The pointer handlers read the latest props from here.
-    const live = useRef({ floor, painting, onPaint, onMarkHover });
-    live.current = { floor, painting, onPaint, onMarkHover };
+    const live = useRef({ floor, painting, onPaint, onMarkHover, onLimits });
+    live.current = { floor, painting, onPaint, onMarkHover, onLimits };
+    const limits = useRef("");
 
     // ---- Marked rooms and the lesson marker. The first layout effects: their attributes are on the rooms before
     // anything below makes the browser compute styles, so a floor (and the tile at start) never fades them in. ----
@@ -349,6 +355,13 @@ export const MapCanvas = memo(
       tween.current = null;
       layOut(view.current.zoom);
       place(view.current);
+      const atMax = view.current.zoom >= MAX_ZOOM - 1e-6;
+      const atFit = view.current.zoom <= MIN_ZOOM + 1e-6;
+      const key = `${atMax}|${atFit}`;
+      if (key !== limits.current) {
+        limits.current = key;
+        live.current.onLimits?.(atMax, atFit);
+      }
     }, [layOut, place]);
 
     /**
@@ -661,6 +674,16 @@ export const MapCanvas = memo(
       return () => window.clearTimeout(t);
     }, [leaving]);
 
+    // ---- The building's rim: a copy of the silhouette's outline (the backdrop's .bg path), before the first frame ----
+    useLayoutEffect(() => {
+      const rim = rimRef.current;
+      const bg = svgRef.current?.querySelector(".bg");
+      if (!rim || !bg) return;
+      rim.setAttribute("d", bg.getAttribute("d") ?? "");
+      const tf = bg.getAttribute("transform");
+      if (tf) rim.setAttribute("transform", tf);
+    }, []);
+
     // ---- Level of detail: shared pictograms once, the shown floor whenever it mounts (before its first frame) ----
     useLayoutEffect(() => {
       const shared = svgRef.current?.querySelector(".map-shared");
@@ -772,6 +795,7 @@ export const MapCanvas = memo(
           preserveAspectRatio="xMidYMid meet"
           aria-hidden="true"
         >
+          <path ref={rimRef} className="map-rim" />
           <Backdrop />
           {layers.map((l) => {
             const View = FLOOR_VIEW[l.floor];

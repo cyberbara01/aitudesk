@@ -1,8 +1,9 @@
 // The lesson marker on the plan (nextLesson.ts says which rooms): .room-next on the room groups, which map.css fills
 // with the accent (a room with a colour mark keeps its colour), and a ring drawn last in the floor layer, so the rooms
 // around it never paint over it: along each room outline a solid accent ring, parted from the room by a thin line of
-// the tile surface, so it reads on every scheme, also where a room hue is close to the accent. Its strokes do not
-// scale (map.css): the ring keeps its screen width at every zoom. Nothing moves: the marker is static.
+// the plan's floor plate (the colour of the seams), so it reads on every scheme, also where a room hue is close to the
+// accent. Its strokes do not scale (map.css): the ring keeps its screen width at every zoom. Nothing moves: the marker
+// is static.
 const SVG_NS = "http://www.w3.org/2000/svg";
 const RING = "map-next-ring";
 const SHAPES = ":scope > polygon, :scope > polyline, :scope > rect";
