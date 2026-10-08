@@ -3,10 +3,10 @@
 // fades in; closing plays it backwards before the window is parked. Esc closes it too (unless something inside took
 // the Esc: the map search, paint mode, a menu). Only one widget is shown at a time; its code is loaded ahead of the
 // first click for the widgets that are folded, so the card opens at once. Its icon clicked again closes it, with the
-// same animation.
+// same animation. A room clicked in the schedule while the map is folded opens the map here and shows that room.
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { emitTo, listen } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
 import { IconButton } from "../components/Button";
 import { tileArt } from "../components/Tile";
 import { ru } from "../i18n/ru";
@@ -48,6 +48,8 @@ interface Show {
   room: string | null;
   /** Counts the openings: a new one plays the opening animation again. */
   seq: number;
+  /** Counts every request, also a room asked for while the map is already open here. */
+  ask: number;
 }
 
 /** The icon of an own widget in the header: its picture's first frame. */
@@ -59,27 +61,37 @@ function CustomArt({ file }: { file: string }) {
 export function PopupHost() {
   const s = useSettings();
   const [show, setShow] = useState<Show | null>(null);
+  const shownRef = useRef<Show | null>(null);
   const [leaving, setLeaving] = useState(false);
   const leavingRef = useRef(false);
   const closeTimer = useRef(0);
   const seq = useRef(0);
+  const ask = useRef(0);
+  const put = useCallback((next: Show | null) => {
+    shownRef.current = next;
+    setShow(next);
+  }, []);
 
   useEffect(() => {
     const offs: Array<() => void> = [];
-    void listen<Omit<Show, "seq">>("popup-show", (e) => {
+    void listen<Omit<Show, "seq" | "ask">>("popup-show", (e) => {
+      // The same widget asked for again while it is open (a room for the map): the card stays, the map hears it.
+      const prev = shownRef.current;
+      const keep = prev !== null && prev.label === e.payload.label && !leavingRef.current;
       // A widget opened while another one was closing: that closing is over.
       window.clearTimeout(closeTimer.current);
       leavingRef.current = false;
       setLeaving(false);
-      seq.current += 1;
-      setShow({ ...e.payload, seq: seq.current });
+      if (!keep) seq.current += 1;
+      ask.current += 1;
+      put({ ...e.payload, seq: seq.current, ask: ask.current });
     }).then((u) => offs.push(u));
     // Closed by the native side (the widget went out of sight, the views changed): nothing stays drawn.
     void listen<string | null>("popup-state", (e) => {
-      if (e.payload === null) setShow(null);
+      if (e.payload === null) put(null);
     }).then((u) => offs.push(u));
     return () => offs.forEach((u) => u());
-  }, []);
+  }, [put]);
 
   const close = useCallback(() => {
     if (leavingRef.current) return;
@@ -87,10 +99,10 @@ export function PopupHost() {
     setLeaving(true);
     closeTimer.current = window.setTimeout(() => {
       void invoke("close_popup").finally(() => {
-        if (leavingRef.current) setShow(null);
+        if (leavingRef.current) put(null);
       });
     }, OUT_MS);
-  }, []);
+  }, [put]);
 
   // Esc closes, once everything inside had its say (the map search clears first, paint mode ends first).
   useEffect(() => {
@@ -133,14 +145,8 @@ export function PopupHost() {
     return () => window.clearTimeout(idle);
   }, [folded]);
 
-  // The map was asked for a room (a click on a room in the schedule): it hears it once it is drawn.
-  useEffect(() => {
-    if (!show?.room || show.label !== "map") return;
-    const t = window.setTimeout(() => void emitTo("popup", "map-focus-room", { room: show.room }).catch(() => undefined), 260);
-    return () => window.clearTimeout(t);
-  }, [show]);
-
-  const api = useMemo(() => (show ? { label: show.label, close } : null), [show, close]);
+  // The map reads the room it was opened for from here (usePopup), once it is drawn.
+  const api = useMemo(() => (show ? { label: show.label, close, room: show.room, ask: show.ask } : null), [show, close]);
   if (!show || !api) return null;
 
   const custom = isCustomLabel(show.label) ? s.customWidgets.find((w) => w.id === customIdOf(show.label)) : undefined;

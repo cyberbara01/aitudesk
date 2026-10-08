@@ -70,10 +70,14 @@
 ## Скриншоты
 
 <p align="center">
-  <img src="docs/screenshots/desktop-light.png" alt="Светлая тема на рабочем столе" width="760">
+  <img src="docs/screenshots/desktop-light.png" alt="Виджеты свёрнуты в значки, карта открыта во всплывающем окне; светлая тема" width="760">
 </p>
 <p align="center">
-  <img src="docs/screenshots/settings-appearance.png" alt="Оформление: дизайн, тема и акцент" width="49%">
+  <img src="docs/screenshots/settings-appearance.png" alt="Оформление: дизайн и его части на выбор" width="49%">
+  <img src="docs/screenshots/settings-perf.png" alt="Нагрузка: процессор, видеокарта, память и диск" width="49%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/settings-widgets.png" alt="Свои виджеты с картинкой" width="49%">
   <img src="docs/screenshots/settings-notes.png" alt="Заметка с дедлайном и напоминанием" width="49%">
 </p>
 <p align="center">

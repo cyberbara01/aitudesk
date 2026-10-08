@@ -338,7 +338,16 @@ export const MapCanvas = memo(
       measure();
       const ro = new ResizeObserver(() => measure());
       ro.observe(host);
-      return () => ro.disconnect();
+      // The card around the map grew in (the pop-up opening): the host moved without a resize, so its origin for
+      // the pixel snapping and the zoom point is read again.
+      const onAnimationEnd = (e: Event) => {
+        if (e.target instanceof Element && e.target !== host && e.target.contains(host)) measure();
+      };
+      window.addEventListener("animationend", onAnimationEnd);
+      return () => {
+        ro.disconnect();
+        window.removeEventListener("animationend", onAnimationEnd);
+      };
     }, [measure]);
 
     // The switch side or its visibility changed: fit again around the same point.

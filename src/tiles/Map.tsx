@@ -6,6 +6,7 @@
 // (src/map/nextLesson.ts), with a dot on its floor's button while another floor is shown and a bubble on hover.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { IconButton } from "../components/Button";
 import type { MenuItemSpec } from "../components/ContextMenu";
 import { Tile } from "../components/Tile";
@@ -14,7 +15,7 @@ import { extra } from "../i18n/ru.extra.map";
 import { FAVORITE_COLORS } from "../lib/design";
 import { minutesUntil } from "../lib/schedule";
 import { settings, type Lesson, type MapSettings } from "../lib/settings";
-import { openTile, useFolded } from "../lib/tileView";
+import { IN_POPUP, openTile, useFolded } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { markRoom, restoreRoom, roomState, unmarkRoom, type RoomState } from "../map/favorites";
 import { FloorSwitch } from "../map/FloorSwitch";
@@ -26,6 +27,7 @@ import { PaintDock } from "../map/PaintDock";
 import { roomAt } from "../map/rooms";
 import { LABELS_ZOOM, toFloor, type Floor, type PaintTool } from "../map/types";
 import { useRoomSearch } from "../map/useRoomSearch";
+import { usePopup } from "../popup/context";
 
 const MIN_SIZE = { w: 400, h: 220 };
 const FIRST_COLOR = FAVORITE_COLORS[0].toUpperCase();
@@ -158,36 +160,55 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
   // is hidden and nothing else could clear it), unless the user has typed something else meanwhile.
   const textRef = useRef(text);
   textRef.current = text;
-  useEffect(() => {
-    let alive = true;
-    let off: (() => void) | undefined;
-    let hold = 0;
-    void listen<{ room?: unknown }>(FOCUS_EVENT, (e) => {
-      const room = typeof e.payload?.room === "string" ? e.payload.room.trim() : "";
-      if (!room) return;
-      // Folded to its icon: the map opens in the pop-up and shows the room there.
-      if (foldedRef.current) {
-        void openTile(room);
-        return;
-      }
+  const hold = useRef(0);
+  useEffect(() => () => window.clearTimeout(hold.current), []);
+  const focusRoom = useCallback(
+    (room: string) => {
       setFlash(false);
       setQueryText(room);
       fromEvent.current = true;
       setFocusSeq((s) => s + 1);
-      window.clearTimeout(hold);
-      hold = window.setTimeout(() => {
+      window.clearTimeout(hold.current);
+      hold.current = window.setTimeout(() => {
         if (textRef.current.trim().toUpperCase() === room.toUpperCase()) clear();
       }, FOCUS_HOLD_MS);
-    }).then((u) => {
+    },
+    [setQueryText, clear],
+  );
+  // Heard for this window only: without a target a page gets the event sent to any window, so the folded map
+  // would hear the pop-up's map too and open it again and again. The map in the pop-up gets its room from there.
+  useEffect(() => {
+    if (IN_POPUP) return;
+    let alive = true;
+    let off: (() => void) | undefined;
+    void listen<{ room?: unknown }>(
+      FOCUS_EVENT,
+      (e) => {
+        const room = typeof e.payload?.room === "string" ? e.payload.room.trim() : "";
+        if (!room) return;
+        // Folded to its icon: the map opens in the pop-up and shows the room there.
+        if (foldedRef.current) void openTile(room);
+        else focusRoom(room);
+      },
+      { target: getCurrentWindow().label },
+    ).then((u) => {
       if (alive) off = u;
       else u();
     });
     return () => {
       alive = false;
-      window.clearTimeout(hold);
       off?.();
     };
-  }, [setQueryText, clear]);
+  }, [focusRoom]);
+  // Opened in the pop-up for a room, or asked for another one while open there.
+  const popup = usePopup();
+  const popupRoom = popup?.room ?? null;
+  const popupAsk = popup?.ask ?? 0;
+  useEffect(() => {
+    if (popupRoom) focusRoom(popupRoom);
+    // Each request once, also the same room again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [popupAsk]);
   const [tool, setTool] = useState<PaintTool>({ kind: "color", color: FIRST_COLOR, custom: false });
   const [custom, setCustom] = useState<string | null>(null);
 

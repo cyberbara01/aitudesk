@@ -7,6 +7,10 @@ export interface PopupApi {
   label: string;
   /** Closes the pop-up with its animation. */
   close: () => void;
+  /** The room the map was opened for (a room clicked in the schedule), else null. */
+  room: string | null;
+  /** Counts the requests: the same room asked for again is shown again. */
+  ask: number;
 }
 
 export const PopupContext = createContext<PopupApi | null>(null);

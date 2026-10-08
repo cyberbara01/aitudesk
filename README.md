@@ -71,10 +71,14 @@ turned off.
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/desktop-light.png" alt="The light theme on the desktop" width="760">
+  <img src="docs/screenshots/desktop-light.png" alt="Widgets folded into icons, the map open in a pop-up; light theme" width="760">
 </p>
 <p align="center">
-  <img src="docs/screenshots/settings-appearance.png" alt="Appearance: design, theme and accent" width="49%">
+  <img src="docs/screenshots/settings-appearance.png" alt="Appearance: a design, with its parts chosen separately" width="49%">
+  <img src="docs/screenshots/settings-perf.png" alt="Performance: processor, graphics, memory and disk" width="49%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/settings-widgets.png" alt="Your own picture widgets" width="49%">
   <img src="docs/screenshots/settings-notes.png" alt="A note with a deadline and a reminder" width="49%">
 </p>
 <p align="center">

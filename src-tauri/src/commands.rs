@@ -119,13 +119,18 @@ pub async fn fetch_site_icon(url: String) -> Result<String, String> {
 
 /// A folded widget («Маленький», «Средний») was clicked: the whole widget opens in the pop-up window in the middle
 /// of the screen (popup.rs); `room` asks the map to show a room once it is open.
+///
+/// The pop-up window may have to be made first, and a window must never be made while a command is being handled
+/// on the main thread (on Windows that deadlocks WebView2). So the command is async (off the main thread) and hands
+/// the work to the main loop, which runs it once the command is done.
 #[tauri::command]
-pub fn open_popup(app: AppHandle, window: WebviewWindow, room: Option<String>) {
+pub async fn open_popup(app: AppHandle, window: WebviewWindow, room: Option<String>) {
     let label = window.label().to_string();
     if !crate::is_tile(&label) || !matches!(layout::view_of(&app, &label), layout::View::Small | layout::View::Medium) {
         return;
     }
-    crate::popup::open(&app, &window, &label, room);
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || crate::popup::open(&handle, &window, &label, room));
 }
 
 /// The pop-up's close button or Esc (after its closing animation).
@@ -148,10 +153,15 @@ pub fn desktop_covered() -> bool {
 
 /// «Размер» of tiles changed in the settings: every shown tile takes its new rect, the pop-up of a widget that is
 /// not folded any more closes, and the pop-up window is made ahead of the first click.
+/// Async and handed to the main loop: it may make the pop-up window, which must not happen inside a command handled
+/// on the main thread (see `open_popup`).
 #[tauri::command]
-pub fn apply_tile_views(app: AppHandle) {
-    layout::replace_shown(&app);
-    crate::popup::sync(&app);
+pub async fn apply_tile_views(app: AppHandle) {
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        layout::replace_shown(&handle);
+        crate::popup::sync(&handle);
+    });
 }
 
 /// Glass background of the calling tile on/off (settings «Фон виджета»).
