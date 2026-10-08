@@ -19,7 +19,7 @@ mod sysinfo;
 mod tray;
 mod zoom;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 /// Labels of the tile windows declared in tauri.conf.json.
 pub const TILES: &[&str] = &["clock", "system", "perf", "launchers", "map", "schedule", "notes"];
@@ -51,6 +51,7 @@ pub fn setup_tile(app: &tauri::AppHandle, win: &tauri::WebviewWindow, label: &st
     glass::apply(win);
     glass::keep_active_look(win);
     let _ = win.set_zoom(zoom::current());
+    layout::no_browser_keys(win);
     if let Ok(h) = win.hwnd() {
         desktop_watch::attach(windows::Win32::Foundation::HWND(h.0));
     }
@@ -152,6 +153,20 @@ pub fn run() {
         .plugin(tauri::plugin::Builder::<tauri::Wry>::new("aitudesk-lang").js_init_script(lang::init_script(language)).build())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        // Only the settings window closes. A widget asked to close (Alt+F4 after a click on it, the window's
+        // system menu) stays: a closed widget window would be gone until the next start, whatever the settings
+        // say. The pop-up closes the way it always does, back into its icon.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let label = window.label();
+                if label != settings_window::LABEL {
+                    api.prevent_close();
+                    if label == popup::LABEL {
+                        let _ = window.app_handle().emit_to(popup::LABEL, "popup-close", ());
+                    }
+                }
+            }
+        })
         .manage(layout::Visibility::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_accent,

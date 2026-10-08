@@ -51,6 +51,7 @@ pub fn open(app: &AppHandle, tab: &str, edit: Option<&str>) {
             Ok(win) => {
                 let dark = !matches!(win.theme(), Ok(Theme::Light));
                 crate::glass::apply_mica(&win, dark);
+                crate::layout::no_browser_keys(&win);
                 // The page calls `window_ready` after its first render; show anyway if that never comes.
                 std::thread::sleep(std::time::Duration::from_millis(2500));
                 if !matches!(win.is_visible(), Ok(true)) {

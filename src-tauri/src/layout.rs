@@ -356,6 +356,23 @@ pub(crate) fn set_page_visible(win: &WebviewWindow, visible: bool) {
     });
 }
 
+/// No browser shortcuts in this window (reload, print, find, history, the developer tools): it is a widget or the
+/// settings, not a web page. The page cancels them as well (main.tsx); this also covers what a page cannot.
+pub(crate) fn no_browser_keys(win: &WebviewWindow) {
+    let _ = win.with_webview(|w| {
+        use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings3;
+        use windows::core::Interface;
+        // SAFETY: plain COM calls on this window's own WebView2, run on the main thread.
+        unsafe {
+            let Ok(core) = w.controller().CoreWebView2() else { return };
+            let Ok(settings) = core.Settings() else { return };
+            if let Ok(s3) = settings.cast::<ICoreWebView2Settings3>() {
+                let _ = s3.SetAreBrowserAcceleratorKeysEnabled(false);
+            }
+        }
+    });
+}
+
 pub(crate) fn park_hidden(win: &WebviewWindow) {
     park(win);
     set_page_visible(win, false);

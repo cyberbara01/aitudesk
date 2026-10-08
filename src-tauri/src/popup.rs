@@ -79,6 +79,7 @@ pub fn ensure(app: &AppHandle) -> Option<WebviewWindow> {
         .build()
         .ok()?;
     let _ = win.set_zoom(crate::zoom::current());
+    layout::no_browser_keys(&win);
     if let Some(h) = hwnd(&win) {
         crate::desktop_watch::attach_popup(h);
     }
