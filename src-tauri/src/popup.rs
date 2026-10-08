@@ -1,11 +1,12 @@
 //! The pop-up of a folded widget («Маленький», «Средний»): the icon keeps its place, and a click on it opens the
-//! whole widget in one shared window in the middle of the screen, under the widget's name and a close button. The
-//! window is made once (as soon as some widget is folded) and parked between uses with its page told to stop
-//! drawing, so opening costs a move and a frame and an idle pop-up costs nothing. It belongs to the desktop like the
-//! tiles (Win+D keeps it), comes to the front when opened and stays open until closed: the close button, Esc, or
-//! its icon again.
+//! whole widget in a card in the middle of the screen. The window covers the screen's work area: the page dims the
+//! desktop softly and grows the card out of the icon, and a click beside the card, Esc, the close button or leaving
+//! for another window closes it the same way back into the icon. The window is made once (as soon as some widget
+//! is folded) and parked between uses with its page told to stop drawing, so opening costs a move and a frame and
+//! an idle pop-up costs nothing. It belongs to the desktop like the tiles (Win+D keeps it).
 
 use std::sync::Mutex;
+use std::time::Duration;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
@@ -14,15 +15,19 @@ use windows::Win32::Foundation::HWND;
 use crate::layout::{self, View};
 
 pub const LABEL: &str = "popup";
-/// Logical px: the header with the name and the close button, and the room around the card for its shadow.
-const HEADER: f64 = 44.0;
-const MARGIN: f64 = 32.0;
+/// Logical px: the card's header (the widget's icon, its name and the close button), and the least room kept
+/// between the card and the edges of the screen.
+const HEADER: f64 = 52.0;
+const EDGE: f64 = 24.0;
+/// After the page let go of the card, the icon on the desktop draws its picture again before the window goes, so
+/// the picture that flew back and the one on the icon overlap for a moment instead of blinking.
+const PARK_AFTER: Duration = Duration::from_millis(120);
 
 /// The widget the pop-up shows now.
 static SHOWN: Mutex<Option<String>> = Mutex::new(None);
 
-/// What the pop-up page needs to open: the widget, where its icon is (relative to the pop-up window, physical px,
-/// so the card can grow from that side), and for the map a room to show once it is open.
+/// What the pop-up page needs to open: the widget, where its icon is and where the card goes (physical px,
+/// relative to the pop-up window, which covers the work area), and for the map a room to show once it is open.
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct Show {
@@ -31,6 +36,10 @@ struct Show {
     icon_y: i32,
     icon_w: u32,
     icon_h: u32,
+    card_x: i32,
+    card_y: i32,
+    card_w: u32,
+    card_h: u32,
     room: Option<String>,
 }
 
@@ -43,7 +52,7 @@ fn hwnd(win: &WebviewWindow) -> Option<HWND> {
 }
 
 /// The pop-up window, made the first time it is needed: like a tile (same browser arguments, so it shares their
-/// browser process), but activatable and without acrylic (its card is drawn by the page, so it can be animated).
+/// browser process), but activatable and without acrylic (the page draws the dim and the card, so both animate).
 pub fn ensure(app: &AppHandle) -> Option<WebviewWindow> {
     if let Some(win) = app.get_webview_window(LABEL) {
         return Some(win);
@@ -104,37 +113,51 @@ pub fn open(app: &AppHandle, tile: &WebviewWindow, label: &str, room: Option<Str
     let wa = layout::work_area(tile);
     let s = wa.scale * crate::zoom::current();
     let (cw, ch) = layout::full_size(app, tile, label);
-    let (header, margin) = ((HEADER * s).round() as u32, (MARGIN * s).round() as u32);
-    let w = (cw + 2 * margin).min(wa.w);
-    let h_px = (ch + header + 2 * margin).min(wa.h);
-    let x = wa.x + (wa.w as i32 - w as i32) / 2;
-    let y = wa.y + (wa.h as i32 - h_px as i32) / 2;
+    let header = (HEADER * s).round() as u32;
+    let edge = (EDGE * s).round() as u32;
+    // The widget at its own size under the header; a widget bigger than the screen gets what the screen has.
+    let card_w = cw.min(wa.w.saturating_sub(2 * edge)).max(1);
+    let card_h = (ch + header).min(wa.h.saturating_sub(2 * edge)).max(1);
     let (icon_pos, icon_size) = (tile.outer_position().unwrap_or_default(), tile.outer_size().unwrap_or_default());
     *SHOWN.lock().unwrap() = Some(label.to_string());
     layout::set_page_visible(&win, true);
-    crate::desktop_watch::place_tile(h, x, y, w, h_px);
+    crate::desktop_watch::place_tile(h, wa.x, wa.y, wa.w, wa.h);
     crate::desktop_watch::activate(h);
     let show = Show {
         label: label.to_string(),
-        icon_x: icon_pos.x - x,
-        icon_y: icon_pos.y - y,
+        icon_x: icon_pos.x - wa.x,
+        icon_y: icon_pos.y - wa.y,
         icon_w: icon_size.width,
         icon_h: icon_size.height,
+        card_x: (wa.w as i32 - card_w as i32) / 2,
+        card_y: (wa.h as i32 - card_h as i32) / 2,
+        card_w,
+        card_h,
         room,
     };
     let _ = app.emit_to(LABEL, "popup-show", show);
     let _ = app.emit("popup-state", Some(label.to_string()));
 }
 
-/// Closes the pop-up: parked and out of sight; the icons hear it.
+/// Closes the pop-up: the icons hear it at once (the page lets go of its card, the icon shows its picture again),
+/// and a moment later the window is parked out of sight, unless something opened it again meanwhile.
 pub fn close(app: &AppHandle) {
     if SHOWN.lock().unwrap().take().is_none() {
         return;
     }
-    if let Some(win) = app.get_webview_window(LABEL) {
-        layout::park_hidden(&win);
-    }
     let _ = app.emit("popup-state", None::<String>);
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(PARK_AFTER);
+        let main = handle.clone();
+        let _ = handle.run_on_main_thread(move || {
+            if shown().is_none() {
+                if let Some(win) = main.get_webview_window(LABEL) {
+                    layout::park_hidden(&win);
+                }
+            }
+        });
+    });
 }
 
 /// The pop-up shows `label` and that widget goes out of sight (switched off, all hidden, deleted).

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
@@ -29,7 +29,65 @@ interface TileProps {
   menuItems?: (target: HTMLElement) => MenuItemSpec[];
   /** The folded face of an own widget: its picture instead of an icon, and its name. */
   face?: { art: ReactNode; name: string };
+  /**
+   * The content grows with the widget: `w`×`h` is the size it was drawn for (the default size, logical px). Made
+   * bigger in both directions, the content is laid out at that size and scaled up by the smaller ratio (never
+   * down: smaller widgets keep their own layout). `limit` may hold the scale lower (the launchers keep every
+   * shortcut in view). Widgets that show more when bigger (lists, the map) leave it out.
+   */
+  grow?: Grow;
   children: ReactNode;
+}
+
+export interface Grow {
+  w: number;
+  h: number;
+  /** The highest scale for a content box of `w`×`h` CSS px. */
+  limit?: (w: number, h: number) => number;
+}
+
+/** No widget content grows past this. */
+const GROW_MAX = 4;
+
+/**
+ * The scale of `grow` content in `root` (the tile): the content box against the box the content was drawn for
+ * (the same tile at its `grow` size, with this padding and the 1 px border), and the box it is laid out in.
+ */
+function useGrow(root: React.RefObject<HTMLDivElement>, grow: Grow | undefined, active: boolean) {
+  const [box, setBox] = useState<{ w: number; h: number; scale: number } | null>(null);
+  const gw = grow?.w ?? 0;
+  const gh = grow?.h ?? 0;
+  const limit = grow?.limit;
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el || !active || gw <= 0 || gh <= 0) {
+      setBox(null);
+      return;
+    }
+    const read = () => {
+      const cs = getComputedStyle(el);
+      const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      const borderX = parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+      const borderY = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+      const w = el.clientWidth - padX;
+      const h = el.clientHeight - padY;
+      if (w <= 0 || h <= 0) return;
+      // The content box at the drawn size: the side paddings count on both axes (a tile in the pop-up has less
+      // at the top, which only leaves its content a little more room).
+      const baseW = gw - parseFloat(cs.paddingLeft) * 2 - Math.max(2, borderX);
+      const baseH = gh - parseFloat(cs.paddingLeft) * 2 - Math.max(2, borderY);
+      let scale = Math.min(w / baseW, h / baseH, GROW_MAX);
+      if (limit) scale = Math.min(scale, limit(w, h));
+      scale = Math.max(1, Math.floor(scale * 100) / 100);
+      setBox((prev) => (prev && prev.scale === scale && Math.abs(prev.w - w) < 0.5 && Math.abs(prev.h - h) < 0.5 ? prev : { w, h, scale }));
+    };
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [root, active, gw, gh, limit]);
+  return box;
 }
 
 const DEFAULT_MIN: Record<TileId, { w: number; h: number }> = {
@@ -75,13 +133,15 @@ function TileFace({ view, art, name, open }: { view: TileView; art: ReactNode; n
  * Glass tile root: material, 1 px border, top edge highlight, radius, padding; context menu; edit mode; views.
  * Inside the pop-up (PopupHost) it is the content of the card: no edit mode, and its menu can close the pop-up.
  */
-export function Tile({ label, minSize, className, background = true, menuItems, face, children }: TileProps) {
+export function Tile({ label, minSize, className, background = true, menuItems, face, grow, children }: TileProps) {
   const s = useSettings();
   const popup = usePopup();
   const locked = s.lockLayout;
   const view = useTileView();
   const foldable = isFoldedView(view);
   const open = usePopupOpen();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const growBox = useGrow(rootRef, grow, !foldable);
   const builtIn = isBuiltIn(label);
   const name = face?.name ?? (builtIn ? ru.tiles[label] : "");
   // A «Большой» widget resized by hand keeps that size: it becomes «Вручную».
@@ -186,12 +246,28 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
   const compactPill = foldable;
   return (
     <div
+      ref={rootRef}
       className={cls}
       onContextMenu={onContextMenu}
       onPointerDownCapture={onPointerDownCapture}
       onPointerDown={editing ? edit.onDragStart : undefined}
     >
-      {foldable ? <TileFace view={view} art={tileArt(label, face)} name={name} open={open} /> : children}
+      {foldable ? (
+        <TileFace view={view} art={tileArt(label, face)} name={name} open={open} />
+      ) : grow ? (
+        <div
+          className="tile-grow"
+          style={
+            growBox
+              ? ({ width: growBox.w / growBox.scale, height: growBox.h / growBox.scale, transform: growBox.scale > 1 ? `scale(${growBox.scale})` : undefined } as CSSProperties)
+              : undefined
+          }
+        >
+          {children}
+        </div>
+      ) : (
+        children
+      )}
       {editing && (
         <div className="edit-pill" onPointerDown={(e) => e.stopPropagation()}>
           {edit.canUndo && (

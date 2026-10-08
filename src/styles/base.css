@@ -147,6 +147,22 @@ a { color: var(--accent-text); text-decoration: none; }
 /* Arranging a folded icon: the buttons sit in its middle (no words, there is no room). */
 .tile:is(.view-small, .view-medium) .edit-pill { top: 50%; transform: translate(-50%, -50%); }
 
+/* Content that grows with its widget (Tile `grow`): laid out at the size it was drawn for and scaled up from the
+   top left corner to fill the widget; the widget's own layout (flex or block, its direction) passes through. */
+.tile-grow {
+  display: inherit;
+  flex-direction: inherit;
+  align-items: inherit;
+  justify-content: inherit;
+  flex: none;
+  align-self: flex-start;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  transform-origin: 0 0;
+}
+
 /* =====================================================================================
    Buttons
    ===================================================================================== */
@@ -175,6 +191,11 @@ a { color: var(--accent-text); text-decoration: none; }
 .btn.subtle:hover { background: var(--ctl-fill-hover); }
 .btn.danger { color: var(--critical); }
 .btn.danger:hover { background: color-mix(in srgb, var(--critical) 14%, transparent); }
+/* The last word of a confirmation that deletes things: filled in the critical colour, readable on it. */
+.btn.danger.solid { background: var(--critical); border-color: transparent; color: #1B1B1B; }
+:root[data-scheme="light"] .btn.danger.solid { color: #FFFFFF; }
+.btn.danger.solid:hover { background: color-mix(in srgb, var(--critical) 88%, #000000 12%); }
+.btn.danger.solid:active { background: color-mix(in srgb, var(--critical) 78%, #000000 22%); }
 /* Disabled wins over every variant (the variants above are as specific as .btn:disabled and come later). */
 .btn.accent:disabled, .btn.subtle:disabled, .btn.danger:disabled { color: var(--text-disabled); }
 .btn.accent:disabled { background: var(--ctl-fill); border-color: var(--ctl-stroke); }
@@ -745,6 +766,7 @@ a { color: var(--accent-text); text-decoration: none; }
 /* «Сбросить настройки раздела» at the end of a page */
 .reset-section { display: flex; justify-content: flex-start; padding-top: var(--s2); }
 .reset-text { margin: 0; color: var(--text-2); }
+.reset-text + .reset-keep { margin-top: var(--s3); color: var(--text); }
 
 /* =====================================================================================
    Scrollbars, wherever something scrolls (widgets and the settings window)

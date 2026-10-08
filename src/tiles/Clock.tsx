@@ -1,5 +1,5 @@
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { Tile } from "../components/Tile";
+import { Tile, type Grow } from "../components/Tile";
 import {
   GAP_COLUMN,
   GAP_ROW,
@@ -41,11 +41,14 @@ function DateLine({ text }: { text: string }) {
   return <span className="clock-date-line" style={{ width: `${Math.min(18, text.length) * 0.5}em` }} />;
 }
 
-/** CSS zoom applied by ancestors (preset cards, a scaled preview): viewport px per CSS px. */
+/**
+ * Viewport px per CSS px: the CSS zoom of the ancestors (preset cards, a scaled preview) and the scale of a widget
+ * that grew (Tile `grow`, a transform), both in the ratio of the drawn width to the laid out one.
+ */
 function cssZoom(el: HTMLElement, rect: DOMRect): number {
+  if (el.offsetWidth > 0 && rect.width > 0) return rect.width / el.offsetWidth;
   const z = (el as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom;
-  if (typeof z === "number" && z > 0) return z;
-  return el.offsetWidth > 0 ? rect.width / el.offsetWidth : 1;
+  return typeof z === "number" && z > 0 ? z : 1;
 }
 
 function sameSettings(a: ClockSettings, b: ClockSettings): boolean {
@@ -200,6 +203,9 @@ export const ClockFace = memo(
     sameSettings(a.settings, b.settings),
 );
 
+/** Drawn for the default size (src-tauri/src/layout.rs); a bigger widget shows a bigger clock. */
+const GROW: Grow = { w: 280, h: 120 };
+
 /**
  * «Часы»: the face inside a glass tile; everything comes from settings.clock. While Windows battery saver is on
  * the seconds step aside (the face then changes once a minute, like the clock without seconds).
@@ -214,7 +220,7 @@ export function ClockTile() {
   // Wait for the stored settings so the tile never flashes the defaults (or toggles the acrylic twice).
   if (!loaded) return null;
   return (
-    <Tile label="clock" className="tile-clock" background={clock.background}>
+    <Tile label="clock" className="tile-clock" background={clock.background} grow={GROW}>
       <ClockFace settings={clock} now={now} colonDim={colonDim} />
     </Tile>
   );

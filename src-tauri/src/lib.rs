@@ -13,6 +13,7 @@ mod notify;
 mod perf;
 mod popup;
 mod reminders;
+mod reset;
 mod settings_window;
 mod sysinfo;
 mod tray;
@@ -75,8 +76,9 @@ const AUTOSTART_ARG: &str = "--autostart";
 
 /// settings.json is plain JSON that people may edit by hand. The store plugin reads a file it cannot parse as
 /// empty, and the first save then writes defaults over it, losing lessons and notes. So before anything opens
-/// it: a UTF-8 BOM (added by some editors) is dropped, and a file that still does not parse is moved aside as
-/// settings.broken-<unix time>.json, next to it, where the data can be recovered.
+/// it: a reset asked for by the previous run is carried out (reset.rs), a UTF-8 BOM (added by some editors) is
+/// dropped, a file that still does not parse is moved aside as settings.broken-<unix time>.json, next to it,
+/// where the data can be recovered, and defaults changed since the file was saved are applied once.
 /// A second launch only hands its arguments to the running instance and exits; it must not touch the store file,
 /// which the running instance may be writing at that very moment. tauri-plugin-single-instance holds a mutex
 /// named «<identifier>-sim» for as long as the first instance runs.
@@ -113,11 +115,16 @@ fn protect_store_file(identifier: &str) {
     }
     let Some(appdata) = roaming_app_data() else { return };
     let dir = appdata.join(identifier);
+    reset::apply_pending(&dir);
     let path = dir.join(layout::STORE_FILE);
     let Ok(bytes) = std::fs::read(&path) else { return };
     let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF][..]).unwrap_or(&bytes);
-    if serde_json::from_slice::<serde_json::Value>(body).is_ok() {
-        if body.len() != bytes.len() {
+    if let Ok(mut store) = serde_json::from_slice::<serde_json::Value>(body) {
+        if reset::migrate(&mut store) {
+            if let Ok(json) = serde_json::to_vec_pretty(&store) {
+                let _ = std::fs::write(&path, json);
+            }
+        } else if body.len() != bytes.len() {
             let _ = std::fs::write(&path, body);
         }
         return;
@@ -169,6 +176,7 @@ pub fn run() {
             commands::save_config_file,
             commands::open_config_file,
             commands::restart_app,
+            commands::reset_everything,
             commands::open_popup,
             commands::close_popup,
             commands::popup_shown,

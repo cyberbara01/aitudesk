@@ -240,6 +240,9 @@ export function GeneralPage({ editId }: Props) {
   const [lookReset, flashLookReset] = useTransient<Outcome>("idle");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const closeConfirm = useCallback(() => setConfirmOpen(false), []);
+  const [everythingOpen, setEverythingOpen] = useState(false);
+  const closeEverything = useCallback(() => setEverythingOpen(false), []);
+  const [everythingFailed, flashEverythingFailed] = useTransient(false, 4000);
   const navigate = useNavigate();
 
   const toggleTile = (id: TileId, enabled: boolean) => {
@@ -269,6 +272,14 @@ export function GeneralPage({ editId }: Props) {
     } catch {
       flashLayoutReset("failed");
     }
+  };
+
+  // «Сбросить всё»: the native side clears everything and starts the app again (this window closes with it).
+  const resetEverything = () => {
+    invoke("reset_everything").catch(() => {
+      setEverythingOpen(false);
+      flashEverythingFailed(true);
+    });
   };
 
   const resetLook = () => {
@@ -344,6 +355,14 @@ export function GeneralPage({ editId }: Props) {
             <ResultText outcome={lookReset} done={x.resetAllDone} failed={x.resetAllFailed} />
           </span>
         </Row>
+        <Row label={x.everythingLabel} hint={x.everythingHint} stack>
+          <span className="inline">
+            <Button variant="danger" icon="arrow_reset" onClick={() => setEverythingOpen(true)}>
+              {x.everything}
+            </Button>
+            <ResultText outcome={everythingFailed ? "failed" : "idle"} done="" failed={x.everythingFailed} />
+          </span>
+        </Row>
       </Section>
 
       <Dialog
@@ -361,6 +380,24 @@ export function GeneralPage({ editId }: Props) {
         }
       >
         <p className="reset-text">{ru.common.resetAllText}</p>
+      </Dialog>
+
+      <Dialog
+        open={everythingOpen}
+        title={x.everythingTitle}
+        onClose={closeEverything}
+        width="460px"
+        footer={
+          <>
+            <Button onClick={closeEverything}>{ru.common.cancel}</Button>
+            <Button variant="danger" className="solid" onClick={resetEverything}>
+              {x.everything}
+            </Button>
+          </>
+        }
+      >
+        <p className="reset-text">{x.everythingText}</p>
+        <p className="reset-text reset-keep">{x.everythingKeep(ru.settings.nav.transfer)}</p>
       </Dialog>
 
       {editor && <CustomWidgetEditor widget={editor.widget} onClose={closeEditor} />}

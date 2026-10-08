@@ -46,8 +46,8 @@ import { LOCALE } from "../i18n/lang";
 /** Version of the file layout. Raise it only when an older app would misread a newer file. */
 export const FORMAT = 1;
 
-/** Settings keys a file can carry: all but `version`, `onboarded`, `language` and `tileScale`. */
-export type SettingsKey = Exclude<keyof Settings, "version" | "onboarded" | "language" | "tileScale">;
+/** Settings keys a file can carry: all but `version`, `defaults`, `onboarded`, `language` and `tileScale`. */
+export type SettingsKey = Exclude<keyof Settings, "version" | "defaults" | "onboarded" | "language" | "tileScale">;
 
 export type PartId = "tiles" | "layout" | "appearance" | "clock" | "system" | "perf" | "launchers" | "map" | "schedule" | "reminders" | "custom" | "notes";
 
@@ -77,7 +77,7 @@ const PART_LIST = [
 ] as const satisfies readonly Part[];
 
 /**
- * Compiles only while every settings key (but those four) belongs to a part: a new setting that
+ * Compiles only while every settings key (but those five) belongs to a part: a new setting that
  * nobody added to a part would otherwise silently stay out of every file. The error names the missing key.
  */
 type EveryKeyInAPart<Assigned extends SettingsKey> =

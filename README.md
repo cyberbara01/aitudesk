@@ -71,7 +71,7 @@ turned off.
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/desktop-light.png" alt="Widgets folded into icons, the map open in a pop-up; light theme" width="760">
+  <img src="docs/screenshots/desktop-light.png" alt="Widgets folded into icons, the map grown out of its icon into a pop-up; light theme" width="760">
 </p>
 <p align="center">
   <img src="docs/screenshots/settings-appearance.png" alt="Appearance: a design, with its parts chosen separately" width="49%">
@@ -94,9 +94,10 @@ turned off.
 3. The settings window opens with a short guide, and the widgets appear on the desktop. To start them with Windows,
    turn this on in “General”.
 
-Windows 11, 64-bit, is required. To move a widget or change its size, right-click it; in “Size” it can also fold
-into an icon that opens the widget in a pop-up in the middle of the screen. The interface is in English or Russian, following Windows; switch the language
-with the “RU | EN” button at the bottom of the settings window.
+Windows 11, 64-bit, is required. To move a widget or change its size, right-click it: the clock, system, performance
+and shortcuts grow along with it. In “Size” a widget can also fold into an icon that grows into a pop-up in the middle
+of the screen. The interface is in English or Russian, following Windows; switch the language with the “RU | EN”
+button at the bottom of the settings window.
 
 <details>
 <summary><b>Check that the installer is genuine</b></summary>
@@ -156,7 +157,8 @@ it to `settings.broken-<time>.json`.
 
 Settings → Apps → Installed apps → AITU Desk → Uninstall. The “Delete app data” box erases the settings too;
 without it they stay in case you install again. Before uninstalling you can save everything to a config in
-“Configs”.
+“Configs”. To start over without uninstalling, “Reset everything” at the bottom of “General” makes the app as it was
+right after installing.
 </details>
 
 <details>

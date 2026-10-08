@@ -356,6 +356,11 @@ export const TILE_SCALES: readonly TileScale[] = ["auto", 0.8, 0.9, 1, 1.1];
 export interface Settings {
   version: 2;
   /**
+   * The round of changed defaults these settings already have (src-tauri/src/reset.rs `migrate`, applied once at
+   * start): new settings are made with the latest one.
+   */
+  defaults: number;
+  /**
    * Read by the native side when the app starts (src-tauri/src/lang.rs); a change restarts the app. A personal
    * choice: never in a config file and never reset.
    */
@@ -503,14 +508,14 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   version: 2,
+  defaults: 1,
   language: "auto",
   tileScale: "auto",
   theme: "system",
   style: "fluent",
   look: DEFAULT_LOOK,
   accent: { mode: "preset", preset: "graphite", custom: "#60CDFF" },
-  // «Нагрузка» polls the PC: off until it is wanted.
-  tiles: { clock: true, system: true, perf: false, launchers: true, map: true, schedule: true, notes: true },
+  tiles: { clock: true, system: true, perf: true, launchers: true, map: true, schedule: true, notes: true },
   tileViews: {},
   customWidgets: [],
   lockLayout: false,
@@ -663,7 +668,8 @@ function migrateNote(raw: unknown): Note | null {
 export function normalize(saved: unknown): Settings {
   const s = isObj(saved) ? saved : {};
   const d = DEFAULT_SETTINGS;
-  const v1 = s.version !== 2;
+  // Nothing saved yet (the first start after installing) is not an old file: it gets the defaults.
+  const v1 = isObj(saved) && saved.version !== 2;
 
   // theme
   const theme = oneOf(s.theme, THEME_IDS, d.theme);
@@ -866,6 +872,7 @@ export function normalize(saved: unknown): Settings {
 
   return {
     version: 2,
+    defaults: Math.round(num(s.defaults, isObj(saved) ? 0 : d.defaults, 0, 1000)),
     language: oneOf(s.language, ["auto", "ru", "en"] as const, d.language),
     tileScale: TILE_SCALES.includes(s.tileScale as TileScale) ? (s.tileScale as TileScale) : d.tileScale,
     theme,

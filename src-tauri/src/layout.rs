@@ -279,12 +279,10 @@ pub fn tile_enabled_in_store(app: &AppHandle, label: &str) -> bool {
         .ok()
         .and_then(|s| s.get(SETTINGS_KEY))
         .and_then(|v| v.get("tiles")?.get(label)?.as_bool())
-        // Settings saved before a tile existed do not name it: it starts as the defaults say (src/lib/settings.ts).
-        .unwrap_or(!OFF_BY_DEFAULT.contains(&label))
+        // Settings saved before a tile existed do not name it: it starts on, as every tile in DEFAULT_SETTINGS.tiles
+        // (src/lib/settings.ts).
+        .unwrap_or(true)
 }
-
-/// Tiles that are off until switched on («Нагрузка»), as DEFAULT_SETTINGS.tiles says.
-const OFF_BY_DEFAULT: &[&str] = &["perf"];
 
 fn intersects(r: &Rect, wa: &WorkArea) -> bool {
     let (ax1, ay1, ax2, ay2) = (r.x, r.y, r.x + r.w as i32, r.y + r.h as i32);

@@ -38,6 +38,15 @@ export const en: ShellStrings = {
     appearanceHint: "Design, theme, accent and the look of all widgets. Classes, notes and shortcuts stay",
     resetAllDone: "Appearance reset",
     resetAllFailed: "Couldn't reset the appearance",
+    everythingLabel: "The whole app",
+    everythingHint:
+      "Notes, schedule, shortcuts, your widgets, layout, appearance and every setting. AITU Desk becomes as it was right after installing",
+    everything: "Reset everything",
+    everythingTitle: "Reset everything?",
+    everythingText:
+      "Your notes, schedule, shortcuts and widgets, marked rooms, layout and appearance are deleted, every setting goes back to its default and starting with Windows is turned off. AITU Desk restarts as it was right after installing. This can't be undone.",
+    everythingKeep: (configs: string) => `To keep your data, save a config in “${configs}” first.`,
+    everythingFailed: "Couldn't reset everything. Try again",
     language: "Language · Язык",
     languageAuto: "Same as Windows",
     languageTitle: "Switch the language?",
@@ -126,7 +135,7 @@ export const en: ShellStrings = {
       `The clock, system info, computer load, shortcuts, the AITU map, the schedule and notes sit right on the wallpaper, under all windows: to see them, minimize your windows or press Win+D. Choose which of them to show in “${general}”, where you can also add widgets of your own with a picture or a GIF.`,
     menuTitle: "Right-click",
     menuText: (move: string, open: string, done: string, size: string) =>
-      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner. Ctrl+Z undoes a step, “${done}” saves. In “${size}” you can turn a widget into an icon: a click opens it in a pop-up in the middle of the screen, and the cross or Esc closes it. “${open}” opens its section in this window.`,
+      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and the clock, system, performance and shortcuts grow along with it. Ctrl+Z undoes a step, “${done}” saves. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
     mapTitle: "AITU map",
     mapText:
       "The mouse wheel or a two-finger pinch on the touchpad zooms the plan, dragging moves it and a double-click fits it whole. Switch floors with the buttons on the side; on hover you also get room search (223 or C1.2.223) and a brush to paint your rooms.",
@@ -187,7 +196,7 @@ export const en: ShellStrings = {
     small: "Small",
     medium: "Medium",
     large: "Large",
-    hint: "Small and medium sizes leave an icon on the desktop, and a click opens the widget in a pop-up in the middle of the screen",
+    hint: "Small and medium sizes leave an icon on the desktop, and a click grows the widget out of it into a pop-up in the middle of the screen",
     open: (name: string) => `Open “${name}”`,
     close: "Close",
   },

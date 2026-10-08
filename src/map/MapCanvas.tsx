@@ -338,15 +338,18 @@ export const MapCanvas = memo(
       measure();
       const ro = new ResizeObserver(() => measure());
       ro.observe(host);
-      // The card around the map grew in (the pop-up opening): the host moved without a resize, so its origin for
-      // the pixel snapping and the zoom point is read again.
+      // Something around the map moved it without a resize (the pop-up's card grew in and stood still, or a CSS
+      // animation of an ancestor ended): its origin for the pixel snapping and the zoom point is read again.
       const onAnimationEnd = (e: Event) => {
         if (e.target instanceof Element && e.target !== host && e.target.contains(host)) measure();
       };
+      const onSettled = () => measure();
       window.addEventListener("animationend", onAnimationEnd);
+      window.addEventListener("popup-settled", onSettled);
       return () => {
         ro.disconnect();
         window.removeEventListener("animationend", onAnimationEnd);
+        window.removeEventListener("popup-settled", onSettled);
       };
     }, [measure]);
 

@@ -1,73 +1,132 @@
 /* =====================================================================================
-   The pop-up of a folded widget (src/popup/PopupHost.tsx, src-tauri/src/popup.rs): a card in the middle of the
-   screen, the widget's icon, name and a close button over the widget itself. The window is the card plus 32 px
-   around it for the shadow (popup.rs MARGIN): the page around the card stays clear. The card grows from the side
-   of the icon and fades in (260 ms, decelerating); closing is quicker and the other way round.
+   The pop-up of a folded widget (src/popup/PopupHost.tsx, src-tauri/src/popup.rs). The window covers the work
+   area: a soft dim lies over the desktop, lightest around the card, and the widget's card stands in the middle.
+   The card grows out of the widget's icon and the icon flies into its header (src/popup/motion.ts); what is here
+   is the card at rest. Light falls from above: a faint sheen on the top of the sheet, a bright top edge, a
+   hairline around it and a deep shadow in four layers (contact, near, far, ambient). Nothing here keeps a
+   compositor layer at rest (no will-change): the animations get one while they run, and a fixed element inside
+   the card (a menu drawn by the page) is never tied to the card.
    ===================================================================================== */
 .popup-stage {
   position: fixed;
   inset: 0;
-  display: flex;
-  padding: 32px;
+  overflow: hidden;
 }
+.popup-stage.closing { pointer-events: none; }
+
+.popup-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(110% 110% at var(--cx, 50%) var(--cy, 50%), rgba(6, 7, 10, .22) 0%, rgba(6, 7, 10, .52) 100%);
+}
+:root[data-scheme="light"] .popup-backdrop {
+  background: radial-gradient(110% 110% at var(--cx, 50%) var(--cy, 50%), rgba(28, 32, 44, .10) 0%, rgba(28, 32, 44, .34) 100%);
+}
+
 .popup-card {
+  /* The card's corners: a little rounder than the design's cards, never under 12 px (PopupHost reads the same). */
+  --popup-r: max(12px, calc(var(--r-card) + 6px));
+  position: absolute;
+  transform-origin: 0 0;
+}
+/* The deep shadow lies apart from the sheet: while the card grows, only the sheet's corners are redrawn (a
+   blurred shadow does not show that its corners stretch a little). */
+.popup-shadow,
+.popup-shell {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--popup-r);
+}
+.popup-shadow {
+  box-shadow:
+    0 6px 14px -2px rgba(0, 0, 0, .30),
+    0 22px 44px -8px rgba(0, 0, 0, .42),
+    0 56px 112px -20px rgba(0, 0, 0, .55);
+}
+:root[data-scheme="light"] .popup-shadow {
+  box-shadow:
+    0 6px 14px -2px rgba(16, 24, 40, .08),
+    0 22px 44px -8px rgba(16, 24, 40, .15),
+    0 56px 112px -20px rgba(16, 24, 40, .22);
+}
+.popup-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .05) 0, rgba(255, 255, 255, 0) 128px),
+    var(--surface-raised);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    inset 0 0 0 1px rgba(255, 255, 255, .05),
+    0 0 0 1px rgba(0, 0, 0, .42),
+    0 1px 2px rgba(0, 0, 0, .28);
+}
+:root[data-scheme="light"] .popup-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .85) 0, rgba(255, 255, 255, 0) 128px),
+    var(--surface-raised);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    0 0 0 1px rgba(16, 24, 40, .08),
+    0 1px 2px rgba(16, 24, 40, .06);
+}
+
+.popup-content {
   position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
-  min-width: 0;
+  height: 100%;
   min-height: 0;
-  border-radius: max(var(--r-card), 8px);
-  background: var(--surface-raised);
-  border: 1px solid var(--tile-border);
-  box-shadow: inset 0 1px 0 var(--tile-edge), 0 8px 24px rgba(0, 0, 0, .32), 0 1px 3px rgba(0, 0, 0, .18);
-  overflow: hidden;
-  animation: popup-in 260ms cubic-bezier(.16, 1, .3, 1) both;
-}
-:root[data-scheme="light"] .popup-card {
-  box-shadow: inset 0 1px 0 var(--tile-edge), 0 8px 24px rgba(0, 0, 0, .16), 0 1px 3px rgba(0, 0, 0, .10);
-}
-.popup-card.leaving {
-  animation: popup-out 150ms cubic-bezier(.4, 0, 1, 1) both;
-  pointer-events: none;
-}
-@keyframes popup-in {
-  from { opacity: 0; transform: scale(.9); }
-  to { opacity: 1; transform: none; }
-}
-@keyframes popup-out {
-  from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: scale(.94); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .popup-card, .popup-card.leaving { animation-duration: 1ms; }
 }
 
-/* Header: 44 px (popup.rs HEADER): the icon in its tinted square, the name, the close button. */
+/* Header: 52 px (popup.rs HEADER): the widget's icon, its name, the close button. */
 .popup-head {
   display: flex;
   align-items: center;
-  gap: var(--s2);
+  gap: var(--s3);
   flex: none;
-  height: 44px;
-  padding: 0 var(--s2) 0 var(--s3);
+  height: 52px;
+  padding: 0 10px 0 14px;
 }
+/* The icon as on the folded face (40 px there, 32 px here, the same proportions), so it can fly between the two. */
 .popup-art {
   display: grid;
   place-items: center;
   flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-ctl);
+  width: 32px;
+  height: 32px;
+  border-radius: calc(var(--r-ctl) * .8);
   background: var(--accent-soft);
   color: var(--accent-text);
   overflow: hidden;
 }
 :root[data-style="aqua"] .popup-art { box-shadow: inset 0 1px 0 var(--tile-edge); }
-.popup-art .icon { width: 18px; height: 18px; flex-basis: 18px; color: inherit; }
+.popup-art .icon { width: 19.2px; height: 19.2px; flex-basis: 19.2px; color: inherit; }
 .popup-art .custom-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }
-.popup-name { flex: 1 1 auto; min-width: 0; font-weight: 600; }
-.popup-close { flex: none; }
+.popup-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+}
+.popup-close.icon-btn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-2);
+}
+.popup-close.icon-btn:hover { color: var(--text); background: var(--ctl-fill-hover); }
+.popup-close.icon-btn:active { background: var(--ctl-fill-pressed); }
+
+/* The icon on its way between the widget's icon and the header, above the card. */
+.popup-fly {
+  position: absolute;
+  z-index: 2;
+  transform-origin: 0 0;
+  pointer-events: none;
+  visibility: hidden;
+}
 
 /* The widget: its own layout and padding, without a frame of its own (the card is the frame). */
 .popup-body { position: relative; display: flex; flex: 1 1 auto; min-width: 0; min-height: 0; }

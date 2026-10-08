@@ -4,7 +4,7 @@
 // temperature where neither Windows nor a hardware monitor gives one. Colour: the accent, by load or one per
 // reading; from the alert threshold a reading turns red.
 import type { CSSProperties } from "react";
-import { Tile } from "../components/Tile";
+import { Tile, type Grow } from "../components/Tile";
 import { Tooltip } from "../components/Tooltip";
 import { extra } from "../i18n/ru.extra.perf";
 import { useDesktopCovered } from "../lib/desktopCovered";
@@ -149,6 +149,9 @@ export function PerfView({ info, settings: s, mode }: { info: PerfInfo | null; s
 
 export const nextPerfMode = (mode: PerfMode): PerfMode => PERF_MODES[(PERF_MODES.indexOf(mode) + 1) % PERF_MODES.length];
 
+/** Drawn for the default size (src-tauri/src/layout.rs); a bigger widget shows bigger rings, bars and figures. */
+const GROW: Grow = { w: 280, h: 132 };
+
 export function PerfTile() {
   const s = useSettings().perf;
   // Folded to its icon, or with a program over the whole screen, nothing is read.
@@ -156,7 +159,7 @@ export function PerfTile() {
   const covered = useDesktopCovered();
   const info = usePerf(!folded && !covered, s.interval);
   return (
-    <Tile label="perf" className="tile-perf" background={s.background}>
+    <Tile label="perf" className="tile-perf" background={s.background} grow={GROW}>
       <Tooltip text={x.cycleHint} className="perf-hit">
         <div className="perf-click" onClick={() => void settings.updatePerf({ mode: nextPerfMode(s.mode) })}>
           <PerfView info={info} settings={s} mode={s.mode} />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   text: string;
@@ -14,9 +15,10 @@ const DELAY = 500;
 const GAP = 4;
 
 /**
- * Layout of the bubble. The look is the kit's .tooltip (base.css); these rules belong to the component because
- * the bubble is rendered inside its anchor: wrap long text and stay inside a small tile window, and do not
- * inherit the anchor's text styling (alignment, number fonts, weight).
+ * Layout of the bubble. The look is the kit's .tooltip (base.css); these rules belong to the component: wrap long
+ * text and stay inside a small tile window, and keep the kit's text styling whatever the page sets. The bubble is
+ * drawn at the top of the page, not inside its anchor, so content that is scaled (a widget that grew) or moving
+ * (the pop-up's card) never carries it off its place.
  */
 const BUBBLE: CSSProperties = {
   maxWidth: `min(320px, calc(100vw - ${2 * GAP}px))`,
@@ -116,11 +118,13 @@ export function Tooltip({ text, className, disabled, children }: Props) {
       onBlur={hide}
     >
       {children}
-      {open && (
-        <div id={id} ref={tip} role="tooltip" className="tooltip" style={{ ...BUBBLE, ...(pos ?? { left: 0, top: 0, visibility: "hidden" }) }}>
-          {text}
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div id={id} ref={tip} role="tooltip" className="tooltip" style={{ ...BUBBLE, ...(pos ?? { left: 0, top: 0, visibility: "hidden" }) }}>
+            {text}
+          </div>,
+          document.body,
+        )}
     </span>
   );
 }

@@ -48,6 +48,8 @@ const NNBSP = "\u202F";
 /** Logical px; must match system.css (.sys-row) and --tile-pad in tokens.css. */
 const ROW_H = 36;
 const MIN_W = 220;
+/** The default width (src-tauri/src/layout.rs). */
+const SYSTEM_W = 280;
 
 /** The device's own name: what an empty custom text or a missing account name falls back to. */
 export const deviceName = (laptop: boolean) => (laptop ? ru.system.laptop : ru.system.desktopPc);
@@ -244,7 +246,14 @@ export function SystemTile() {
   // Wait for the stored settings so the tile never flashes default rows (or toggles the acrylic twice).
   if (!loaded) return null;
   return (
-    <Tile label="system" className="tile-system" background={sys.background} minSize={{ w: MIN_W, h: fit.comfortable }}>
+    // Drawn for the default width and the height its rows need; a bigger widget shows bigger rows.
+    <Tile
+      label="system"
+      className="tile-system"
+      background={sys.background}
+      minSize={{ w: MIN_W, h: fit.comfortable }}
+      grow={{ w: SYSTEM_W, h: fit.comfortable }}
+    >
       <SystemRows info={info} settings={sys} />
     </Tile>
   );

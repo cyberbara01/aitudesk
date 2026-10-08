@@ -1,10 +1,11 @@
-// The pop-up window (src-tauri/src/popup.rs): a folded widget («Маленький», «Средний») opens here, whole, in a
-// card in the middle of the screen, under its name and a close button. The card grows from the side of its icon and
-// fades in; closing plays it backwards before the window is parked. Esc closes it too (unless something inside took
-// the Esc: the map search, paint mode, a menu). Only one widget is shown at a time; its code is loaded ahead of the
-// first click for the widgets that are folded, so the card opens at once. Its icon clicked again closes it, with the
-// same animation. A room clicked in the schedule while the map is folded opens the map here and shows that room.
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
+// The pop-up window (src-tauri/src/popup.rs) covers the screen's work area. A folded widget («Маленький»,
+// «Средний») opens here: the desktop dims softly, the widget's card grows out of its icon on a spring and a copy of
+// the icon's picture flies into the card's header (src/popup/motion.ts). A click beside the card, Esc (unless something inside took
+// it: the map search, paint mode, a menu), the close button, the icon again or leaving for another window play it
+// all back into the icon. Only one widget is shown at a time; the code of the folded widgets is loaded ahead of
+// the first click, so the card opens at once. A room clicked in the schedule while the map is folded opens the
+// map here and shows that room.
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { IconButton } from "../components/Button";
@@ -12,17 +13,28 @@ import { tileArt } from "../components/Tile";
 import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
 import { EDIT_EVENT } from "../lib/editMode";
-import { customIdOf, isCustomLabel, TILE_IDS, type TileId } from "../lib/settings";
+import { isMenuOpen } from "../lib/nativeMenu";
+import { customIdOf, isCustomLabel, settings, TILE_IDS, type TileId, type TileView } from "../lib/settings";
 import { isFoldedView } from "../lib/tileView";
 import { useSettings } from "../lib/useSettings";
 import { useWidgetImage } from "../lib/widgetImage";
 import { PopupContext } from "./context";
+import { CLOSE, OPEN, cardStart, fly, flyStart, morph, progressAt, shellStart, type Rect } from "./motion";
 
 const v = shell.views;
-/** Logical px around the card (its shadow) and the header: the same as popup.rs MARGIN and HEADER. */
-const MARGIN = 32;
-/** The closing animation (popup.css .popup-card.leaving). */
-const OUT_MS = 150;
+/** CSS px: the card's header (popup.rs HEADER), the icon in it and the room left of that icon (popup.css). */
+const HEAD = 52;
+const HEAD_ART = 32;
+const HEAD_PAD = 14;
+/** The folded face's icon (base.css .tile-face-art) and, on a medium face, the room left of it (border + padding). */
+const FACE_ART = 40;
+const FACE_PAD = 13;
+/** The widget windows' corners (the window's own, 8 px in every design): the card leaves the icon with them. */
+const TILE_RADIUS = 8;
+/** After the icon on the desktop got its picture back, the page lets go of the card (no blink in between). */
+const LET_GO_MS = 40;
+/** Leaving for another window closes the pop-up; a short wait skips focus that only passes through. */
+const BLUR_MS = 120;
 
 type Loader = () => Promise<{ default: ComponentType }>;
 const LOADERS: Record<TileId, Loader> = {
@@ -38,19 +50,55 @@ const WIDGETS = Object.fromEntries(TILE_IDS.map((id) => [id, lazy(LOADERS[id])])
 const loadCustom = () => import("../tiles/Custom");
 const CustomTile = lazy(() => loadCustom().then((m) => ({ default: m.CustomTile })));
 
-interface Show {
+/** popup.rs Show: physical px relative to this window. */
+interface Payload {
   label: string;
-  /** The icon, relative to this window (physical px). */
   iconX: number;
   iconY: number;
   iconW: number;
   iconH: number;
+  cardX: number;
+  cardY: number;
+  cardW: number;
+  cardH: number;
   room: string | null;
-  /** Counts the openings: a new one plays the opening animation again. */
+}
+
+interface Show {
+  label: string;
+  /** The widget's icon on the desktop and the card, CSS px of this page. */
+  icon: Rect;
+  card: Rect;
+  room: string | null;
+  /** Counts the openings: a new one plays the opening again. */
   seq: number;
   /** Counts every request, also a room asked for while the map is already open here. */
   ask: number;
 }
+
+/** Where things are: the icon and the card, the icon's picture on the face and in the header, the card's corners. */
+interface Geometry {
+  icon: Rect;
+  card: Rect;
+  faceArt: Rect;
+  headArt: Rect;
+  radius: number;
+}
+
+function geometry(show: Show, view: TileView | undefined): Geometry {
+  const { icon, card } = show;
+  const faceArt: Rect = {
+    x: view === "medium" ? icon.x + FACE_PAD : icon.x + (icon.w - FACE_ART) / 2,
+    y: icon.y + (icon.h - FACE_ART) / 2,
+    w: FACE_ART,
+    h: FACE_ART,
+  };
+  const headArt: Rect = { x: card.x + HEAD_PAD, y: card.y + (HEAD - HEAD_ART) / 2, w: HEAD_ART, h: HEAD_ART };
+  const rCard = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--r-card")) || 8;
+  return { icon, card, faceArt, headArt, radius: Math.max(12, rCard + 6) };
+}
+
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** The icon of an own widget in the header: its picture's first frame. */
 function CustomArt({ file }: { file: string }) {
@@ -58,13 +106,16 @@ function CustomArt({ file }: { file: string }) {
   return image && image !== "missing" ? <img className="custom-thumb" src={image.still} alt="" draggable={false} /> : null;
 }
 
+interface Motion {
+  kind: "open" | "close";
+  anims: Animation[];
+  started: number;
+}
+
 export function PopupHost() {
   const s = useSettings();
   const [show, setShow] = useState<Show | null>(null);
   const shownRef = useRef<Show | null>(null);
-  const [leaving, setLeaving] = useState(false);
-  const leavingRef = useRef(false);
-  const closeTimer = useRef(0);
   const seq = useRef(0);
   const ask = useRef(0);
   const put = useCallback((next: Show | null) => {
@@ -72,37 +123,211 @@ export function PopupHost() {
     setShow(next);
   }, []);
 
+  const stageRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const shadowRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const flyRef = useRef<HTMLSpanElement>(null);
+  const headArtRef = useRef<HTMLSpanElement>(null);
+  const motion = useRef<Motion | null>(null);
+  const closing = useRef(false);
+
+  const stop = useCallback(() => {
+    for (const a of motion.current?.anims ?? []) a.cancel();
+    motion.current = null;
+  }, []);
+
   useEffect(() => {
     const offs: Array<() => void> = [];
-    void listen<Omit<Show, "seq" | "ask">>("popup-show", (e) => {
+    void listen<Payload>("popup-show", (e) => {
+      const p = e.payload;
+      const dpr = window.devicePixelRatio || 1;
       // The same widget asked for again while it is open (a room for the map): the card stays, the map hears it.
       const prev = shownRef.current;
-      const keep = prev !== null && prev.label === e.payload.label && !leavingRef.current;
-      // A widget opened while another one was closing: that closing is over.
-      window.clearTimeout(closeTimer.current);
-      leavingRef.current = false;
-      setLeaving(false);
-      if (!keep) seq.current += 1;
+      const keep = prev !== null && prev.label === p.label && !closing.current;
+      if (!keep) {
+        stop();
+        closing.current = false;
+        seq.current += 1;
+      }
       ask.current += 1;
-      put({ ...e.payload, seq: seq.current, ask: ask.current });
+      put({
+        label: p.label,
+        icon: { x: p.iconX / dpr, y: p.iconY / dpr, w: p.iconW / dpr, h: p.iconH / dpr },
+        card: { x: p.cardX / dpr, y: p.cardY / dpr, w: p.cardW / dpr, h: p.cardH / dpr },
+        room: p.room,
+        seq: keep && prev ? prev.seq : seq.current,
+        ask: ask.current,
+      });
     }).then((u) => offs.push(u));
-    // Closed by the native side (the widget went out of sight, the views changed): nothing stays drawn.
+    // Closed (after the closing played, or by the native side: the widget went out of sight, the views changed):
+    // a moment later nothing is drawn any more, then the window is parked.
     void listen<string | null>("popup-state", (e) => {
-      if (e.payload === null) put(null);
+      if (e.payload !== null) return;
+      const was = shownRef.current;
+      window.setTimeout(() => {
+        if (shownRef.current !== was) return;
+        stop();
+        closing.current = false;
+        put(null);
+      }, LET_GO_MS);
     }).then((u) => offs.push(u));
     return () => offs.forEach((u) => u());
-  }, [put]);
+  }, [put, stop]);
 
+  // The opening: the first frame shows the card and the copy of the icon's picture over the icon, both still clear
+  // (the icon shows through); two frames later, with the window surely on screen, everything moves.
+  useLayoutEffect(() => {
+    const cur = shownRef.current;
+    const [stage, backdrop, card, shellEl, shadow, content, flyEl, headArt] = [
+      stageRef.current,
+      backdropRef.current,
+      cardRef.current,
+      shellRef.current,
+      shadowRef.current,
+      contentRef.current,
+      flyRef.current,
+      headArtRef.current,
+    ];
+    if (!cur || !stage || !backdrop || !card || !shellEl || !shadow || !content || !flyEl || !headArt) return;
+    const g = geometry(cur, settings.get().tileViews[cur.label]);
+    const reduced = reducedMotion();
+    backdrop.style.opacity = "0";
+    if (reduced) {
+      card.style.opacity = "0";
+    } else {
+      card.style.transform = cardStart(g.icon, g.card);
+      shellEl.style.borderRadius = shellStart(g.icon, g.card, TILE_RADIUS);
+      shellEl.style.opacity = "0";
+      shadow.style.opacity = "0";
+      content.style.opacity = "0";
+      flyEl.style.transform = flyStart(g.faceArt, g.headArt);
+      flyEl.style.opacity = "0";
+      flyEl.style.visibility = "visible";
+      headArt.style.visibility = "hidden";
+    }
+
+    const start = () => {
+      const anims: Animation[] = [];
+      const forwards = { fill: "forwards" as const };
+      if (reduced) {
+        anims.push(backdrop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, ...forwards }));
+        anims.push(card.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, ...forwards }));
+      } else {
+        const { cardFrames, shellFrames, shadowFrames } = morph(g.icon, g.card, TILE_RADIUS, g.radius, OPEN.points);
+        const timing = { duration: OPEN.ms, easing: "linear", ...forwards };
+        anims.push(card.animate(cardFrames, timing));
+        anims.push(shellEl.animate(shellFrames, timing));
+        anims.push(shadow.animate(shadowFrames, timing));
+        anims.push(flyEl.animate(fly(g.faceArt, g.headArt, OPEN.points), timing));
+        anims.push(
+          content.animate(
+            [
+              { opacity: 0, offset: 0 },
+              { opacity: 0, offset: 0.16 },
+              { opacity: 1, offset: 0.5 },
+              { opacity: 1, offset: 1 },
+            ],
+            timing,
+          ),
+        );
+        anims.push(backdrop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: "cubic-bezier(.2, 0, 0, 1)", ...forwards }));
+      }
+      const run: Motion = { kind: "open", anims, started: performance.now() };
+      motion.current = run;
+      void Promise.all(anims.map((a) => a.finished))
+        .then(() => {
+          if (motion.current !== run) return;
+          // At rest: the end state is written down and the animations let go, so nothing stays on the compositor.
+          card.style.transform = "";
+          card.style.opacity = "";
+          shellEl.style.borderRadius = "";
+          shellEl.style.opacity = "";
+          shadow.style.opacity = "";
+          content.style.opacity = "";
+          backdrop.style.opacity = "1";
+          flyEl.style.visibility = "hidden";
+          flyEl.style.opacity = "";
+          headArt.style.visibility = "";
+          for (const a of anims) a.cancel();
+          motion.current = null;
+          // The widget's own measurements (the map's zoom point) are read again now that the card stands still.
+          window.dispatchEvent(new Event("popup-settled"));
+        })
+        .catch(() => undefined);
+    };
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(start);
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [show?.seq]);
+
+  // Closing: from wherever the card is (an opening still under way included) back into the icon, the copy of the
+  // picture fading onto the icon's own; then the native side hears it and the window goes.
   const close = useCallback(() => {
-    if (leavingRef.current) return;
-    leavingRef.current = true;
-    setLeaving(true);
-    closeTimer.current = window.setTimeout(() => {
-      void invoke("close_popup").finally(() => {
-        if (leavingRef.current) put(null);
-      });
-    }, OUT_MS);
-  }, [put]);
+    const cur = shownRef.current;
+    const [stage, backdrop, card, shellEl, shadow, content, flyEl, headArt] = [
+      stageRef.current,
+      backdropRef.current,
+      cardRef.current,
+      shellRef.current,
+      shadowRef.current,
+      contentRef.current,
+      flyRef.current,
+      headArtRef.current,
+    ];
+    if (!cur || closing.current || !stage || !backdrop || !card || !shellEl || !shadow || !content || !flyEl || !headArt) return;
+    closing.current = true;
+    stage.classList.add("closing");
+    const g = geometry(cur, settings.get().tileViews[cur.label]);
+    const reduced = reducedMotion();
+    let from = 1;
+    const running = motion.current;
+    if (running?.kind === "open") {
+      from = progressAt(OPEN, performance.now() - running.started);
+      for (const a of running.anims) {
+        try {
+          a.commitStyles();
+        } catch {
+          /* an element that is gone has nothing to keep */
+        }
+        a.cancel();
+      }
+    }
+    motion.current = null;
+    const anims: Animation[] = [];
+    const forwards = { fill: "forwards" as const };
+    const fadeFrom = (el: HTMLElement) => Number(getComputedStyle(el).opacity) || 0;
+    if (reduced) {
+      anims.push(card.animate([{ opacity: fadeFrom(card) }, { opacity: 0 }], { duration: 140, ...forwards }));
+      anims.push(backdrop.animate([{ opacity: fadeFrom(backdrop) }, { opacity: 0 }], { duration: 140, ...forwards }));
+    } else {
+      const ps = CLOSE.points.map((q) => from * (1 - q));
+      const { cardFrames, shellFrames, shadowFrames } = morph(g.icon, g.card, TILE_RADIUS, g.radius, ps);
+      const timing = { duration: CLOSE.ms, easing: "linear", ...forwards };
+      headArt.style.visibility = "hidden";
+      flyEl.style.visibility = "visible";
+      anims.push(card.animate(cardFrames, timing));
+      anims.push(shellEl.animate(shellFrames, timing));
+      anims.push(shadow.animate(shadowFrames, timing));
+      anims.push(flyEl.animate(fly(g.faceArt, g.headArt, ps), timing));
+      anims.push(content.animate([{ opacity: fadeFrom(content), offset: 0 }, { opacity: 0, offset: 0.3 }, { opacity: 0, offset: 1 }], timing));
+      anims.push(backdrop.animate([{ opacity: fadeFrom(backdrop) }, { opacity: 0 }], { duration: 260, easing: "cubic-bezier(.4, 0, 1, 1)", ...forwards }));
+    }
+    const run: Motion = { kind: "close", anims, started: performance.now() };
+    motion.current = run;
+    void Promise.all(anims.map((a) => a.finished))
+      .then(() => {
+        if (motion.current === run) void invoke("close_popup").catch(() => undefined);
+      })
+      .catch(() => undefined);
+  }, []);
 
   // Esc closes, once everything inside had its say (the map search clears first, paint mode ends first).
   useEffect(() => {
@@ -113,8 +338,22 @@ export function PopupHost() {
         if (!e.defaultPrevented) close();
       }, 0);
     };
+    // Another window came to the front (a click on the taskbar, Alt+Tab, a link that opened the browser): the
+    // pop-up goes, so the dim never stays behind other windows. A menu of the widget keeps it.
+    let blurTimer = 0;
+    const onBlur = () => {
+      window.clearTimeout(blurTimer);
+      blurTimer = window.setTimeout(() => {
+        if (!document.hasFocus() && !isMenuOpen()) close();
+      }, BLUR_MS);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("blur", onBlur);
+      window.clearTimeout(blurTimer);
+    };
   }, [show, close]);
 
   // Its icon clicked again: it closes the same way as with its button.
@@ -153,31 +392,51 @@ export function PopupHost() {
   const name = custom ? custom.name.trim() || shell.custom.unnamed : (ru.tiles as Record<string, string>)[show.label] ?? "";
   const art = custom ? <CustomArt file={custom.file} /> : tileArt(show.label);
   const Widget = isCustomLabel(show.label) ? null : WIDGETS[show.label as TileId];
-
-  // The card grows from the side of the icon: its transform origin is the icon's centre, kept near the card.
-  const dpr = window.devicePixelRatio || 1;
-  const cardW = window.innerWidth - 2 * MARGIN;
-  const cardH = window.innerHeight - 2 * MARGIN;
-  const ox = Math.min(Math.max((show.iconX + show.iconW / 2) / dpr - MARGIN, -cardW * 0.25), cardW * 1.25);
-  const oy = Math.min(Math.max((show.iconY + show.iconH / 2) / dpr - MARGIN, -cardH * 0.25), cardH * 1.25);
-  const origin = { transformOrigin: `${Math.round(ox)}px ${Math.round(oy)}px` } as CSSProperties;
+  const { card } = show;
+  const head = { x: card.x + HEAD_PAD, y: card.y + (HEAD - HEAD_ART) / 2 };
+  // The dim is lightest around the card.
+  const light = {
+    "--cx": `${((card.x + card.w / 2) / Math.max(1, window.innerWidth)) * 100}%`,
+    "--cy": `${((card.y + card.h / 2) / Math.max(1, window.innerHeight)) * 100}%`,
+  } as CSSProperties;
 
   return (
-    <div className="popup-stage">
-      <section key={show.seq} className={leaving ? "popup-card leaving" : "popup-card"} style={origin} role="dialog" aria-label={name}>
-        <header className="popup-head">
-          <span className="popup-art" aria-hidden="true">
-            {art}
-          </span>
-          <span className="popup-name ellipsis">{name}</span>
-          <IconButton icon="dismiss" variant="subtle" label={v.close} className="popup-close" onClick={close} />
-        </header>
-        <div className="popup-body">
-          <PopupContext.Provider value={api}>
-            <Suspense fallback={null}>{Widget ? <Widget key={show.label} /> : <CustomTile key={show.label} label={show.label} />}</Suspense>
-          </PopupContext.Provider>
+    <div ref={stageRef} key={show.seq} className="popup-stage">
+      <div
+        ref={backdropRef}
+        className="popup-backdrop"
+        style={light}
+        onPointerDown={(e) => {
+          if (e.target === e.currentTarget && e.button === 0) close();
+        }}
+      />
+      <section
+        ref={cardRef}
+        className="popup-card"
+        style={{ left: card.x, top: card.y, width: card.w, height: card.h }}
+        role="dialog"
+        aria-label={name}
+      >
+        <div ref={shadowRef} className="popup-shadow" />
+        <div ref={shellRef} className="popup-shell" />
+        <div ref={contentRef} className="popup-content">
+          <header className="popup-head">
+            <span ref={headArtRef} className="popup-art" aria-hidden="true">
+              {art}
+            </span>
+            <span className="popup-name ellipsis">{name}</span>
+            <IconButton icon="dismiss" variant="subtle" label={v.close} className="popup-close" onClick={close} />
+          </header>
+          <div className="popup-body">
+            <PopupContext.Provider value={api}>
+              <Suspense fallback={null}>{Widget ? <Widget key={show.label} /> : <CustomTile key={show.label} label={show.label} />}</Suspense>
+            </PopupContext.Provider>
+          </div>
         </div>
       </section>
+      <span ref={flyRef} className="popup-art popup-fly" style={{ left: head.x, top: head.y }} aria-hidden="true">
+        {art}
+      </span>
     </div>
   );
 }

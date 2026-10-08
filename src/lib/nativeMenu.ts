@@ -23,6 +23,9 @@ let serial = 0;
  * nothing.
  */
 let shown: { close(): Promise<void> }[] = [];
+/** A menu is on screen now (the pop-up stays open while its widget's menu takes the focus). */
+let menuOpen = false;
+export const isMenuOpen = () => menuOpen;
 /** Icon bitmaps by name, colour and scale: drawn once, kept for the life of the page (a handful of small images). */
 const bitmaps = new Map<string, Promise<Image | null>>();
 
@@ -110,5 +113,11 @@ export async function popupMenu(items: readonly MenuItemSpec[]): Promise<void> {
   const previous = shown;
   shown = [menu, ...made];
   for (const r of previous) void r.close().catch(() => undefined);
-  await menu.popup();
+  // Windows keeps the menu open until a choice or a click elsewhere; the call returns then.
+  menuOpen = true;
+  try {
+    await menu.popup();
+  } finally {
+    menuOpen = false;
+  }
 }
