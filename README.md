@@ -23,7 +23,7 @@ windows, stay out of the way and don't vanish with Win+D.
 [![Rust](https://img.shields.io/badge/Rust-B7410E?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![React](https://img.shields.io/badge/React-087EA4?logo=react&logoColor=white)](https://react.dev)
 
-<img src="docs/screenshots/desktop-dark.png" alt="AITU Desk widgets on the desktop" width="760">
+<img src="docs/screenshots/en/desktop-dark.png" alt="AITU Desk widgets on the desktop" width="760">
 
 </div>
 
@@ -36,10 +36,10 @@ windows, stay out of the way and don't vanish with Win+D.
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/perf.svg" width="22" height="22" alt=""><br><b>Performance</b><br>Processor, graphics, memory and disk with their temperature; four views and your own colors</td>
-<td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Shortcuts</b><br>Favorite sites in one click: the site's icon, one from the set or a letter, your own color</td>
+<td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Shortcuts</b><br>AITU sites with their real icons, plus your own: the site's icon, one from the set or a letter, your own color</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Notes</b><br>Tasks with a deadline and a countdown, overdue ones stand out at once</td>
+<td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Notes</b><br>Tasks with a deadline and a countdown, put in your own order with the mouse</td>
 <td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Schedule</b><br>Classes by day of the week, the current and the next one highlighted</td>
 </tr>
 <tr>
@@ -47,7 +47,7 @@ windows, stay out of the way and don't vanish with Win+D.
 <td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>AITU map</b><br>The university's floors, room search, your own colored marks, zoom with the wheel or two fingers</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Your widgets</b><br>Your own picture or GIF on the desktop, as many as you like</td>
+<td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Your widgets</b><br>Your own picture or GIF on the desktop, up to 20 of them</td>
 <td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Appearance</b><br>Three designs and fine-tuning: font, shapes, borders, transparency. Themes, your accent, scale</td>
 </tr>
 <tr>
@@ -70,20 +70,36 @@ turned off.
 
 ## Screenshots
 
+Three designs, the same widgets in each: Windows 11 (light theme), Aqua (glass) and Rice (black). Any design
+goes with any theme and accent color.
+
 <p align="center">
-  <img src="docs/screenshots/desktop-light.png" alt="Widgets folded into icons, the map grown out of its icon into a pop-up; light theme" width="760">
+  <img src="docs/screenshots/en/designs.png" alt="The same widgets in three designs: Windows 11, Aqua and Rice" width="760">
+</p>
+
+A widget can be folded into a small icon; a click grows it into a pop-up in the middle of the screen.
+
+<p align="center">
+  <img src="docs/screenshots/en/desktop-light.png" alt="Widgets folded into icons, the map grown out of its icon into a pop-up; light theme" width="760">
+</p>
+
+The settings window:
+
+<p align="center">
+  <img src="docs/screenshots/en/settings-widgets.png" alt="Widgets: which ones are on the desktop, their size, and your own picture widgets" width="49%">
+  <img src="docs/screenshots/en/settings-general.png" alt="General: start with Windows, language, resets" width="49%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/settings-appearance.png" alt="Appearance: a design, with its parts chosen separately" width="49%">
-  <img src="docs/screenshots/settings-perf.png" alt="Performance: processor, graphics, memory and disk" width="49%">
+  <img src="docs/screenshots/en/settings-appearance.png" alt="Appearance: a design, with its parts chosen separately" width="49%">
+  <img src="docs/screenshots/en/settings-perf.png" alt="Performance: processor, graphics, memory and disk" width="49%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/settings-widgets.png" alt="Your own picture widgets" width="49%">
-  <img src="docs/screenshots/settings-notes.png" alt="A note with a deadline and a reminder" width="49%">
+  <img src="docs/screenshots/en/settings-notes.png" alt="Notes in your own order: a note dragged with the mouse" width="49%">
+  <img src="docs/screenshots/en/settings-own-widget.png" alt="Your own widget with a live preview" width="49%">
 </p>
 <p align="center">
-  <img src="docs/screenshots/settings-reminders.png" alt="Reminders about classes and deadlines" width="49%">
-  <img src="docs/screenshots/settings-configs.png" alt="Configs: settings in a file" width="49%">
+  <img src="docs/screenshots/en/settings-reminders.png" alt="Reminders about classes and deadlines" width="49%">
+  <img src="docs/screenshots/en/settings-configs.png" alt="Configs: settings in a file" width="49%">
 </p>
 
 ## Installation
@@ -91,13 +107,14 @@ turned off.
 1. Download `AITU Desk_<version>_x64-setup.exe` from the [latest release](https://github.com/cyberbara01/aitudesk/releases/latest) and run it.
 2. If Windows shows “Windows protected your PC”, click “More info”, then “Run anyway”. The warning appears because
    the app is not signed with a paid certificate.
-3. The settings window opens with a short guide, and the widgets appear on the desktop. To start them with Windows,
-   turn this on in “General”.
+3. The settings window opens with a short guide, and the widgets appear on the desktop. They start with Windows from
+   then on; this can be turned off in “General”.
 
 Windows 11, 64-bit, is required. To move a widget or change its size, right-click it: the clock, system, performance
 and shortcuts grow along with it. In “Size” a widget can also fold into an icon that grows into a pop-up in the middle
-of the screen. The interface is in English or Russian, following Windows; switch the language with the “RU | EN”
-button at the bottom of the settings window.
+of the screen. Which widgets are shown, their sizes and your own picture widgets are in “Widgets”. The interface is
+in English or Russian, following Windows; switch the language in “General” or with the “RU | EN” button at the bottom
+of the settings window.
 
 <details>
 <summary><b>Check that the installer is genuine</b></summary>
@@ -126,7 +143,7 @@ repository.
 | Settings, classes, notes, shortcuts, widget layout (plain JSON) | `%APPDATA%\kz.edu.astanait.aitudesk\settings.json` |
 | Copies of the pictures of your widgets | `%APPDATA%\kz.edu.astanait.aitudesk\widgets\` |
 | The WebView2 service cache | `%LOCALAPPDATA%\kz.edu.astanait.aitudesk\EBWebView\` |
-| Autostart, only if you turned it on | the `AITU Desk` value in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
+| Autostart (on from the first start, a switch in “General”) | the `AITU Desk` value in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
 
 The installer does nothing else: no services, drivers, scheduled tasks, browser extensions or bundled programs.
 WebView2 is already part of Windows 11; only if it is missing does the installer download it from Microsoft.
@@ -140,8 +157,9 @@ it to `settings.broken-<time>.json`.
 <br>
 
 - The network is used only when you act: to open a shortcut in your browser, or to download a site's icon once when
-  you add a shortcut (a request to the site itself and, if it has no icon, to Google's icon service). A site cannot
-  send these requests on to devices in your home network.
+  you add or change a shortcut (a request to the site itself and, if it has no icon, to Google's icon service, which
+  is never asked about local names). The DU, LMS and Learn icons are built in. A site cannot send these requests on
+  to devices in your home network.
 - The schedule, notes, the Wi-Fi network name and Bluetooth device names on the desktop can be hidden behind dots.
 - The processor temperature comes from Windows where it gives one (laptops, mostly). On most desktop PCs Windows does
   not, and the app installs no driver for it: it reads the temperature from a monitoring program you run anyway
@@ -155,7 +173,7 @@ it to `settings.broken-<time>.json`.
 <summary><b>Uninstalling</b></summary>
 <br>
 
-Settings → Apps → Installed apps → AITU Desk → Uninstall. The “Delete app data” box erases the settings too;
+Settings → Apps → Installed apps → AITU Desk → Uninstall. The “Delete the application data” box erases the settings too;
 without it they stay in case you install again. Before uninstalling you can save everything to a config in
 “Configs”. To start over without uninstalling, “Reset everything” at the bottom of “General” makes the app as it was
 right after installing.
