@@ -105,6 +105,7 @@
         "url": "index.html",
         "width": 720,
         "height": 360,
+        "zoomHotkeysEnabled": true,
         "decorations": false,
         "transparent": true,
         "skipTaskbar": true,

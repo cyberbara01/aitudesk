@@ -51,8 +51,6 @@ pub struct Visibility {
     /// Tiles whose page has drawn its first frame. A page kept out of sight since startup (tile off, all tiles
     /// off) draws it only when shown, so showing it waits for that frame instead of a fixed delay.
     pub drawn: Mutex<HashSet<String>>,
-    /// Folded tiles («Маленький», «Средний») opened to their full size right now (`expand_tile`).
-    pub expanded: Mutex<HashSet<String>>,
 }
 
 /// «Размер» of a tile (settings `tileViews`): its size set by hand, or a preset. «Маленький» shows the tile's
@@ -223,52 +221,24 @@ pub fn restore_one(app: &AppHandle, win: &WebviewWindow, label: &str) {
     }
 }
 
-/// Opens or folds the pop-up of a folded tile and moves the window to match; true when it moved. A tile out of
-/// sight (all hidden, switched off, not shown yet) only changes its state and takes its rect when shown.
-pub fn set_expanded(app: &AppHandle, win: &WebviewWindow, label: &str, expanded: bool) -> bool {
-    let vis = app.state::<Visibility>();
-    {
-        let mut open = vis.expanded.lock().unwrap();
-        let changed = if expanded { open.insert(label.to_string()) } else { open.remove(label) };
-        if !changed {
-            return false;
-        }
-    }
-    let hidden = *vis.hidden.lock().unwrap();
-    let disabled = vis.disabled.lock().unwrap().contains(label);
-    let waiting = vis.pending.lock().unwrap().contains_key(label);
-    if hidden || disabled || waiting {
-        return false;
-    }
-    let rect = resolve_rect(app, win, label);
-    place(win, label, rect);
-    true
-}
-
-/// A pop-up folds without moving its window (it is being parked, or re-placed right after), and its page is told
-/// so it shows its icon again (the label is the payload: every page hears it, the one named takes it).
-fn fold_quietly(app: &AppHandle, label: &str) {
-    if app.state::<Visibility>().expanded.lock().unwrap().remove(label) {
-        let _ = app.emit("tile-fold", label);
-    }
-}
-
-/// Every pop-up folds (the views changed; `replace_shown` follows).
-pub fn fold_all(app: &AppHandle) {
-    let open: Vec<String> = app.state::<Visibility>().expanded.lock().unwrap().iter().cloned().collect();
-    for label in open {
-        fold_quietly(app, &label);
-    }
+/// The widget's own size (its saved rect, or the default one), physical px: what its pop-up shows it at.
+pub fn full_size(app: &AppHandle, win: &WebviewWindow, label: &str) -> (u32, u32) {
+    let wa = work_area(win);
+    let r = match load_layout(app).get(label) {
+        Some(r) if intersects(r, &wa) => *r,
+        _ => default_rect(app, label, &wa),
+    };
+    (r.w, r.h)
 }
 
 /// A custom widget was deleted: its saved rect and visibility state go too.
 pub fn forget(app: &AppHandle, label: &str) {
+    crate::popup::close_if(app, label);
     let vis = app.state::<Visibility>();
     vis.disabled.lock().unwrap().remove(label);
     vis.pending.lock().unwrap().remove(label);
     vis.drawn.lock().unwrap().remove(label);
     vis.ready.lock().unwrap().remove(label);
-    vis.expanded.lock().unwrap().remove(label);
     let mut layout = load_layout(app);
     let compact = layout.remove(&compact_key(label)).is_some();
     if layout.remove(label).is_some() || compact {
@@ -323,8 +293,8 @@ fn intersects(r: &Rect, wa: &WorkArea) -> bool {
 }
 
 /// Where the tile goes for its view: the saved rect (if still on screen) or the default one; for «Большой» the
-/// standard size there; folded, the icon at its own saved place (or at the corner of the full rect), and opened,
-/// the full size grown from that icon's corner.
+/// standard size there; folded, the icon at its own saved place (or at the corner of the full rect). A folded
+/// widget opens in the pop-up window (popup.rs), its icon stays.
 fn resolve_rect(app: &AppHandle, win: &WebviewWindow, label: &str) -> Rect {
     let wa = work_area(win);
     let layout = load_layout(app);
@@ -347,12 +317,7 @@ fn resolve_rect(app: &AppHandle, win: &WebviewWindow, label: &str) -> Rect {
                 Some(r) if intersects(r, &wa) => Rect { w, h, ..*r },
                 _ => anchored(&full, w, h, &wa),
             };
-            let icon = clamp_into(icon, &wa);
-            if app.state::<Visibility>().expanded.lock().unwrap().contains(label) {
-                clamp_into(anchored(&icon, full.w, full.h, &wa), &wa)
-            } else {
-                icon
-            }
+            clamp_into(icon, &wa)
         }
     }
 }
@@ -386,32 +351,14 @@ fn park(win: &WebviewWindow) {
 /// page as hidden, stops drawing and throttles its timers, and the tiles' own timers (clock, notes, system
 /// polling) pause until it is shown again. Startup parking does not use this: those pages must render their
 /// first frame off-screen.
-fn set_page_visible(win: &WebviewWindow, visible: bool) {
+pub(crate) fn set_page_visible(win: &WebviewWindow, visible: bool) {
     let _ = win.with_webview(move |w| {
         // SAFETY: a plain COM call on this window's own WebView2 controller, run on the main thread.
         let _ = unsafe { w.controller().SetIsVisible(visible) };
     });
 }
 
-/// Touchpad pinch on a tile: wry turns WebView2's pinch zoom off together with its zoom keys, and WebView2 then
-/// drops the gesture before the page sees it. On, a pinch reaches the page as Ctrl + wheel; every page cancels
-/// those (main.tsx), so no page is ever magnified, and the map zooms its plan with them. The zoom keys stay off.
-pub fn enable_pinch(win: &WebviewWindow) {
-    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings5;
-    use windows::core::Interface;
-    let _ = win.with_webview(|w| {
-        // SAFETY: plain COM calls on this window's own WebView2, run on the main thread.
-        unsafe {
-            let Ok(core) = w.controller().CoreWebView2() else { return };
-            let Ok(settings) = core.Settings() else { return };
-            if let Ok(s5) = settings.cast::<ICoreWebView2Settings5>() {
-                let _ = s5.SetIsPinchZoomEnabled(true);
-            }
-        }
-    });
-}
-
-fn park_hidden(win: &WebviewWindow) {
+pub(crate) fn park_hidden(win: &WebviewWindow) {
     park(win);
     set_page_visible(win, false);
 }
@@ -511,10 +458,7 @@ pub fn reveal_all_pending(app: &AppHandle) {
 
 /// Persist a tile rect (physical px). A parked position is never saved; only the size is updated then.
 pub fn save_rect(app: &AppHandle, label: &str, rect: Rect) -> Result<(), String> {
-    // An opened pop-up is never saved; a folded tile keeps its own place apart from its full rect.
-    if app.state::<Visibility>().expanded.lock().unwrap().contains(label) {
-        return Ok(());
-    }
+    // A folded tile keeps its own place apart from its full rect.
     let key = match view_of(app, label) {
         View::Small | View::Medium => compact_key(label),
         _ => label.to_string(),
@@ -577,10 +521,12 @@ pub fn set_hidden(app: &AppHandle, hidden: bool) {
     // Set first: a page that reports its first frame while the tiles are being shown must find them shown.
     *vis.hidden.lock().unwrap() = hidden;
     let disabled = vis.disabled.lock().unwrap().clone();
+    if hidden {
+        crate::popup::close(app);
+    }
     for label in crate::tile_labels(app) {
         let Some(win) = app.get_webview_window(&label) else { continue };
         if hidden {
-            fold_quietly(app, &label);
             park_hidden(&win);
         } else if !disabled.contains(&label) {
             unpark(app, &win, &label);
@@ -615,7 +561,7 @@ pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
     } else {
         disabled.insert(label.to_string());
         drop(disabled);
-        fold_quietly(app, label);
+        crate::popup::close_if(app, label);
         park_hidden(&win);
     }
 }

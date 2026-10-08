@@ -57,7 +57,9 @@ export const en: PerfStrings = {
   alertOff: "Off",
   update: "Updates",
   interval: "How often",
-  intervalHint: "Less often means less load and battery use. In battery saver no more than every 5 seconds",
-  seconds: (n: number) => `${n} s`,
+  intervalHint:
+    "Seconds between readings, any whole number from 1 to 3600. Less often means less load and battery use. In battery saver no more than every 5 seconds",
+  secondsUnit: "s",
+  intervalInvalid: (min: number, max: number) => `A whole number from ${min} to ${max}`,
   summary: (mode: string, shown: string) => `${mode}: ${shown}`,
 };

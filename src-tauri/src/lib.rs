@@ -11,6 +11,7 @@ mod lang;
 mod layout;
 mod notify;
 mod perf;
+mod popup;
 mod reminders;
 mod settings_window;
 mod sysinfo;
@@ -42,11 +43,10 @@ pub fn tile_labels(app: &tauri::AppHandle) -> Vec<String> {
     labels
 }
 
-/// What every tile window gets once: its title, touchpad pinch, the glass, the place above the desktop.
+/// What every tile window gets once: its title, the glass, the zoom, the place above the desktop.
 pub fn setup_tile(app: &tauri::AppHandle, win: &tauri::WebviewWindow, label: &str) {
     let title = if custom::is_custom(label) { custom::title(app, label) } else { tile_title(label) };
     let _ = win.set_title(&title);
-    layout::enable_pinch(win);
     glass::apply(win);
     glass::keep_active_look(win);
     let _ = win.set_zoom(zoom::current());
@@ -169,7 +169,9 @@ pub fn run() {
             commands::save_config_file,
             commands::open_config_file,
             commands::restart_app,
-            commands::expand_tile,
+            commands::open_popup,
+            commands::close_popup,
+            commands::popup_shown,
             commands::desktop_covered,
             commands::apply_tile_views,
             commands::apply_tile_scale,
@@ -195,6 +197,8 @@ pub fn run() {
             }
             // The user's own picture widgets: windows made now, placed like the others.
             custom::sync(&handle);
+            // The pop-up of folded widgets is made ahead of the first click while some widget is folded.
+            popup::sync(&handle);
             // Tiles move into place when their page reports its first frame (`window_ready`).
             // Safety net: reveal whatever has not reported within a few seconds.
             let fallback = handle.clone();

@@ -67,7 +67,7 @@ pub fn window_ready(app: AppHandle, window: WebviewWindow) {
 /// activated by clicks otherwise (see desktop_watch).
 #[tauri::command]
 pub fn activate_tile(window: WebviewWindow) {
-    if crate::is_tile(window.label()) {
+    if crate::is_tile(window.label()) || window.label() == crate::popup::LABEL {
         if let Ok(h) = window.hwnd() {
             crate::desktop_watch::activate(windows::Win32::Foundation::HWND(h.0));
         }
@@ -117,23 +117,27 @@ pub async fn fetch_site_icon(url: String) -> Result<String, String> {
         .map_err(|e| e.to_string())?
 }
 
-/// A folded tile («Маленький», «Средний») opens to its full size as a pop-up, or folds back. Opening gives it the
-/// keyboard and the focus, so a click anywhere else (its blur) folds it again.
+/// A folded widget («Маленький», «Средний») was clicked: the whole widget opens in the pop-up window in the middle
+/// of the screen (popup.rs); `room` asks the map to show a room once it is open.
 #[tauri::command]
-pub fn expand_tile(app: AppHandle, window: WebviewWindow, expanded: bool) {
+pub fn open_popup(app: AppHandle, window: WebviewWindow, room: Option<String>) {
     let label = window.label().to_string();
-    if !crate::is_tile(&label) {
+    if !crate::is_tile(&label) || !matches!(layout::view_of(&app, &label), layout::View::Small | layout::View::Medium) {
         return;
     }
-    // Only a folded view opens; folding is always allowed (the view may have changed meanwhile).
-    if expanded && !matches!(layout::view_of(&app, &label), layout::View::Small | layout::View::Medium) {
-        return;
-    }
-    if layout::set_expanded(&app, &window, &label, expanded) && expanded {
-        if let Ok(h) = window.hwnd() {
-            crate::desktop_watch::activate(windows::Win32::Foundation::HWND(h.0));
-        }
-    }
+    crate::popup::open(&app, &window, &label, room);
+}
+
+/// The pop-up's close button or Esc (after its closing animation).
+#[tauri::command]
+pub fn close_popup(app: AppHandle) {
+    crate::popup::close(&app);
+}
+
+/// The widget the pop-up shows now, for an icon whose page starts while it is open.
+#[tauri::command]
+pub fn popup_shown() -> Option<String> {
+    crate::popup::shown()
 }
 
 /// A program fills the screen right now (desktop_watch.rs `front_covers`): the widgets that work on their own rest.
@@ -142,11 +146,12 @@ pub fn desktop_covered() -> bool {
     crate::desktop_watch::is_covered()
 }
 
-/// «Размер» of tiles changed in the settings: every pop-up folds and every shown tile takes its new rect.
+/// «Размер» of tiles changed in the settings: every shown tile takes its new rect, the pop-up of a widget that is
+/// not folded any more closes, and the pop-up window is made ahead of the first click.
 #[tauri::command]
 pub fn apply_tile_views(app: AppHandle) {
-    layout::fold_all(&app);
     layout::replace_shown(&app);
+    crate::popup::sync(&app);
 }
 
 /// Glass background of the calling tile on/off (settings «Фон виджета»).

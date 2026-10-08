@@ -6,8 +6,9 @@ import { resolveLook } from "../lib/design";
 import { useEditMode } from "../lib/editMode";
 import { popupMenu } from "../lib/nativeMenu";
 import { customIdOf, isCustomLabel, settings, TILE_VIEWS, type TileId, type TileView } from "../lib/settings";
-import { announcePress, foldTile, isFoldedView, openTile, useTilePhase, useTileView, watchTilePhase } from "../lib/tileView";
+import { isFoldedView, openTile, usePopupOpen, useTileView } from "../lib/tileView";
 import { useSettings } from "../lib/useSettings";
+import { usePopup } from "../popup/context";
 import { TILE_ICONS } from "../settings/shell/nav";
 import { Button } from "./Button";
 import { ContextMenu, type MenuItemSpec } from "./ContextMenu";
@@ -17,7 +18,7 @@ import { Tooltip } from "./Tooltip";
 const v = shell.views;
 
 interface TileProps {
-  /** The window label: a built-in widget's id, or `custom-<id>` for an own widget. */
+  /** The widget: a built-in widget's id, or `custom-<id>` for an own widget. */
   label: string;
   /** Logical px; every tile is resizable in edit mode. */
   minSize?: { w: number; h: number };
@@ -45,13 +46,19 @@ const CUSTOM_MIN = { w: 64, h: 64 };
 
 const isBuiltIn = (label: string): label is TileId => label in DEFAULT_MIN;
 
-/** «Маленький» and «Средний»: the widget folded to its icon (and name); a click opens it as a pop-up. */
-function TileFace({ view, art, name }: { view: TileView; art: ReactNode; name: string }) {
+/** The icon of a widget for its folded face and its pop-up's header: an own widget's picture, or the tile icon. */
+export function tileArt(label: string, face?: { art: ReactNode }): ReactNode {
+  return face?.art ?? (isBuiltIn(label) ? <Icon name={TILE_ICONS[label]} size={24} /> : null);
+}
+
+/** «Маленький» and «Средний»: the widget folded to its icon (and name); a click opens it in the pop-up. */
+function TileFace({ view, art, name, open }: { view: TileView; art: ReactNode; name: string; open: boolean }) {
   return (
     <button
       type="button"
       className="tile-face"
       aria-label={v.open(name)}
+      aria-expanded={open}
       // The small face has no room for its name: the system tooltip shows it (it may leave the window).
       title={view === "small" ? name : undefined}
       onClick={() => void openTile()}
@@ -64,15 +71,17 @@ function TileFace({ view, art, name }: { view: TileView; art: ReactNode; name: s
   );
 }
 
-/** Glass tile root: material, 1 px border, top edge highlight, radius, padding; context menu; edit mode; views. */
+/**
+ * Glass tile root: material, 1 px border, top edge highlight, radius, padding; context menu; edit mode; views.
+ * Inside the pop-up (PopupHost) it is the content of the card: no edit mode, and its menu can close the pop-up.
+ */
 export function Tile({ label, minSize, className, background = true, menuItems, face, children }: TileProps) {
   const s = useSettings();
+  const popup = usePopup();
   const locked = s.lockLayout;
   const view = useTileView();
-  const phase = useTilePhase();
   const foldable = isFoldedView(view);
-  const showFace = foldable && phase === "folded";
-  const showContent = !foldable || phase === "open";
+  const open = usePopupOpen();
   const builtIn = isBuiltIn(label);
   const name = face?.name ?? (builtIn ? ru.tiles[label] : "");
   // A «Большой» widget resized by hand keeps that size: it becomes «Вручную».
@@ -85,32 +94,25 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     minSize: minSize ?? (builtIn ? DEFAULT_MIN[label] : CUSTOM_MIN),
     onResized,
   });
+  // The pop-up shows a widget, never arranges it.
+  const editing = edit.editing && !popup;
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItemSpec[] } | null>(null);
   const closeMenu = useCallback(() => setMenu(null), []);
 
-  useEffect(() => {
-    watchTilePhase();
-  }, []);
-
   // The background follows its switch; the folded icon always has one, so it reads on any wallpaper. The native
   // acrylic is under it unless the transparency is «Нет» (then the background is solid and the acrylic would be
-  // work for nothing).
-  const hasBackground = background || (foldable && phase !== "open");
+  // work for nothing). The pop-up's card draws its own background.
+  const hasBackground = background || foldable;
   const solid = resolveLook(s.style, s.look, s.theme).material === "solid";
   const glass = hasBackground && !solid;
   useEffect(() => {
-    invoke("set_tile_glass", { on: glass }).catch(() => undefined);
-  }, [glass]);
+    if (!popup) invoke("set_tile_glass", { on: glass }).catch(() => undefined);
+  }, [glass, popup]);
 
   // Locking the layout ends an active edit session.
   useEffect(() => {
     if (locked && edit.editing) edit.stop();
   }, [locked, edit]);
-
-  // Arranging the widgets moves the icons: an open pop-up folds first.
-  useEffect(() => {
-    if (edit.editing) void foldTile();
-  }, [edit.editing]);
 
   const onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -120,19 +122,22 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     const { clientX: x, clientY: y } = e;
     // A real Windows menu, never squeezed by a small widget; the one drawn inside the widget only if that fails.
     const show = (items: MenuItemSpec[]) => void popupMenu(items).catch(() => setMenu({ x, y, items }));
-    if (edit.editing) {
+    if (editing) {
       // While moving or resizing, the menu offers a step back and the way out.
       const done: MenuItemSpec = { id: "done", label: ru.common.done, icon: "checkmark", onSelect: edit.stop };
       show(edit.canUndo ? [{ id: "undo", label: ru.edit.undo, icon: "arrow_undo", onSelect: () => void edit.undo() }, done] : [done]);
       return;
     }
-    // The widget's own items act on its content: only while it is shown.
-    const extra = showContent ? (menuItems?.(e.target as HTMLElement) ?? []) : [];
+    // The widget's own items act on its content: only where it is shown.
+    const extra = !foldable ? (menuItems?.(e.target as HTMLElement) ?? []) : [];
     const custom = isCustomLabel(label);
     const standard: MenuItemSpec[] = [
-      ...(showFace ? [{ id: "open", label: v.open(name), icon: "open", onSelect: () => void openTile() }] : []),
-      // Locked: the item says why it does nothing (a Windows menu shows no tooltip).
-      { id: "move", label: locked ? ru.edit.locked : ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked },
+      ...(popup ? [{ id: "close", label: v.close, icon: "dismiss", onSelect: popup.close }] : []),
+      ...(foldable ? [{ id: "open", label: v.open(name), icon: "open", onSelect: () => void openTile() }] : []),
+      // Moving belongs to the icon on the desktop, not to the pop-up. Locked: the item says why it does nothing.
+      ...(popup
+        ? []
+        : [{ id: "move", label: locked ? ru.edit.locked : ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked }]),
       {
         id: "size",
         label: v.size,
@@ -141,7 +146,7 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
         children: TILE_VIEWS.map((tv) => ({
           id: `size-${tv}`,
           label: v[tv],
-          checked: tv === view,
+          checked: tv === (popup ? (s.tileViews[label] ?? "manual") : view),
           onSelect: () => void settings.setTileView(label, tv),
         })),
       },
@@ -159,23 +164,21 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
   };
 
   // Tiles are not activated by clicks (no jump in the z-order). A text field (the map search) needs the
-  // keyboard, so pressing on one activates this tile on purpose. An open pop-up of another widget folds.
+  // keyboard, so pressing on one activates this tile on purpose.
   const onPointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (phase !== "open") announcePress();
-    if ((e.target as HTMLElement).closest("input, textarea, [contenteditable='true']")) {
+    if (!popup && (e.target as HTMLElement).closest("input, textarea, [contenteditable='true']")) {
       invoke("activate_tile").catch(() => undefined);
     }
   };
 
-  const art = face?.art ?? (builtIn ? <Icon name={TILE_ICONS[label]} size={24} /> : null);
   const cls = [
     "tile",
     className ?? "",
-    foldable ? `view-${view}` : "",
-    showFace ? "folded" : "",
-    foldable && phase === "open" ? "popup" : "",
+    popup ? "in-popup" : "",
+    foldable ? `view-${view} folded` : "",
+    foldable && open ? "popup-open" : "",
     hasBackground ? "" : "no-bg",
-    edit.editing ? "editing" : "",
+    editing ? "editing" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -186,11 +189,10 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
       className={cls}
       onContextMenu={onContextMenu}
       onPointerDownCapture={onPointerDownCapture}
-      onPointerDown={edit.editing ? edit.onDragStart : undefined}
+      onPointerDown={editing ? edit.onDragStart : undefined}
     >
-      {showFace && <TileFace view={view} art={art} name={name} />}
-      {showContent && children}
-      {edit.editing && (
+      {foldable ? <TileFace view={view} art={tileArt(label, face)} name={name} open={open} /> : children}
+      {editing && (
         <div className="edit-pill" onPointerDown={(e) => e.stopPropagation()}>
           {edit.canUndo && (
             <Tooltip text={ru.edit.undoHint} className="edit-undo">
@@ -202,7 +204,7 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
           </Button>
         </div>
       )}
-      {edit.editing && !foldable && <div className="resize-grip" onPointerDown={edit.onResizeStart} />}
+      {editing && !foldable && <div className="resize-grip" onPointerDown={edit.onResizeStart} />}
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={closeMenu} />}
     </div>
   );

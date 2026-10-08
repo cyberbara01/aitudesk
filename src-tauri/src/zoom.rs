@@ -95,7 +95,7 @@ pub fn apply(app: &AppHandle, wa: &WorkArea) -> f64 {
         }
     }
     *CURRENT.lock().unwrap() = zoom;
-    for label in crate::tile_labels(app) {
+    for label in crate::tile_labels(app).into_iter().chain([crate::popup::LABEL.to_string()]) {
         if let Some(win) = app.get_webview_window(&label) {
             let _ = win.set_zoom(zoom);
         }

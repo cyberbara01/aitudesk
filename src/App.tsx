@@ -18,7 +18,9 @@ const pages = {
   settings: lazy(() => import("./settings/SettingsShell").then((m) => ({ default: m.SettingsWindow }))),
 } as const;
 /** Every own widget's window (`custom-<id>`) shows the same page. */
-const custom = lazy(() => import("./tiles/Custom").then((m) => ({ default: m.CustomTile })));
+const custom = lazy(() => import("./tiles/Custom").then((m) => ({ default: () => <m.CustomTile label={label} /> })));
+/** The pop-up of folded widgets (src-tauri/src/popup.rs). */
+const popup = lazy(() => import("./popup/PopupHost").then((m) => ({ default: m.PopupHost })));
 
 /** Mounts once the page's code is loaded and rendered; then the hidden window may be shown. */
 function Ready() {
@@ -30,7 +32,7 @@ function Ready() {
 
 export function App() {
   useTheme();
-  const Page = label.startsWith("custom-") ? custom : pages[label as keyof typeof pages];
+  const Page = label.startsWith("custom-") ? custom : label === "popup" ? popup : pages[label as keyof typeof pages];
   if (!Page) return null;
   return (
     <Suspense fallback={null}>

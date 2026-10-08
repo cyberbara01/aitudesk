@@ -126,6 +126,9 @@ a { color: var(--accent-text); text-decoration: none; }
 .tile.view-medium .tile-face { justify-content: flex-start; }
 .tile-face:hover { background: var(--ctl-fill-hover); }
 .tile-face:active { background: var(--ctl-fill-pressed); }
+/* Its pop-up is open: the icon is lit in the accent. */
+.tile.popup-open .tile-face { background: var(--accent-soft); }
+.tile.popup-open .tile-face-art { box-shadow: 0 0 0 1.5px var(--accent); }
 .tile-face-art {
   display: grid;
   place-items: center;
@@ -140,7 +143,6 @@ a { color: var(--accent-text); text-decoration: none; }
 :root[data-style="aqua"] .tile-face-art { box-shadow: inset 0 1px 0 var(--tile-edge); }
 .tile-face-art .icon { color: inherit; }
 .tile-face-name { min-width: 0; font-weight: 600; }
-.tile.popup > :not(.ctx-menu) { animation: tile-in var(--t-base) var(--ease-in); }
 @keyframes tile-in { from { opacity: 0; } to { opacity: 1; } }
 /* Arranging a folded icon: the buttons sit in its middle (no words, there is no room). */
 .tile:is(.view-small, .view-medium) .edit-pill { top: 50%; transform: translate(-50%, -50%); }

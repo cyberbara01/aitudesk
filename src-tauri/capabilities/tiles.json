@@ -10,7 +10,8 @@
     "map",
     "schedule",
     "notes",
-    "custom-*"
+    "custom-*",
+    "popup"
   ],
   "permissions": [
     "core:default",

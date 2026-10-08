@@ -168,9 +168,9 @@ export type PerfThickness = "thin" | "normal" | "thick";
 /** From this load a reading turns red; 0 = never. */
 export type PerfAlert = 0 | 70 | 80 | 90;
 export const PERF_ALERTS: readonly PerfAlert[] = [0, 70, 80, 90];
-/** Seconds between readings. */
-export type PerfInterval = 1 | 2 | 5;
-export const PERF_INTERVALS: readonly PerfInterval[] = [1, 2, 5];
+/** Seconds between readings: any whole number in this range, typed in. */
+export const PERF_INTERVAL_MIN = 1;
+export const PERF_INTERVAL_MAX = 3600;
 
 export interface PerfSettings {
   mode: PerfMode;
@@ -187,7 +187,7 @@ export interface PerfSettings {
   labels: boolean;
   alert: PerfAlert;
   fahrenheit: boolean;
-  interval: PerfInterval;
+  interval: number;
 }
 
 export type BuiltInLauncher = "du" | "moodle" | "learn";
@@ -760,7 +760,7 @@ export function normalize(saved: unknown): Settings {
     labels: bool(pf.labels, d.perf.labels),
     alert: PERF_ALERTS.includes(pf.alert as PerfAlert) ? (pf.alert as PerfAlert) : d.perf.alert,
     fahrenheit: bool(pf.fahrenheit, d.perf.fahrenheit),
-    interval: PERF_INTERVALS.includes(pf.interval as PerfInterval) ? (pf.interval as PerfInterval) : d.perf.interval,
+    interval: Math.round(num(pf.interval, d.perf.interval, PERF_INTERVAL_MIN, PERF_INTERVAL_MAX)),
   };
 
   // launchers (v1 kept builtIn/custom at the root)

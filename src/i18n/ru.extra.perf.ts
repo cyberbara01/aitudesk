@@ -65,8 +65,10 @@ const RU = {
   alertOff: "Нет",
   update: "Обновление",
   interval: "Как часто",
-  intervalHint: "Реже значит меньше нагрузки и расхода заряда. В режиме экономии заряда не чаще раза в 5 секунд",
-  seconds: (n: number) => `${n} с`,
+  intervalHint:
+    "Сколько секунд между замерами, любое целое число от 1 до 3600. Реже значит меньше нагрузки и расхода заряда. В режиме экономии заряда не чаще раза в 5 секунд",
+  secondsUnit: "с",
+  intervalInvalid: (min: number, max: number) => `Целое число от ${min} до ${max}`,
   /** Строка в «Конфигах». */
   summary: (mode: string, shown: string) => `${mode}: ${shown}`,
 } as const;

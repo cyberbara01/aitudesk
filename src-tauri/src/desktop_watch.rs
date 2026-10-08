@@ -291,11 +291,11 @@ fn pin_tiles(tiles: &[HWND]) {
 /// can be seen. Only a plain opaque window counts: an overlay that lets the desktop through (layered or
 /// click-through), a window on another virtual desktop (cloaked), a minimized one, the taskbar or the desktop
 /// itself never do, so a tile in sight is never taken for covered.
-fn front_covers(host: HWND, sentinel: HWND, tiles: &[HWND]) -> bool {
+fn front_covers(host: HWND, sentinel: HWND, ours: &[HWND]) -> bool {
     // SAFETY: plain queries about a window handle and the work area, with buffers of the sizes the calls expect.
     unsafe {
         let fg = GetForegroundWindow();
-        if fg.0.is_null() || fg == host || fg == sentinel || tiles.contains(&fg) {
+        if fg.0.is_null() || fg == host || fg == sentinel || ours.contains(&fg) {
             return false;
         }
         if !IsWindowVisible(fg).as_bool() || IsIconic(fg).as_bool() {
@@ -336,9 +336,18 @@ fn check() {
     let Some(s) = sentinel() else { return };
     let Some(host) = desktop_host() else { return };
     keep_sentinel_down(s, host);
-    let tiles = tile_hwnds(app);
+    let mut tiles = tile_hwnds(app);
     for &t in &tiles {
         ensure_tile_style(t);
+    }
+    // The open pop-up stays with the desktop like the tiles, except while it is in front (in use): then it is left
+    // where it is, above other windows.
+    let popup = crate::popup::open_hwnd(app);
+    if let Some(p) = popup {
+        ensure_owner(&[p], host);
+        if !is_foreground(p) {
+            tiles.push(p);
+        }
     }
     ensure_owner(&tiles, host);
     let (sentinel_below, tile_below) = below_host(host, s, &tiles);
@@ -348,7 +357,8 @@ fn check() {
         // A transition: watch closely for a while (Explorer settles the z-order in a few steps).
         FAST_UNTIL_MS.fetch_max(now_ms() + FAST_AFTER_EVENT_MS, Ordering::Relaxed);
     }
-    let covered = !shown && front_covers(host, s, &tiles);
+    let ours: Vec<HWND> = tiles.iter().copied().chain(popup).collect();
+    let covered = !shown && front_covers(host, s, &ours);
     if COVERED.swap(covered, Ordering::SeqCst) != covered {
         let _ = app.emit("desktop-covered", covered);
     }
@@ -403,6 +413,27 @@ unsafe extern "system" fn on_event(
 unsafe extern "system" fn on_timer(_hwnd: HWND, _msg: u32, _id: usize, _time: u32) {
     check();
     schedule_poll();
+}
+
+/// The pop-up window (popup.rs): a tool window owned by the desktop like the tiles, but it can be activated: it
+/// takes the keyboard while in front (Esc, the map search), and a click brings it back to the front.
+pub fn attach_popup(h: HWND) {
+    unsafe {
+        let ex = GetWindowLongPtrW(h, GWL_EXSTYLE);
+        let want = (ex | WS_EX_TOOLWINDOW.0 as isize) & !(WS_EX_APPWINDOW.0 as isize | WS_EX_NOACTIVATE.0 as isize);
+        if want != ex {
+            SetWindowLongPtrW(h, GWL_EXSTYLE, want);
+        }
+    }
+    if let Some(host) = desktop_host() {
+        ensure_owner(&[h], host);
+    }
+    pin_bottom(h);
+}
+
+/// Whether `h` is the window in front (it has the keyboard).
+pub fn is_foreground(h: HWND) -> bool {
+    unsafe { GetForegroundWindow() == h }
 }
 
 /// Attach one tile right away (startup, before it is revealed): style, owner, place right above the desktop.

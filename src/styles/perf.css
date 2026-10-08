@@ -158,3 +158,6 @@
 .perf-item > .perf-name { color: var(--text-2); font-size: var(--caption-size); }
 .perf-item > .perf-value { font-weight: 600; text-align: left; }
 .perf-item > .perf-temp { font-size: var(--caption-size); }
+
+/* Settings: the typed interval (seconds). */
+.row-control .textfield.perf-interval { width: 120px; }

@@ -165,8 +165,11 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
     void listen<{ room?: unknown }>(FOCUS_EVENT, (e) => {
       const room = typeof e.payload?.room === "string" ? e.payload.room.trim() : "";
       if (!room) return;
-      // Folded to its icon: the map opens to show the room.
-      if (foldedRef.current) void openTile();
+      // Folded to its icon: the map opens in the pop-up and shows the room there.
+      if (foldedRef.current) {
+        void openTile(room);
+        return;
+      }
       setFlash(false);
       setQueryText(room);
       fromEvent.current = true;
@@ -260,7 +263,11 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
   useEffect(() => {
     if (!painting) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !e.defaultPrevented) setPainting(false);
+      // Taken: the Esc that ends paint mode does not also close the pop-up the map is in.
+      if (e.key === "Escape" && !e.defaultPrevented) {
+        e.preventDefault();
+        setPainting(false);
+      }
       else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.keyCode === VK_Z && !e.defaultPrevented) {
         e.preventDefault();
         undoPaint();

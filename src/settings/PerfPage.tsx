@@ -1,16 +1,18 @@
 // Settings → «Нагрузка»: live preview with this computer's readings; the look (view, colour, thickness, labels,
 // the red threshold, background); which readings to show and the temperatures (with where the processor's comes
 // from); how often to read; section reset. The preview polls only while it is on screen.
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
 import { Segmented, type SegmentedOption } from "../components/Segmented";
 import { Switch } from "../components/Switch";
+import { TextField } from "../components/TextField";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.perf";
 import {
   PERF_ALERTS,
-  PERF_INTERVALS,
+  PERF_INTERVAL_MAX,
+  PERF_INTERVAL_MIN,
   settings,
   type PerfColor,
   type PerfMode,
@@ -35,12 +37,44 @@ const ALERT_OPTIONS: readonly SegmentedOption<string>[] = PERF_ALERTS.map((a) =>
   value: String(a),
   label: a === 0 ? x.alertOff : `${a}${String.fromCharCode(0x202f)}%`,
 }));
-const INTERVAL_OPTIONS: readonly SegmentedOption<string>[] = PERF_INTERVALS.map((n) => ({ value: String(n), label: x.seconds(n) }));
 const UNIT_OPTIONS: readonly SegmentedOption<"c" | "f">[] = [
   { value: "c", label: x.unitOptions.c },
   { value: "f", label: x.unitOptions.f },
 ];
 const METRICS = ["cpu", "gpu", "ram", "disk"] as const;
+
+/**
+ * «Как часто»: any whole number of seconds, typed in. The field keeps what is typed; a valid number is saved at once,
+ * anything else is put back to the saved value when the field is left.
+ */
+function IntervalField({ value, onChange }: { value: number; onChange: (seconds: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+  const parse = (text: string) => {
+    const n = Number(text.trim().replace(",", "."));
+    return Number.isFinite(n) && n >= PERF_INTERVAL_MIN && n <= PERF_INTERVAL_MAX ? Math.round(n) : null;
+  };
+  const invalid = parse(draft) === null;
+  return (
+    <TextField
+      value={draft}
+      onChange={(text) => {
+        setDraft(text);
+        const n = parse(text);
+        if (n !== null && n !== value) onChange(n);
+      }}
+      onBlur={() => setDraft(String(value))}
+      type="number"
+      min={PERF_INTERVAL_MIN}
+      max={PERF_INTERVAL_MAX}
+      step={1}
+      suffix={x.secondsUnit}
+      error={invalid ? x.intervalInvalid(PERF_INTERVAL_MIN, PERF_INTERVAL_MAX) : undefined}
+      ariaLabel={x.interval}
+      className="perf-interval"
+    />
+  );
+}
 
 /** Where the processor temperature comes from, or how to get it. */
 function cpuTempText(info: PerfInfo | null): string {
@@ -134,12 +168,7 @@ export function PerfPage() {
 
       <Section title={x.update}>
         <Row label={x.interval} hint={x.intervalHint}>
-          <Segmented
-            options={INTERVAL_OPTIONS}
-            value={String(s.interval)}
-            onChange={(v) => update({ interval: PERF_INTERVALS.find((n) => String(n) === v) ?? 2 })}
-            ariaLabel={x.interval}
-          />
+          <IntervalField value={s.interval} onChange={(interval) => update({ interval })} />
         </Row>
       </Section>
 

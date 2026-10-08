@@ -91,7 +91,7 @@ turned off.
    turn this on in “General”.
 
 Windows 11, 64-bit, is required. To move a widget or change its size, right-click it; in “Size” it can also fold
-into an icon that opens with a click. The interface is in English or Russian, following Windows; switch the language
+into an icon that opens the widget in a pop-up in the middle of the screen. The interface is in English or Russian, following Windows; switch the language
 with the “RU | EN” button at the bottom of the settings window.
 
 <details>
