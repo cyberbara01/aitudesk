@@ -1,16 +1,30 @@
-// «Оформление»: live preview, design language (3), palette (7, glass included), accent (Windows / presets /
-// custom), reset.
+// «Оформление»: live preview, design language (3) and its parts chosen on their own («Тонкая настройка»), palette
+// (7, glass included), accent (Windows / presets / custom), widget scale, reset.
 import { useEffect, useState, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { Button } from "../components/Button";
 import { ColorPicker } from "../components/ColorPicker";
 import { Icon } from "../components/Icon";
 import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
 import { Segmented, type SegmentedOption } from "../components/Segmented";
+import { Select, type SelectOption } from "../components/Select";
+import { LOCALE } from "../i18n/lang";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
-import { ACCENT_PRESETS, STYLES, THEMES, accentPreset, isHex, type ThemeMeta } from "../lib/design";
-import { settings, TILE_SCALES, type Settings, type StyleId, type ThemeId, type TileScale } from "../lib/settings";
+import { ACCENT_PRESETS, STYLES, STYLE_LOOK, THEMES, accentPreset, isHex, type ThemeMeta } from "../lib/design";
+import {
+  DEFAULT_LOOK,
+  LOOK_CHOICES,
+  LOOK_PARTS,
+  settings,
+  TILE_SCALES,
+  type Look,
+  type Settings,
+  type StyleId,
+  type ThemeId,
+  type TileScale,
+} from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { useDebounced, useNow, useRootAttribute } from "./shell/hooks";
 import { PreviewClock, PreviewSystem } from "./shell/Preview";
@@ -50,6 +64,70 @@ function TileScaleSection({ value }: { value: TileScale }) {
           ariaLabel={x.tileScale}
         />
       </Row>
+    </Section>
+  );
+}
+
+/** Each font option is written in its own face. */
+const FONT_FACE: Record<Look["font"], string> = {
+  segoe: "var(--font-segoe-text)",
+  inter: "var(--font-inter)",
+  mono: "var(--font-jetbrains)",
+};
+
+/** The name of a part's value; lower case after «Как в дизайне:», but a font keeps its name. */
+function valueName(part: keyof Look, value: string, inSentence = false): string {
+  const name = (x.values[part] as Record<string, string>)[value] ?? value;
+  return inSentence && part !== "font" ? name.toLocaleLowerCase(LOCALE) : name;
+}
+
+/**
+ * «Тонкая настройка»: every part of the design follows the design («Как в дизайне: …», which says what that is)
+ * or is chosen on its own; so Aqua's type and corners can go with a solid background, for one. The controls keep
+ * the design's look.
+ */
+function FineTuning({ s }: { s: Settings }) {
+  const base = STYLE_LOOK[s.style];
+  const own = LOOK_PARTS.filter((part) => s.look[part] !== "auto");
+  const setPart = (part: keyof Look, value: string) =>
+    void settings.update((cur) => ({ look: { ...cur.look, [part]: value } }));
+  return (
+    <Section title={x.fine} description={x.fineHint}>
+      {LOOK_PARTS.map((part) => {
+        // The glass palette is glass while the transparency follows the design (src/lib/design.ts resolveLook).
+        const auto = part === "material" && s.theme === "glass" ? "glass" : base[part];
+        const options: SelectOption<string>[] = [
+          {
+            value: "auto",
+            label: x.fineAuto(valueName(part, auto, true)),
+            style: part === "font" ? { fontFamily: FONT_FACE[auto as Look["font"]] } : undefined,
+          },
+          ...(LOOK_CHOICES[part] as readonly string[]).map((value) => ({
+            value,
+            label: valueName(part, value),
+            style: part === "font" ? { fontFamily: FONT_FACE[value as Look["font"]] } : undefined,
+          })),
+        ];
+        return (
+          <Row key={part} label={x.parts[part]} hint={x.partHints[part]}>
+            <Select
+              options={options}
+              value={s.look[part]}
+              onChange={(value) => setPart(part, value)}
+              ariaLabel={x.parts[part]}
+              className="look-select"
+              styledValue={part === "font"}
+            />
+          </Row>
+        );
+      })}
+      {own.length > 0 && (
+        <Row label={x.fineChangedLabel} hint={x.fineChanged(own.map((part) => x.parts[part].toLocaleLowerCase(LOCALE)).join(", "))}>
+          <Button icon="arrow_reset" onClick={() => void settings.update({ look: DEFAULT_LOOK })}>
+            {x.fineReset}
+          </Button>
+        </Row>
+      )}
     </Section>
   );
 }
@@ -224,6 +302,8 @@ export function AppearancePage() {
           })}
         </div>
       </Section>
+
+      <FineTuning s={s} />
 
       <Section title={a.theme} description={x.themeHint} padded>
         <div className="grid-3" role="radiogroup" aria-label={a.theme} onKeyDown={onRadioGroupKeyDown}>

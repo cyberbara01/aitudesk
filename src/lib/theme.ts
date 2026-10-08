@@ -1,10 +1,11 @@
-// Resolves palette + design language + accent from settings and Windows, writes them to <html>.
+// Resolves palette + design language + its fine-tuned parts + accent from settings and Windows, writes them to
+// <html>.
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { accentPreset, isDarkTheme, isHex, onColor, readableOn, resolveTheme, withAlpha } from "./design";
+import { accentPreset, isDarkTheme, isHex, onColor, readableOn, resolveLook, resolveTheme, withAlpha } from "./design";
 import { markAppearanceApplied } from "./ready";
-import { settings, type Settings, type StyleId, type ThemeId } from "./settings";
+import { settings, type Look, type Settings, type StyleId, type ThemeId } from "./settings";
 
 export type ResolvedTheme = Exclude<ThemeId, "system">;
 
@@ -12,8 +13,13 @@ export interface Appearance {
   theme: ResolvedTheme;
   dark: boolean;
   style: StyleId;
+  /** The parts of the design in use (from the design or chosen on their own). */
+  look: Look;
   accent: string;
 }
+
+/** The settings window's material for each transparency (glass.rs set_window_material). */
+const MATERIAL = { glass: "acrylic", matte: "mica", solid: "none" } as const;
 
 const root = document.documentElement;
 
@@ -36,6 +42,12 @@ function applyAppearance(a: Appearance) {
   root.setAttribute("data-theme", a.theme);
   root.setAttribute("data-style", a.style);
   root.setAttribute("data-scheme", a.dark ? "dark" : "light");
+  root.setAttribute("data-font", a.look.font);
+  root.setAttribute("data-numfont", a.look.numbers);
+  root.setAttribute("data-shape", a.look.shape);
+  root.setAttribute("data-density", a.look.density);
+  root.setAttribute("data-border", a.look.border);
+  root.setAttribute("data-material", a.look.material);
   // Any accent (a custom one above all) is nudged lighter or darker until it reads on this palette:
   // 3:1 for fills and selection marks, 4.5:1 for accent text. Curated presets already pass and stay as is.
   const bg = ACCENT_BACKDROP[a.theme === "glass" && !a.dark ? "glass-light" : a.theme];
@@ -45,11 +57,11 @@ function applyAppearance(a: Appearance) {
   root.style.setProperty("--accent-soft", withAlpha(fill, a.dark ? 0.18 : 0.14));
   root.style.setProperty("--accent-text", readableOn(a.accent, bg, 4.5));
   // Native side: light or dark system backdrop for this window (for tiles: the tint of their acrylic); the
-  // settings window also switches its material by style (Mica for Windows 11, acrylic for Aqua, a solid
-  // surface for Rice). The glass palette is acrylic in every style.
-  const material = a.theme === "glass" || a.style === "aqua" ? "acrylic" : a.style === "rice" ? "none" : "mica";
+  // settings window also takes the material of the transparency (acrylic glass, Windows 11 Mica, or a solid
+  // surface). The tiles drop their acrylic themselves when there is none (Tile.tsx).
   const isSettingsWindow = getCurrentWindow().label === "settings";
-  invoke("set_window_theme", isSettingsWindow ? { dark: a.dark, material } : { dark: a.dark }).catch(() => undefined);
+  const args = isSettingsWindow ? { dark: a.dark, material: MATERIAL[a.look.material] } : { dark: a.dark };
+  invoke("set_window_theme", args).catch(() => undefined);
 }
 
 async function resolveAccent(s: Settings, dark: boolean): Promise<string> {
@@ -87,7 +99,13 @@ export function useTheme(): Appearance {
   const [windowsDark, setWindowsDark] = useState<boolean | null>(null);
   const [s, setS] = useState<Settings>(settings.get());
   const [loaded, setLoaded] = useState(settings.isLoaded());
-  const [appearance, setAppearance] = useState<Appearance>({ theme: "dark", dark: true, style: "fluent", accent: "#60CDFF" });
+  const [appearance, setAppearance] = useState<Appearance>(() => ({
+    theme: "dark",
+    dark: true,
+    style: "fluent",
+    look: resolveLook("fluent", settings.get().look, "dark"),
+    accent: "#60CDFF",
+  }));
 
   useEffect(() => {
     let alive = true;
@@ -115,6 +133,8 @@ export function useTheme(): Appearance {
   // Glass keeps its own tokens in both schemes and takes light or dark from Windows, as "system" does.
   const dark = theme === "glass" ? (windowsDark ?? true) : isDarkTheme(theme);
   const accentKey = `${s.accent.mode}|${s.accent.preset}|${s.accent.custom}`;
+  const look = resolveLook(s.style, s.look, theme);
+  const lookKey = `${look.font}|${look.numbers}|${look.shape}|${look.density}|${look.border}|${look.material}`;
   const known = loaded && windowsDark !== null;
 
   useEffect(() => {
@@ -122,7 +142,7 @@ export function useTheme(): Appearance {
     let cancelled = false;
     resolveAccent(s, dark).then((accent) => {
       if (cancelled) return;
-      const next = { theme, dark, style: s.style, accent };
+      const next = { theme, dark, style: s.style, look, accent };
       applyAppearance(next);
       setAppearance(next);
       markAppearanceApplied();
@@ -131,7 +151,7 @@ export function useTheme(): Appearance {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [known, theme, dark, s.style, accentKey]);
+  }, [known, theme, dark, s.style, lookKey, accentKey]);
 
   return appearance;
 }

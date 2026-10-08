@@ -3,11 +3,11 @@
    Family, weight, size, tracking and colour of the time come from settings as inline styles;
    everything else is tokens, so the three styles and all palettes apply on their own.
    ===================================================================================== */
-/* Clock font «Как в стиле» (font: "auto"): the display face of each design language. On :root, so the
-   tile, the settings page and the Appearance preview resolve it alike. */
-:root { --clock-font-auto: var(--font-segoe-display); }
-:root[data-style="aqua"] { --clock-font-auto: var(--font-inter); }
-:root[data-style="rice"] { --clock-font-auto: var(--font-jetbrains); }
+/* Clock font «Как в стиле» (font: "auto"): the display face of the design's type, monospaced where the
+   numbers are (Rice). On :root, so the tile, the settings page and the Appearance preview resolve it alike. */
+:root, :root[data-font="segoe"] { --clock-font-auto: var(--font-segoe-display); }
+:root[data-font="inter"] { --clock-font-auto: var(--font-inter); }
+:root[data-font="mono"], :root[data-numfont="mono"] { --clock-font-auto: var(--font-jetbrains); }
 
 .clock-face {
   display: flex;

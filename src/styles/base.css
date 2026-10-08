@@ -61,8 +61,10 @@ a { color: var(--accent-text); text-decoration: none; }
   box-shadow: inset 0 1px 0 var(--tile-edge);
   overflow: hidden;
 }
-:root[data-glass="off"] .tile { background: var(--tile-fallback); }
+:root[data-glass="off"] .tile:not(.no-bg) { background: var(--tile-fallback); }
 .tile.no-bg { background: transparent; border-color: transparent; box-shadow: none; }
+/* «Прозрачность: нет»: a solid tile (its acrylic is switched off natively, Tile.tsx). */
+:root[data-material="solid"] .tile:not(.no-bg) { background: var(--tile-fallback); }
 
 .tile.editing {
   outline: 1px dashed var(--accent);
@@ -658,9 +660,9 @@ a { color: var(--accent-text); text-decoration: none; }
 .option-card .card-title { font-weight: 600; }
 .option-card .card-hint { color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); }
 
-/* Settings-window material fallbacks */
+/* Settings-window material: a solid surface without transparency (or with Windows' transparency effects off). */
 :root[data-window="settings"][data-glass="off"] body,
-:root[data-window="settings"][data-style="rice"] body { background: var(--surface); }
+:root[data-window="settings"][data-material="solid"] body { background: var(--surface); }
 :root[data-window="settings"] body { user-select: text; }
 
 /* =====================================================================================

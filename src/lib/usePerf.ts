@@ -1,6 +1,6 @@
-// «Нагрузка»: polls get_perf (src-tauri/src/perf.rs) for the widget and its settings preview. Every 2 s, every
-// 5 s on Windows battery saver, and never while the window is hidden (a hidden or switched-off widget asks
-// nothing). The processor load is a difference of two readings, so the very first one is followed by a second
+// «Нагрузка»: polls get_perf (src-tauri/src/perf.rs) for the widget and its settings preview. Every 1, 2 or 5 s as
+// chosen (2 by default), no more than every 5 s on Windows battery saver, and never while the window is hidden (a
+// hidden or switched-off widget asks nothing). The processor load is a difference of two readings, so the very first one is followed by a second
 // one after FIRST_FOLLOW_UP instead of a full interval.
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -18,18 +18,22 @@ export interface PerfInfo {
   /** °C. */
   cpuTemp: number | null;
   gpuTemp: number | null;
+  /** Where the processor temperature came from: "windows" or a hardware monitor ("hwinfo", ...). */
+  cpuTempSource: string | null;
 }
 
 /** The readings as the widget draws them (whole percents and degrees): an equal one draws nothing. */
 const drawn = (p: PerfInfo) =>
   [p.cpu, p.gpu, p.ram, p.disk, p.cpuTemp, p.gpuTemp].map((v) => (v === null ? "-" : Math.round(v))).join(",");
 
-const INTERVAL = 2_000;
 const INTERVAL_SAVER = 5_000;
 const FIRST_FOLLOW_UP = 600;
 
-/** Latest reading; null before the first one. `active` false stops polling (a preview scrolled out of view). */
-export function usePerf(active = true): PerfInfo | null {
+/**
+ * Latest reading; null before the first one. `active` false stops polling (a preview scrolled out of view);
+ * `seconds` between readings.
+ */
+export function usePerf(active = true, seconds = 2): PerfInfo | null {
   const saver = usePowerSaver();
   const [info, setInfo] = useState<PerfInfo | null>(null);
 
@@ -52,7 +56,7 @@ export function usePerf(active = true): PerfInfo | null {
         /* keep the last reading */
       }
       if (!alive || document.hidden) return;
-      schedule(first ? FIRST_FOLLOW_UP : saver ? INTERVAL_SAVER : INTERVAL);
+      schedule(first ? FIRST_FOLLOW_UP : saver ? Math.max(INTERVAL_SAVER, seconds * 1000) : seconds * 1000);
       first = false;
     };
     // Hidden: no timer at all. Shown again: read at once.
@@ -71,7 +75,7 @@ export function usePerf(active = true): PerfInfo | null {
       window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [active, saver]);
+  }, [active, saver, seconds]);
 
   return info;
 }

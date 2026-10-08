@@ -35,7 +35,7 @@ windows, stay out of the way and don't vanish with Win+D.
 <td width="50%" valign="top"><img src="docs/readme/system.svg" width="22" height="22" alt=""><br><b>System</b><br>Battery charge, Wi-Fi and Bluetooth. Network and device names can be hidden</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/perf.svg" width="22" height="22" alt=""><br><b>Performance</b><br>Processor, graphics, memory and disk load in percent, processor and graphics temperature</td>
+<td width="50%" valign="top"><img src="docs/readme/perf.svg" width="22" height="22" alt=""><br><b>Performance</b><br>Processor, graphics, memory and disk with their temperature; four views and your own colors</td>
 <td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Shortcuts</b><br>Favorite sites in one click: the site's icon, one from the set or a letter, your own color</td>
 </tr>
 <tr>
@@ -48,7 +48,7 @@ windows, stay out of the way and don't vanish with Win+D.
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Your widgets</b><br>Your own picture or GIF on the desktop, as many as you like</td>
-<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Appearance</b><br>Three designs, themes from light to black, glass, your own accent, a scale for your screen</td>
+<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Appearance</b><br>Three designs and fine-tuning: font, shapes, borders, transparency. Themes, your accent, scale</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Privacy</b><br>Text on the desktop can be hidden behind dots, like a password</td>
@@ -138,6 +138,9 @@ it to `settings.broken-<time>.json`.
   you add a shortcut (a request to the site itself and, if it has no icon, to Google's icon service). A site cannot
   send these requests on to devices in your home network.
 - The schedule, notes, the Wi-Fi network name and Bluetooth device names on the desktop can be hidden behind dots.
+- The processor temperature comes from Windows where it gives one (laptops, mostly). On most desktop PCs Windows does
+  not, and the app installs no driver for it: it reads the temperature from a monitoring program you run anyway
+  (LibreHardwareMonitor, HWiNFO, Core Temp, MSI Afterburner or AIDA64), on this computer only.
 - A config holds only the parts you choose, and notes and your own widgets are left out by default. Shortcuts from
   someone else's config are accepted only with `http://` and `https://` addresses, and pictures only when they really
   are pictures.
@@ -170,9 +173,10 @@ For testing without a laptop there are environment variables: `AITUDESK_MOCK_POW
 (`off` | `none` | `A;B;C`).
 
 Inside: Tauri 2, Rust, React 18, TypeScript and Vite. All widgets run in one WebView2 process, the clock wakes up
-once a minute when seconds are not shown, and hidden widgets and widgets folded into an icon keep no timers. In
-Windows battery saver the clock hides its seconds, charge, network and load are checked less often, and GIFs stand
-still.
+once a minute when seconds are not shown, and hidden widgets and widgets folded into an icon keep no timers. While
+a program fills the screen, the load is not read and GIFs stand still. In Windows battery saver the clock hides its
+seconds, charge, network and load are checked less often, and GIFs stand still. With transparency set to none the
+widgets drop their acrylic, which spares the graphics card.
 </details>
 
 ## Feedback

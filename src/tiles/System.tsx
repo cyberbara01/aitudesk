@@ -6,7 +6,8 @@ import { MaskedText, PrivacyScope, RevealButton, useRevealed } from "../componen
 import { Tile } from "../components/Tile";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
-import type { StyleId, SystemSettings } from "../lib/settings";
+import { DENSITY_PAD, resolveLook } from "../lib/design";
+import type { Settings, SystemSettings } from "../lib/settings";
 import { useFolded, useTileView } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { useSystemInfo, useUserName, type BluetoothInfo, type PowerInfo, type SystemInfo, type WifiInfo } from "../lib/useSystemInfo";
@@ -193,10 +194,10 @@ interface RowsFit {
   tight: number;
 }
 
-/** Heights (logical px) a tile with `rows` rows needs in a design language: rows, --tile-pad on both sides, 1 px border. */
-function rowsFit(rows: number, style: StyleId): RowsFit {
-  const pad = style === "aqua" ? 18 : 16;
-  const rowMin = style === "aqua" ? 28 : 24;
+/** Heights (logical px) a tile with `rows` rows needs: rows, the padding of its density on both sides, 1 px border. */
+function rowsFit(rows: number, s: Settings): RowsFit {
+  const pad = DENSITY_PAD[resolveLook(s.style, s.look, s.theme).density];
+  const rowMin = s.style === "aqua" ? 28 : 24;
   const frame = 2 * pad + 2;
   return { comfortable: Math.ceil((rows * ROW_H + frame) / 8) * 8, tight: rows * rowMin + frame };
 }
@@ -237,7 +238,7 @@ export function SystemTile() {
   const folded = useFolded();
   const view = useTileView();
   const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: loaded && !folded });
-  const fit = rowsFit(1 + Number(sys.showWifi) + Number(sys.showBluetooth), s.style);
+  const fit = rowsFit(1 + Number(sys.showWifi) + Number(sys.showBluetooth), s);
   useGrowToFit(fit, loaded && view === "manual");
   // Wait for the stored settings so the tile never flashes default rows (or toggles the acrylic twice).
   if (!loaded) return null;

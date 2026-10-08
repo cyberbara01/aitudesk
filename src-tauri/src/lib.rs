@@ -1,6 +1,7 @@
 mod accent;
 mod autostart;
 mod commands;
+mod cputemp;
 mod custom;
 mod desktop_watch;
 mod favicon;

@@ -30,6 +30,7 @@ import { extra } from "../i18n/ru.extra.transfer";
 import { extra as perfStrings } from "../i18n/ru.extra.perf";
 import { hostOf } from "./launchers";
 import {
+  LOOK_PARTS,
   STYLE_IDS,
   THEME_IDS,
   TILE_IDS,
@@ -62,7 +63,7 @@ export interface Part {
 const PART_LIST = [
   { id: "tiles", label: ru.settings.general.tiles, keys: ["tiles", "tileViews", "lockLayout"], personal: false },
   { id: "layout", label: extra.parts.layout, keys: [], personal: false },
-  { id: "appearance", label: ru.settings.nav.appearance, keys: ["style", "theme", "accent"], personal: false },
+  { id: "appearance", label: ru.settings.nav.appearance, keys: ["style", "theme", "look", "accent"], personal: false },
   { id: "clock", label: ru.settings.nav.clock, keys: ["clock"], personal: false },
   { id: "system", label: ru.settings.nav.system, keys: ["system"], personal: false },
   { id: "perf", label: ru.settings.nav.perf, keys: ["perf"], personal: false },
@@ -535,7 +536,9 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       const a = s.accent;
       const accentName = nameIn(look.accents, a.preset) ?? look.accents["fluent-blue"];
       const accent = a.mode === "windows" ? x.accentWindows : a.mode === "custom" ? x.accentCustom(a.custom) : x.accentPreset(accentName);
-      return `${look.styles[s.style]}, ${theme}, ${accent}`;
+      const own = LOOK_PARTS.filter((part) => s.look[part] !== "auto").map((part) => shell.appearance.parts[part].toLocaleLowerCase(LOCALE));
+      const base = `${look.styles[s.style]}, ${theme}, ${accent}`;
+      return own.length > 0 ? `${base}, ${shell.appearance.fineSummary(own.join(", "))}` : base;
     }
     case "clock": {
       const c = s.clock;

@@ -151,8 +151,8 @@ function useRowWheel(ref: RefObject<HTMLElement>, enabled: boolean) {
 
 /**
  * True while the text of `ref` does not fit its box (it ends in an ellipsis). The box keeps its size when only
- * the text width changes, so besides the text itself the check also follows the design language (it swaps the
- * font through data-style on <html>) and fonts that finish loading after the first frame.
+ * the text width changes, so besides the text itself the check also follows the font of the design (data-style and
+ * data-font on <html>) and fonts that finish loading after the first frame.
  */
 function useTextCut(ref: RefObject<HTMLElement>, text: string | null): boolean {
   const [cut, setCut] = useState(false);
@@ -165,7 +165,7 @@ function useTextCut(ref: RefObject<HTMLElement>, text: string | null): boolean {
     const check = () => setCut(el.scrollWidth > el.clientWidth);
     check();
     const mo = new MutationObserver(check);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-style"] });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-style", "data-font"] });
     document.fonts.addEventListener("loadingdone", check);
     return () => {
       mo.disconnect();

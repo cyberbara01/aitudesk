@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
+import { resolveLook } from "../lib/design";
 import { useEditMode } from "../lib/editMode";
 import { popupMenu } from "../lib/nativeMenu";
 import { customIdOf, isCustomLabel, settings, TILE_VIEWS, type TileId, type TileView } from "../lib/settings";
@@ -91,9 +92,12 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     watchTilePhase();
   }, []);
 
-  // Native acrylic follows the background switch; the folded icon always sits on glass, so it reads on any
-  // wallpaper.
-  const glass = background || (foldable && phase !== "open");
+  // The background follows its switch; the folded icon always has one, so it reads on any wallpaper. The native
+  // acrylic is under it unless the transparency is «Нет» (then the background is solid and the acrylic would be
+  // work for nothing).
+  const hasBackground = background || (foldable && phase !== "open");
+  const solid = resolveLook(s.style, s.look, s.theme).material === "solid";
+  const glass = hasBackground && !solid;
   useEffect(() => {
     invoke("set_tile_glass", { on: glass }).catch(() => undefined);
   }, [glass]);
@@ -170,7 +174,7 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     foldable ? `view-${view}` : "",
     showFace ? "folded" : "",
     foldable && phase === "open" ? "popup" : "",
-    glass ? "" : "no-bg",
+    hasBackground ? "" : "no-bg",
     edit.editing ? "editing" : "",
   ]
     .filter(Boolean)

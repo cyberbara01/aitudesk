@@ -66,6 +66,38 @@ export const en: ShellStrings = {
     sampleBattery: "72 %",
     sampleWifi: "AITU",
     sampleDevice: "Headphones",
+    fine: "Fine-tuning",
+    fineHint:
+      "Take from a design only what you like: the font, corners, spacing, borders and transparency are chosen on their own. Switches and buttons stay as in the design",
+    fineAuto: (value: string) => `As in the design: ${value}`,
+    fineChangedLabel: "Your own look",
+    fineChanged: (parts: string) => `Chosen on their own: ${parts}`,
+    fineReset: "All as in the design",
+    fineSummary: (parts: string) => `on their own: ${parts}`,
+    parts: {
+      font: "Font",
+      numbers: "Numbers",
+      shape: "Corners",
+      density: "Spacing",
+      border: "Borders",
+      material: "Transparency",
+    },
+    partHints: {
+      font: "The text of the widgets and of this window",
+      numbers: "Times, percents and other numbers",
+      shape: "The corners of buttons, fields and cards",
+      density: "The padding inside the widgets",
+      border: "The outline of the widgets and the dividers. Colored ones take the accent color",
+      material: "Glass lets the wallpaper through, matte is like Windows 11. With none the background is solid and easier on the graphics card",
+    },
+    values: {
+      font: { segoe: "Segoe UI", inter: "Inter", mono: "JetBrains Mono" },
+      numbers: { text: "Like the text", mono: "Monospaced" },
+      shape: { square: "Square", strict: "Strict", medium: "Medium", soft: "Soft" },
+      density: { compact: "Compact", normal: "Normal", roomy: "Roomy" },
+      border: { normal: "Normal", accent: "Colored", none: "None" },
+      material: { glass: "Glass", matte: "Matte", solid: "None" },
+    },
   },
   about: {
     helpHint: "A short guide to the widgets, their menus and settings",
@@ -104,7 +136,7 @@ export const en: ShellStrings = {
       "Add your schedule, notes with deadlines and shortcuts to your sites in these sections; the widgets show them right away. Click a room in the schedule to find it on the map.",
     lookTitle: "Design, theme and size",
     lookText: (appearance: string, a: string, b: string, c: string) =>
-      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. The widgets and this window change at once.`,
+      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, corners, spacing, borders and transparency can be chosen on their own instead of taken from the design. The widgets and this window change at once.`,
     startTitle: "Startup and reminders",
     startText: (reminders: string) =>
       `Turn on autostart so the widgets are in place after a restart. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,

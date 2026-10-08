@@ -53,23 +53,23 @@
 @keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
 
 /* =====================================================================================
-   Glass palette: the settings window is acrylic in every style (Rice too), so its body stays clear.
-   Tiles drawn inside the window (previews, pictures) have no acrylic of their own: they borrow the frost,
-   the average tint of the acrylic plus a blur of what lies behind them.
+   Glass palette: the settings window is acrylic in every style (unless «Прозрачность» is chosen otherwise), so
+   its body stays clear. Tiles drawn inside the window (previews, pictures) have no acrylic of their own: they
+   borrow the frost, the average tint of the acrylic plus a blur of what lies behind them.
    ===================================================================================== */
-:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) body { background: transparent; }
-:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) :is(.tile, .pv-tile, .sp-tile, .ob-tile):not(.no-bg) {
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]):not([data-material="solid"]) body { background: transparent; }
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]):not([data-material="solid"]) :is(.tile, .pv-tile, .sp-tile, .ob-tile):not(.no-bg) {
   background: var(--frost);
   backdrop-filter: blur(16px) saturate(160%);
 }
 /* The language menu opens over the sidebar: on glass it is frosted like the window, and the sidebar items under it
    blur and fade while it is open (WebView2 draws no backdrop blur on a transparent window, so the menu cannot
    blur them itself). */
-:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) .popover.lang-menu { background: var(--frost); }
-:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) :is(.sidebar-nav > .nav-item, .sidebar-foot > .nav-item) {
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]):not([data-material="solid"]) .popover.lang-menu { background: var(--frost); }
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]):not([data-material="solid"]) :is(.sidebar-nav > .nav-item, .sidebar-foot > .nav-item) {
   transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in), filter var(--t-base) var(--ease-in), opacity var(--t-base) var(--ease-in);
 }
-:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]) .sidebar-nav:has(.lang-menu) :is(.sidebar-nav > .nav-item, .sidebar-foot > .nav-item) {
+:root[data-window="settings"][data-theme="glass"]:not([data-glass="off"]):not([data-material="solid"]) .sidebar-nav:has(.lang-menu) :is(.sidebar-nav > .nav-item, .sidebar-foot > .nav-item) {
   filter: blur(3px);
   opacity: .3;
 }
@@ -169,10 +169,10 @@
 .sp[data-sp="rice"] .sp-time { font-family: var(--font-jetbrains); font-weight: 600; }
 .sp[data-sp="rice"] .sp-switch { border-radius: var(--r4); background: var(--accent-soft); border: 1.5px solid var(--accent); }
 .sp[data-sp="rice"] .sp-switch::after { top: 1.5px; right: 1.5px; width: 6px; height: 6px; border-radius: var(--r2); background: var(--accent); }
-/* Each card depicts its own style: while Rice is active (--tile-edge: transparent) the Fluent and Aqua
-   cards keep their top-edge highlight, otherwise the three cards look alike. */
-:root[data-style="rice"] .sp[data-sp="fluent"] { --tile-edge: color-mix(in srgb, var(--text) 16%, transparent); }
-:root[data-style="rice"] .sp[data-sp="aqua"] { --tile-edge: color-mix(in srgb, var(--text) 28%, transparent); }
+/* Each card depicts its own style: while the borders have no top-edge highlight (coloured or none) the Fluent and
+   Aqua cards keep theirs, otherwise the three cards look alike. */
+:root:is([data-border="accent"], [data-border="none"]) .sp[data-sp="fluent"] { --tile-edge: color-mix(in srgb, var(--text) 16%, transparent); }
+:root:is([data-border="accent"], [data-border="none"]) .sp[data-sp="aqua"] { --tile-edge: color-mix(in srgb, var(--text) 28%, transparent); }
 
 /* ---- Theme cards: wallpaper and a mini tile in the palette's own colours (THEMES[].swatch) ---- */
 .tp { background: var(--tp-bg); }
@@ -259,6 +259,8 @@
   overflow: hidden;
 }
 .pv-tile.no-bg { background: transparent; border-color: transparent; box-shadow: none; }
+/* «Прозрачность: нет»: the previews are solid like the widgets. */
+:root[data-material="solid"] :is(.pv-tile, .ob-tile):not(.no-bg) { background: var(--tile-fallback); }
 .pv-clock { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .pv-clock-body { display: flex; gap: 2px; min-width: 0; max-width: 100%; }
 .pv-clock-body.row { gap: var(--s2); }

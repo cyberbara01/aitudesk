@@ -44,6 +44,8 @@ pub struct PerfInfo {
     /// °C.
     pub cpu_temp: Option<f32>,
     pub gpu_temp: Option<f32>,
+    /// Where the processor temperature came from: "windows" (ACPI) or a hardware monitor (cputemp.rs Source).
+    pub cpu_temp_source: Option<&'static str>,
 }
 
 /// PDH handles are plain pointers; they live (and are used under the mutex) as long as the process.
@@ -61,6 +63,8 @@ struct Sampler {
     cpu_prev: Option<(u64, u64)>,
     /// D3DKMT adapter handles that report a temperature.
     adapters: Vec<u32>,
+    /// Hardware monitors the user may run, for the processor temperature Windows does not give.
+    monitors: crate::cputemp::Monitors,
 }
 
 static SAMPLER: Mutex<Option<Sampler>> = Mutex::new(None);
@@ -136,6 +140,7 @@ impl Sampler {
             zones: HashMap::new(),
             cpu_prev: None,
             adapters: open_adapters(),
+            monitors: crate::cputemp::Monitors::new(),
         }
     }
 
@@ -153,6 +158,13 @@ impl Sampler {
             if let Some((counter, unit)) = self.thermal {
                 info.cpu_temp = self.cpu_temp(&read_array(counter), unit);
             }
+        }
+        // A hardware monitor reads the processor itself: it wins over an ACPI zone (often a laptop's case sensor).
+        if let Some((t, src)) = self.monitors.read() {
+            info.cpu_temp = Some(t);
+            info.cpu_temp_source = Some(src.id());
+        } else if info.cpu_temp.is_some() {
+            info.cpu_temp_source = Some("windows");
         }
         info.gpu_temp = self.adapters.iter().filter_map(|&h| adapter_temp(h)).reduce(f32::max);
         info

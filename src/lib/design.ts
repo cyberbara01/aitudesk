@@ -1,6 +1,6 @@
 // Design catalogues: palettes, design languages, accent presets, clock presets, colour helpers.
 // Visual values live in src/styles/tokens.css; this file only names things and does the maths.
-import type { ClockFont, ClockSettings, MapScheme, StyleId, ThemeId } from "./settings";
+import type { ClockFont, ClockSettings, Look, LookDensity, LookSettings, MapScheme, StyleId, ThemeId } from "./settings";
 
 // ---------------------------------------------------------------------------------------------
 // Palettes & styles
@@ -36,6 +36,34 @@ export const THEMES: readonly ThemeMeta[] = [
 ];
 
 export const STYLES: readonly { id: StyleId }[] = [{ id: "fluent" }, { id: "aqua" }, { id: "rice" }];
+
+/**
+ * What each design gives to the parts of «Тонкая настройка» left at «Как в дизайне». The controls (switches,
+ * segmented buttons, the selected tab) always keep the design's own look.
+ */
+export const STYLE_LOOK: Record<StyleId, Look> = {
+  fluent: { font: "segoe", numbers: "text", shape: "strict", density: "normal", border: "normal", material: "matte" },
+  aqua: { font: "inter", numbers: "text", shape: "soft", density: "roomy", border: "normal", material: "glass" },
+  rice: { font: "inter", numbers: "mono", shape: "medium", density: "normal", border: "accent", material: "solid" },
+};
+
+/** The look in use: the design's parts with the ones chosen on their own. The glass palette is glass unless
+ * the transparency is chosen. */
+export function resolveLook(style: StyleId, look: LookSettings, theme: ThemeId): Look {
+  const base = STYLE_LOOK[style];
+  const pick = <K extends keyof Look>(k: K): Look[K] => (look[k] === "auto" ? base[k] : (look[k] as Look[K]));
+  return {
+    font: pick("font"),
+    numbers: pick("numbers"),
+    shape: pick("shape"),
+    density: pick("density"),
+    border: pick("border"),
+    material: look.material === "auto" ? (theme === "glass" ? "glass" : base.material) : look.material,
+  };
+}
+
+/** Padding inside a widget per density, logical px (tokens.css [data-density]). */
+export const DENSITY_PAD: Record<LookDensity, number> = { compact: 12, normal: 16, roomy: 20 };
 
 /** Resolve "system" using the Windows app theme. */
 export function resolveTheme(theme: ThemeId, windowsDark: boolean): Exclude<ThemeId, "system"> {

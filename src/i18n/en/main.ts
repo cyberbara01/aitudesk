@@ -166,7 +166,7 @@ export const en: MainStrings = {
     },
     appearance: {
       style: "Design",
-      styleHint: "Changes the shapes, fonts and materials of all widgets and of this window",
+      styleHint: "A ready-made set: the look of buttons and switches, fonts, shapes and materials. Below, any part can be chosen on its own",
       styles: {
         fluent: "Windows 11",
         fluentHint: "Acrylic, crisp corners, Segoe UI",

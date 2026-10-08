@@ -1,8 +1,9 @@
 /* =====================================================================================
-   «Нагрузка» (src/tiles/Perf.tsx): rings, bars or numbers. The share in the accent, above 90 % in the critical
-   colour; tracks in the control fill; the numbers in the style's numeric face, tabular. A new reading lands in
-   one step: a glide would make WebView2 redraw the widget for a quarter of a second at every reading (measured: about
-   ten times the processor time), and nothing moves at rest.
+   «Нагрузка» (src/tiles/Perf.tsx): rings, bars, numbers or one line. The colour of a reading (--tone): the accent,
+   by load (green, yellow) or one per reading; from the alert threshold the critical colour. Tracks in the control
+   fill; the numbers in the numeric face of the design, tabular. A new reading lands in one step: a glide would
+   make WebView2 redraw the widget for a quarter of a second at every reading (measured: about ten times the
+   processor time), and nothing moves at rest.
    ===================================================================================== */
 .tile-perf { display: flex; flex-direction: column; }
 /* The settings preview: the widget at its default size (280×132) on the stage desk. */
@@ -16,11 +17,27 @@
   min-width: 0;
   font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
+  /* «Разные»: one colour per reading, readable on dark and on light palettes. */
+  --perf-cpu: #60CDFF;
+  --perf-gpu: #6CCB5F;
+  --perf-ram: #C7B6FF;
+  --perf-disk: #FFB086;
 }
-.perf-ring,
-.perf-bar,
-.perf-num { --tone: var(--accent); }
-.perf [data-level="high"] { --tone: var(--critical); }
+:root[data-scheme="light"] .perf {
+  --perf-cpu: #0067C0;
+  --perf-gpu: #0F7B0F;
+  --perf-ram: #6B4FC0;
+  --perf-disk: #B4480E;
+}
+.perf [data-metric] { --tone: var(--accent); }
+.perf[data-color="metric"] [data-metric="cpu"] { --tone: var(--perf-cpu); }
+.perf[data-color="metric"] [data-metric="gpu"] { --tone: var(--perf-gpu); }
+.perf[data-color="metric"] [data-metric="ram"] { --tone: var(--perf-ram); }
+.perf[data-color="metric"] [data-metric="disk"] { --tone: var(--perf-disk); }
+.perf[data-color="load"] [data-level="low"] { --tone: var(--success); }
+.perf[data-color="load"] [data-level="mid"] { --tone: var(--caution); }
+/* Last, so it outranks every colour above. */
+.perf[data-color] [data-level="high"] { --tone: var(--critical); }
 
 .perf-label {
   color: var(--text-2);
@@ -29,7 +46,7 @@
   white-space: nowrap;
 }
 .perf-temp { color: var(--text-3); }
-.perf-label > .perf-temp { margin-left: 4px; }
+.perf-label > .perf-name + .perf-temp { margin-left: 4px; }
 .perf-empty {
   display: grid;
   place-items: center;
@@ -53,6 +70,8 @@
 }
 .perf-ring svg { display: block; width: 48px; height: 48px; transform: rotate(-90deg); }
 .perf-ring circle { fill: none; stroke-width: 4; }
+.perf[data-thickness="thin"] .perf-ring circle { stroke-width: 2.5; }
+.perf[data-thickness="thick"] .perf-ring circle { stroke-width: 6; }
 .perf-ring-track { stroke: var(--ctl-fill-hover); }
 .perf-ring-arc {
   stroke: var(--tone);
@@ -81,17 +100,20 @@
 }
 .perf-bar {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 42px 30px;
+  grid-template-columns: 34px minmax(0, 1fr) 42px minmax(30px, auto);
   align-items: center;
   column-gap: var(--s2);
   min-height: 20px;
 }
+.perf-bars.no-names .perf-bar { grid-template-columns: minmax(0, 1fr) 42px minmax(30px, auto); }
 .perf-track {
   height: 4px;
   border-radius: 2px;
   background: var(--ctl-fill-hover);
   overflow: hidden;
 }
+.perf[data-thickness="thin"] .perf-track { height: 2px; border-radius: 1px; }
+.perf[data-thickness="thick"] .perf-track { height: 8px; border-radius: 4px; }
 .perf-fill {
   display: block;
   width: calc(var(--v) * 1%);
@@ -117,4 +139,22 @@
   line-height: 28px;
   font-weight: 300;
 }
-.perf-num[data-level="high"] .perf-num-value { color: var(--critical); }
+/* The figures take the colour where it means something (by load, one per reading, an alert). */
+.perf:is([data-color="load"], [data-color="metric"]) .perf-num-value,
+.perf-num[data-level="high"] .perf-num-value { color: var(--tone); }
+
+/* ---- One line: a dot in the reading's colour, name, value, temperature; wraps on a narrow widget ---- */
+.perf-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: center;
+  gap: 4px 14px;
+}
+.perf-item { display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.perf-dot { align-self: center; width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
+.perf[data-thickness="thin"] .perf-dot { width: 6px; height: 6px; }
+.perf[data-thickness="thick"] .perf-dot { width: 10px; height: 10px; }
+.perf-item > .perf-name { color: var(--text-2); font-size: var(--caption-size); }
+.perf-item > .perf-value { font-weight: 600; text-align: left; }
+.perf-item > .perf-temp { font-size: var(--caption-size); }

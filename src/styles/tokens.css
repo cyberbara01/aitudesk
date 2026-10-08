@@ -1,6 +1,8 @@
 /* AITU Desk: design tokens.
    Palettes:  :root (dark) · [data-theme=light|gray|darker|black] · [data-theme=glass] (+ [data-scheme=light])
-   Styles:    [data-style=fluent] (default) · [data-style=aqua] · [data-style=rice]
+   Styles:    [data-style=fluent] (default) · [data-style=aqua] · [data-style=rice]: the look of the controls
+   Parts:     [data-font] [data-numfont] [data-shape] [data-density] [data-border] [data-material]: from the design
+              or chosen on their own («Тонкая настройка», src/lib/design.ts STYLE_LOOK), at the end of this file
    Accent:    --accent / --on-accent / --accent-soft are written at runtime by src/lib/theme.ts. */
 
 :root {
@@ -247,15 +249,8 @@
   --frost: rgba(248, 248, 250, .55);
 }
 
-/* ---- Style: aqua (macOS-like) ---- */
+/* ---- Style: aqua (macOS-like): brighter controls and top edges. Its type, radii and spacing are parts. ---- */
 :root[data-style="aqua"] {
-  --font-text: var(--font-inter);
-  --font-display: var(--font-inter);
-  --font-num: var(--font-inter);
-  --r-ctl: 9px;
-  --r-sm: 6px;
-  --r-card: 14px;
-  --tile-pad: 18px;
   --ctl-h: 30px;
   --tile-edge: rgba(255, 255, 255, .28);
   --ctl-fill: rgba(255, 255, 255, .10);
@@ -280,29 +275,38 @@
   --ctl-stroke: rgba(0, 0, 0, .08);
 }
 
-/* ---- Style: rice (Linux-rice: mono numbers, accent-tinted borders) ---- */
-:root[data-style="rice"] {
-  --font-text: var(--font-inter);
-  --font-display: var(--font-inter);
-  --font-num: var(--font-jetbrains);
-  --font-mono: var(--font-jetbrains);
-  --r-ctl: 8px;
-  --r-sm: 6px;
-  --r-card: 12px;
-  --tile-pad: 16px;
-  --ctl-h: 32px;
-  --ctl-border-w: 1.5px;
-  --tile-border: var(--accent-soft);
-  --tile-edge: transparent;
-  --ctl-stroke: var(--accent-soft);
-  --divider: var(--accent-soft);
+/* ---- Style: rice (Linux-rice): its mono numbers and accent-tinted borders are parts (STYLE_LOOK.rice). ---- */
+
+/* =====================================================================================
+   Parts of the design («Тонкая настройка»). src/lib/theme.ts writes the value in use of each one, the design's
+   own or the one chosen; these rules come after the palettes and styles and win over them.
+   ===================================================================================== */
+:root[data-font="segoe"] { --font-text: var(--font-segoe-text); --font-display: var(--font-segoe-display); }
+:root[data-font="inter"] { --font-text: var(--font-inter); --font-display: var(--font-inter); }
+:root[data-font="mono"] { --font-text: var(--font-jetbrains); --font-display: var(--font-jetbrains); }
+/* Numbers (times, percents, counters): in the text face, or monospaced (that face then serves code-like text). */
+:root[data-numfont="text"] { --font-num: var(--font-text); }
+:root[data-numfont="mono"] { --font-num: var(--font-jetbrains); --font-mono: var(--font-jetbrains); }
+/* Corners of controls, cards and small items (a tile keeps 8px: the window's own Windows 11 corner). */
+:root[data-shape="square"] { --r-ctl: 2px; --r-sm: 2px; --r-card: 4px; }
+:root[data-shape="strict"] { --r-ctl: 6px; --r-sm: 4px; --r-card: 8px; }
+:root[data-shape="medium"] { --r-ctl: 8px; --r-sm: 6px; --r-card: 12px; }
+:root[data-shape="soft"] { --r-ctl: 9px; --r-sm: 6px; --r-card: 14px; }
+/* Padding inside a widget (src/lib/design.ts DENSITY_PAD). */
+:root[data-density="compact"] { --tile-pad: 12px; }
+:root[data-density="normal"] { --tile-pad: 16px; }
+:root[data-density="roomy"] { --tile-pad: 20px; }
+/* Borders outrank every palette and style block (the light glass ones too), hence !important. */
+:root[data-border="accent"] {
+  --ctl-border-w: 1.5px !important;
+  --tile-border: var(--accent-soft) !important;
+  --tile-edge: transparent !important;
+  --ctl-stroke: var(--accent-soft) !important;
+  --divider: var(--accent-soft) !important;
 }
-/* Rice keeps its accent-tinted lines on light glass too (that block outranks the one above). */
-:root[data-style="rice"][data-theme="glass"][data-scheme="light"] {
-  --tile-border: var(--accent-soft);
-  --tile-edge: transparent;
-  --ctl-stroke: var(--accent-soft);
-  --divider: var(--accent-soft);
+:root[data-border="none"] {
+  --tile-border: transparent !important;
+  --tile-edge: transparent !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -20,6 +20,38 @@ export const THEME_IDS: readonly ThemeId[] = ["system", "light", "gray", "dark",
 export type StyleId = "fluent" | "aqua" | "rice";
 export const STYLE_IDS: readonly StyleId[] = ["fluent", "aqua", "rice"];
 
+/**
+ * «Тонкая настройка» of the design: each part follows the chosen design ("auto") or is picked on its own, so
+ * Aqua's type and shapes can go with a solid background, for one. What each design gives: STYLE_LOOK in
+ * src/lib/design.ts; the values: tokens.css [data-font] [data-numfont] [data-shape] [data-density] [data-border]
+ * [data-material].
+ */
+export type LookFont = "segoe" | "inter" | "mono";
+export type LookNumbers = "text" | "mono";
+export type LookShape = "square" | "strict" | "medium" | "soft";
+export type LookDensity = "compact" | "normal" | "roomy";
+export type LookBorder = "normal" | "accent" | "none";
+/** Transparency of the settings window and the widgets: acrylic glass, Windows 11 Mica, or none. */
+export type LookMaterial = "glass" | "matte" | "solid";
+export interface Look {
+  font: LookFont;
+  numbers: LookNumbers;
+  shape: LookShape;
+  density: LookDensity;
+  border: LookBorder;
+  material: LookMaterial;
+}
+export type LookSettings = { [K in keyof Look]: Look[K] | "auto" };
+export const LOOK_CHOICES: { readonly [K in keyof Look]: readonly Look[K][] } = {
+  font: ["segoe", "inter", "mono"],
+  numbers: ["text", "mono"],
+  shape: ["square", "strict", "medium", "soft"],
+  density: ["compact", "normal", "roomy"],
+  border: ["normal", "accent", "none"],
+  material: ["glass", "matte", "solid"],
+};
+export const LOOK_PARTS = ["font", "numbers", "shape", "density", "border", "material"] as const satisfies readonly (keyof Look)[];
+
 export type AccentMode = "windows" | "preset" | "custom";
 export interface AccentSetting {
   mode: AccentMode;
@@ -129,7 +161,16 @@ export const isCustomLabel = (label: string) => label.startsWith("custom-") && C
 export const customIdOf = (label: string) => label.slice(7);
 
 /** «Нагрузка»: how the readings are drawn. */
-export type PerfMode = "rings" | "bars" | "numbers";
+export type PerfMode = "rings" | "bars" | "numbers" | "line";
+/** The colour of a reading: the accent, by how loaded it is (green, yellow, red), or one colour per reading. */
+export type PerfColor = "accent" | "load" | "metric";
+export type PerfThickness = "thin" | "normal" | "thick";
+/** From this load a reading turns red; 0 = never. */
+export type PerfAlert = 0 | 70 | 80 | 90;
+export const PERF_ALERTS: readonly PerfAlert[] = [0, 70, 80, 90];
+/** Seconds between readings. */
+export type PerfInterval = 1 | 2 | 5;
+export const PERF_INTERVALS: readonly PerfInterval[] = [1, 2, 5];
 
 export interface PerfSettings {
   mode: PerfMode;
@@ -137,9 +178,16 @@ export interface PerfSettings {
   gpu: boolean;
   ram: boolean;
   disk: boolean;
-  /** Processor and graphics temperatures, where Windows reports them. */
+  /** Processor and graphics temperatures, where Windows (or a hardware monitor) reports them. */
   temp: boolean;
   background: boolean;
+  color: PerfColor;
+  thickness: PerfThickness;
+  /** The names (ЦП, ГП, ОЗУ, Диск) under or next to the readings. */
+  labels: boolean;
+  alert: PerfAlert;
+  fahrenheit: boolean;
+  interval: PerfInterval;
 }
 
 export type BuiltInLauncher = "du" | "moodle" | "learn";
@@ -316,6 +364,8 @@ export interface Settings {
   tileScale: TileScale;
   theme: ThemeId;
   style: StyleId;
+  /** «Тонкая настройка»: parts of the design chosen on their own. */
+  look: LookSettings;
   accent: AccentSetting;
   tiles: Record<TileId, boolean>;
   /** «Размер» per tile label (built-in ids and `custom-<id>`); missing = "manual". */
@@ -377,6 +427,21 @@ export const DEFAULT_PERF: PerfSettings = {
   disk: true,
   temp: true,
   background: true,
+  color: "accent",
+  thickness: "normal",
+  labels: true,
+  alert: 90,
+  fahrenheit: false,
+  interval: 2,
+};
+
+export const DEFAULT_LOOK: LookSettings = {
+  font: "auto",
+  numbers: "auto",
+  shape: "auto",
+  density: "auto",
+  border: "auto",
+  material: "auto",
 };
 
 export const DEFAULT_LAUNCHERS: LaunchersSettings = {
@@ -442,6 +507,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tileScale: "auto",
   theme: "system",
   style: "fluent",
+  look: DEFAULT_LOOK,
   accent: { mode: "preset", preset: "graphite", custom: "#60CDFF" },
   // «Нагрузка» polls the PC: off until it is wanted.
   tiles: { clock: true, system: true, perf: false, launchers: true, map: true, schedule: true, notes: true },
@@ -602,6 +668,12 @@ export function normalize(saved: unknown): Settings {
   // theme
   const theme = oneOf(s.theme, THEME_IDS, d.theme);
   const style = oneOf(s.style, STYLE_IDS, d.style);
+  const lookRaw = isObj(s.look) ? s.look : {};
+  const look = { ...d.look };
+  for (const part of LOOK_PARTS) {
+    const v = lookRaw[part];
+    if (v === "auto" || (LOOK_CHOICES[part] as readonly unknown[]).includes(v)) (look as Record<string, unknown>)[part] = v;
+  }
   const accentRaw = isObj(s.accent) ? s.accent : {};
   const accent: AccentSetting = {
     mode: v1 ? (s.accentFromWindows === false ? "preset" : "windows") : oneOf(accentRaw.mode, ["windows", "preset", "custom"] as const, d.accent.mode),
@@ -676,13 +748,19 @@ export function normalize(saved: unknown): Settings {
 
   const pf = isObj(s.perf) ? s.perf : {};
   const perf: PerfSettings = {
-    mode: oneOf(pf.mode, ["rings", "bars", "numbers"] as const, d.perf.mode),
+    mode: oneOf(pf.mode, ["rings", "bars", "numbers", "line"] as const, d.perf.mode),
     cpu: bool(pf.cpu, d.perf.cpu),
     gpu: bool(pf.gpu, d.perf.gpu),
     ram: bool(pf.ram, d.perf.ram),
     disk: bool(pf.disk, d.perf.disk),
     temp: bool(pf.temp, d.perf.temp),
     background: bool(pf.background, d.perf.background),
+    color: oneOf(pf.color, ["accent", "load", "metric"] as const, d.perf.color),
+    thickness: oneOf(pf.thickness, ["thin", "normal", "thick"] as const, d.perf.thickness),
+    labels: bool(pf.labels, d.perf.labels),
+    alert: PERF_ALERTS.includes(pf.alert as PerfAlert) ? (pf.alert as PerfAlert) : d.perf.alert,
+    fahrenheit: bool(pf.fahrenheit, d.perf.fahrenheit),
+    interval: PERF_INTERVALS.includes(pf.interval as PerfInterval) ? (pf.interval as PerfInterval) : d.perf.interval,
   };
 
   // launchers (v1 kept builtIn/custom at the root)
@@ -792,6 +870,7 @@ export function normalize(saved: unknown): Settings {
     tileScale: TILE_SCALES.includes(s.tileScale as TileScale) ? (s.tileScale as TileScale) : d.tileScale,
     theme,
     style,
+    look,
     accent,
     tiles,
     tileViews,
@@ -826,7 +905,7 @@ function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
   const d = DEFAULT_SETTINGS;
   switch (section) {
     case "appearance":
-      return { theme: d.theme, style: d.style, accent: d.accent, tileScale: d.tileScale };
+      return { theme: d.theme, style: d.style, look: d.look, accent: d.accent, tileScale: d.tileScale };
     case "clock":
       return { clock: d.clock };
     case "system":
