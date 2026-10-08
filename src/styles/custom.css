@@ -8,6 +8,7 @@
   height: 100%;
   -webkit-user-drag: none;
 }
+.custom-missing-hit { display: block; height: 100%; }
 .custom-missing {
   display: flex;
   flex-direction: column;
@@ -16,8 +17,14 @@
   gap: var(--s2);
   height: 100%;
   padding: var(--s3);
+  overflow: hidden;
   color: var(--text-2);
   text-align: center;
+  container-type: size;
+}
+/* Too small for the sentence: only the icon, centred; the tooltip has the text. */
+@container (max-width: 139px) or (max-height: 119px) {
+  .custom-missing > .caption { display: none; }
 }
 /* The folded face: the first frame of the picture in the icon's square. */
 .tile-face-art .custom-thumb { display: block; width: 100%; height: 100%; object-fit: cover; }

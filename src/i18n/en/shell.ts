@@ -78,13 +78,13 @@ export const en: ShellStrings = {
     tileScaleAutoHint: "Auto picks the recommended scale for your screen size",
     percent: (n: number) => `${n}%`,
     sampleTime: "12:34",
-    sampleBattery: "72 %",
+    sampleBattery: "72%",
     sampleWifi: "AITU",
     sampleDevice: "Headphones",
     fine: "Fine-tuning",
     fineHint:
       "Take from a design only what you like: the font, numbers, corners, spacing, borders and transparency are chosen on their own. Switches and buttons stay as in the design",
-    fineAuto: (value: string) => `As in the design: ${value}`,
+    fineAuto: (value: string) => `Design: ${value}`,
     fineChangedLabel: "Your own look",
     fineChanged: (parts: string) => `Chosen on their own: ${parts}`,
     fineReset: "All as in the design",
@@ -152,7 +152,7 @@ export const en: ShellStrings = {
       "Add your schedule, notes with deadlines and shortcuts to your sites in these sections; the widgets show them right away. Drag notes with the mouse, in the list or right on the widget, to put them in your own order. Click a room in the schedule to find it on the map.",
     lookTitle: "Design, theme and size",
     lookText: (appearance: string, a: string, b: string, c: string) =>
-      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, numbers, corners, spacing, borders and transparency can be chosen on their own instead of taken from the design. The widgets and this window change at once.`,
+      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, numbers, corners, spacing, borders and transparency can be chosen on their own instead of being taken from the design. The widgets and this window change at once.`,
     startTitle: "Startup and reminders",
     startText: (general: string, reminders: string) =>
       `Autostart is on: after a restart the widgets are in place. You can turn it off here or in “${general}”. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
@@ -179,7 +179,7 @@ export const en: ShellStrings = {
     name: "Name",
     namePlaceholder: "For example, Kitty",
     picture: "Picture",
-    pictureHint: "PNG, JPEG, GIF, WebP or BMP up to 20 MB. A GIF moves while the desktop is in sight",
+    pictureHint: "PNG, JPEG, GIF, WebP or BMP up to 20 MB. A GIF plays while the desktop is visible",
     choose: "Choose a picture…",
     change: "Another picture…",
     tooLarge: "The file is larger than 20 MB",

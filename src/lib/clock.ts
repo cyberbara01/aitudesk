@@ -181,8 +181,6 @@ export function presetOf(s: ClockSettings): string {
 // Slider readouts
 // ---------------------------------------------------------------------------------------------
 
-/** Narrow no-break space between a number and «%» (a full space looks doubled in monospaced readouts). */
-const NNBSP = "\u202F";
 
 export function formatWeight(v: number): string {
   const name = extra.clock.weightNames[v];
@@ -192,13 +190,14 @@ export function formatWeight(v: number): string {
 export function formatSize(v: number): string {
   return String(v);
 }
+/** The percent sign as each language writes it: «100 %» in Russian, "100%" in English. */
 export function formatPercent(v: number): string {
-  return `${v}${NNBSP}${extra.clock.percent}`;
+  return `${v}${extra.clock.percent}`;
 }
 /** Tracking is stored in hundredths of an em, which is a percent of the digit size: «-2 %», «0 %», «+4 %». */
 export function formatTracking(v: number): string {
   const sign = v < 0 ? "-" : v > 0 ? "+" : "";
-  return `${sign}${Math.abs(v)}${NNBSP}${extra.clock.percent}`;
+  return `${sign}${Math.abs(v)}${extra.clock.percent}`;
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -429,7 +429,7 @@ export function ScheduleTile() {
 
   const dayLessons = useMemo(() => lessonsForDay(lessons, viewDay), [lessons, viewDay]);
   const options = useMemo<SegmentedOption<DayKey>[]>(
-    () => days.map((d) => ({ value: `${d}` as DayKey, label: ru.schedule.weekdaysShort[d - 1] })),
+    () => days.map((d) => ({ value: `${d}` as DayKey, label: ru.schedule.weekdaysMin[d - 1] })),
     [days],
   );
 

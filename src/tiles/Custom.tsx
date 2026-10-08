@@ -4,6 +4,7 @@
 // animation stands still on its first frame while Windows battery saver is on or a program fills the screen.
 import { Icon } from "../components/Icon";
 import { Tile } from "../components/Tile";
+import { Tooltip } from "../components/Tooltip";
 import { extra as shell } from "../i18n/ru.extra.shell";
 import { useDesktopCovered } from "../lib/desktopCovered";
 import { customIdOf } from "../lib/settings";
@@ -34,10 +35,13 @@ export function CustomTile({ label }: { label: string }) {
   return (
     <Tile label={label} className="tile-custom" background={widget.background} face={{ art, name }}>
       {image === "missing" ? (
-        <div className="custom-missing">
-          <Icon name="image" size={24} />
-          <span className="caption">{c.pictureMissing}</span>
-        </div>
+        // In a tiny widget only the icon shows (custom.css); the whole text is in its tooltip.
+        <Tooltip text={c.pictureMissing} className="custom-missing-hit">
+          <div className="custom-missing">
+            <Icon name="image" size={24} />
+            <span className="caption">{c.pictureMissing}</span>
+          </div>
+        </Tooltip>
       ) : (
         ready && (
           <img

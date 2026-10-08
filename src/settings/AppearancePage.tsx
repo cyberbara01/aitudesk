@@ -75,14 +75,14 @@ const FONT_FACE: Record<Look["font"], string> = {
   mono: "var(--font-jetbrains)",
 };
 
-/** The name of a part's value; lower case after «Как в дизайне:», but a font keeps its name. */
+/** The name of a part's value; lower case after «Дизайн:», but a font keeps its name. */
 function valueName(part: keyof Look, value: string, inSentence = false): string {
   const name = (x.values[part] as Record<string, string>)[value] ?? value;
   return inSentence && part !== "font" ? name.toLocaleLowerCase(LOCALE) : name;
 }
 
 /**
- * «Тонкая настройка»: every part of the design follows the design («Как в дизайне: …», which says what that is)
+ * «Тонкая настройка»: every part of the design follows the design («Дизайн: …», which says what that is)
  * or is chosen on its own; so Aqua's type and corners can go with a solid background, for one. The controls keep
  * the design's look.
  */

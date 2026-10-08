@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Icon } from "./Icon";
 
 export interface SelectOption<T extends string> {
@@ -20,13 +20,55 @@ interface SelectProps<T extends string> {
   styledValue?: boolean;
 }
 
-/** Custom dropdown (button + popover list) with keyboard support; closes on outside click / Esc. */
+/** The box a list must stay inside: the nearest scrolling ancestor (the settings page, a dialog's body), else the
+ *  window. */
+function boundsOf(el: HTMLElement): { top: number; bottom: number } {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const oy = getComputedStyle(p).overflowY;
+    if (oy === "auto" || oy === "scroll") {
+      const r = p.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom };
+    }
+  }
+  return { top: 0, bottom: window.innerHeight };
+}
+
+/**
+ * Custom dropdown (button + popover list) with keyboard support; closes on outside click / Esc. The list opens
+ * below the button, or above it when only there it has room (a row near the bottom of the page); otherwise the
+ * page scrolls it into view. It opens scrolled to the chosen option, and keyboard moves keep the active one in view.
+ */
 export function Select<T extends string>({ options, value, onChange, label, ariaLabel, className, styledValue }: SelectProps<T>) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => Math.max(0, options.findIndex((o) => o.value === value)));
   const rootRef = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  const [up, setUp] = useState(false);
   const current = options.find((o) => o.value === value);
+
+  useLayoutEffect(() => {
+    const pop = popRef.current;
+    const btn = rootRef.current?.querySelector<HTMLElement>(".select-btn");
+    if (!open || !pop || !btn) {
+      setUp(false);
+      return;
+    }
+    const b = btn.getBoundingClientRect();
+    const box = boundsOf(rootRef.current!);
+    const need = pop.offsetHeight + 4;
+    const below = box.bottom - b.bottom;
+    const above = b.top - box.top;
+    const flip = need > below && above > below;
+    setUp(flip);
+    if (!flip && need > below) pop.scrollIntoView({ block: "nearest" });
+    const chosen = pop.querySelector<HTMLElement>(".popover-item.selected");
+    if (chosen) pop.scrollTop = Math.max(0, chosen.offsetTop - (pop.clientHeight - chosen.offsetHeight) / 2);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) popRef.current?.querySelector<HTMLElement>(".popover-item.active")?.scrollIntoView({ block: "nearest" });
+  }, [open, active]);
 
   useEffect(() => {
     if (!open) return;
@@ -90,7 +132,7 @@ export function Select<T extends string>({ options, value, onChange, label, aria
         <Icon name={open ? "chevron_up" : "chevron_down"} size={16} />
       </button>
       {open && (
-        <div className="popover" role="listbox" aria-activedescendant={`${id}-opt-${active}`}>
+        <div ref={popRef} className={up ? "popover up" : "popover"} role="listbox" aria-activedescendant={`${id}-opt-${active}`}>
           {options.map((o, i) => (
             <button
               key={o.value}

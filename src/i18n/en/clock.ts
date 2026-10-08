@@ -13,7 +13,7 @@ export const en: ClockStrings = {
     am: "am",
     pm: "pm",
     percent: "%",
-    fontAuto: "Same as the design",
+    fontAuto: "As in the design",
     weightNames: {
       100: "Hairline",
       200: "Extra light",

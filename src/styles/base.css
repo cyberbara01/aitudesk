@@ -468,6 +468,8 @@ a { color: var(--accent-text); text-decoration: none; }
 .select-btn:hover { background: var(--ctl-fill-hover); }
 .select-btn .icon { color: var(--text-3); flex-shrink: 0; }
 .select-btn .select-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* A select's list opens above its button when only there it has room (.up, set by Select). */
+.popover.up { top: auto; bottom: calc(100% + 4px); }
 .popover {
   position: absolute;
   z-index: 50;
@@ -689,6 +691,10 @@ a { color: var(--accent-text); text-decoration: none; }
 .row-control { display: flex; align-items: center; gap: var(--s2); flex-shrink: 0; }
 .row.stack { flex-direction: column; align-items: stretch; }
 .row.stack .row-control { justify-content: flex-start; }
+/* A label with a hint never gets squeezed into a thin column next to a wide control (a narrow window): below
+   180 px the control moves under the text, as in a stacked row. */
+.row:not(.stack):has(> .row-text:first-child .row-hint) { flex-wrap: wrap; row-gap: var(--s2); }
+.row:not(.stack) > .row-text:first-child:has(.row-hint) { flex: 1 1 180px; }
 .hint { color: var(--text-3); font-size: var(--caption-size); line-height: var(--caption-lh); }
 .inline { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }

@@ -98,7 +98,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* «100 % · заряжается» needs about 209 / 227 / 237 px of row (Fluent / Rice / Aqua). In a narrower tile the
+/* «100 % · заряжается» needs about 209 / 227 / 238 px of row (Fluent / Rice / Aqua). In a narrower tile the
    words step aside, visually only: the charge icon says the same and screen readers still get the text. */
 @container sys-rows (max-width: 213px) {
   .sys-more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -106,7 +106,7 @@
 @container sys-rows (max-width: 231px) {
   :root[data-style="rice"] .sys-more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
-@container sys-rows (max-width: 241px) {
+@container sys-rows (max-width: 237px) {
   :root[data-style="aqua"] .sys-more { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 }
 

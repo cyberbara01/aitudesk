@@ -24,6 +24,8 @@
   --perf-disk: #FFB086;
 }
 :root[data-scheme="light"] .perf {
+  /* The empty part of a ring or bar: a white track vanishes on a light tile, so a soft grey one. */
+  --perf-track: rgba(0, 0, 0, .10);
   --perf-cpu: #0067C0;
   --perf-gpu: #0F7B0F;
   --perf-ram: #6B4FC0;
@@ -72,7 +74,7 @@
 .perf-ring circle { fill: none; stroke-width: 4; }
 .perf[data-thickness="thin"] .perf-ring circle { stroke-width: 2.5; }
 .perf[data-thickness="thick"] .perf-ring circle { stroke-width: 6; }
-.perf-ring-track { stroke: var(--ctl-fill-hover); }
+.perf-ring-track { stroke: var(--perf-track, var(--ctl-fill-hover)); }
 .perf-ring-arc {
   stroke: var(--tone);
   stroke-linecap: round;
@@ -109,7 +111,7 @@
 .perf-track {
   height: 4px;
   border-radius: 2px;
-  background: var(--ctl-fill-hover);
+  background: var(--perf-track, var(--ctl-fill-hover));
   overflow: hidden;
 }
 .perf[data-thickness="thin"] .perf-track { height: 2px; border-radius: 1px; }

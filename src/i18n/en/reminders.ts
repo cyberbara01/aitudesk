@@ -134,7 +134,7 @@ export const en: RemindersStrings = {
     timePlaceholder: "HH:MM",
     duration: (h: number, m: number) => (h && m ? `${h} h ${m} min` : h ? `${h} h` : `${m} min`),
     daily: (duration: string) => `Every day, ${duration}`,
-    overnight: (duration: string) => `Every night across midnight, ${duration}`,
+    overnight: (duration: string) => `Every day, overnight, ${duration}`,
     same: "The start and the end are the same, so quiet hours have no effect",
     lessonsQuiet: (n: number) => `${n} class ${pluralEn(n, "reminder", "reminders")} a week ${pluralEn(n, "falls", "fall")} in quiet hours`,
     test: "Test notification",

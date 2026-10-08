@@ -48,7 +48,7 @@ export const en: PerfStrings = {
   backgroundHint: "Without the background the rings and numbers sit right on the wallpaper",
   color: "Color",
   colorHint: "The accent, a color by load (green, yellow, red) or each reading its own",
-  colors: { accent: "Accent", load: "By load", metric: "Each its own" },
+  colors: { accent: "Accent", load: "By load", metric: "Per reading" },
   thickness: "Thickness",
   thicknessHint: "Of the rings and the bars",
   thicknesses: { thin: "Thin", normal: "Normal", thick: "Thick" },
@@ -60,7 +60,7 @@ export const en: PerfStrings = {
   update: "Updates",
   interval: "How often",
   intervalHint:
-    "Seconds between readings, any whole number from 1 to 3600. Less often means less load and battery use. In battery saver no more than every 5 seconds",
+    "Seconds between readings, any whole number from 1 to 3600. Less often means less load and battery use. In battery saver mode, at most once every 5 seconds",
   secondsUnit: "s",
   intervalInvalid: (min: number, max: number) => `A whole number from ${min} to ${max}`,
   summary: (mode: string, shown: string) => `${mode}: ${shown}`,

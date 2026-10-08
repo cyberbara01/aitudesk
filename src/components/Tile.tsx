@@ -93,7 +93,8 @@ function useGrow(root: React.RefObject<HTMLDivElement>, grow: Grow | undefined, 
 const DEFAULT_MIN: Record<TileId, { w: number; h: number }> = {
   clock: { w: 160, h: 80 },
   system: { w: 220, h: 144 },
-  perf: { w: 200, h: 96 },
+  // Four rings (4 x 48 px and their gaps) or four bars and the padding of every design.
+  perf: { w: 260, h: 120 },
   launchers: { w: 120, h: 136 },
   map: { w: 400, h: 220 },
   schedule: { w: 200, h: 120 },

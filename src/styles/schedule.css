@@ -134,7 +134,7 @@
 .sched-row.now .sched-badge { color: var(--accent-text); }
 .sched-row.now.colored .sched-badge { color: var(--lesson-ink); }
 /* A narrow row keeps the badge on the time line: «Сейчас» (the range shows the end) and «через 25 мин». */
-@container (max-width: 229px) {
+@container (max-width: 222px) {
   .sched-row.now .sched-badge-sep,
   .sched-row.now .sched-badge-detail,
   .sched-row.next .sched-badge-label,

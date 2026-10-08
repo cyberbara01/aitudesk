@@ -136,6 +136,8 @@
   -webkit-user-select: none;
 }
 .clock-preset { min-width: 0; }
+/* A long title or hint wraps instead of being cut (English at the narrowest window). */
+.clock-preset :is(.card-title, .card-hint) { white-space: normal; }
 .clock-card-preview {
   display: grid;
   place-items: center;

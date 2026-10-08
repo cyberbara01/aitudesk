@@ -5,6 +5,7 @@ import { Icon } from "../components/Icon";
 import { MaskedText, PrivacyScope, RevealButton, useRevealed } from "../components/Masked";
 import { Tile } from "../components/Tile";
 import { Tooltip } from "../components/Tooltip";
+import { LANG } from "../i18n/lang";
 import { ru } from "../i18n/ru";
 import { useDesktopCovered } from "../lib/desktopCovered";
 import { DENSITY_PAD, resolveLook } from "../lib/design";
@@ -43,7 +44,8 @@ interface RowSpec {
 }
 
 const NBSP = "\u00A0";
-/** Narrow no-break space between a number and its unit («64 %»); a full space looks doubled next to mono digits. */
+/** Narrow no-break space between a number and its unit in Russian («64 %»; a full space looks doubled next to mono
+ *  digits); English writes "64%". */
 const NNBSP = "\u202F";
 
 /** Logical px; must match system.css (.sys-row) and --tile-pad in tokens.css. */
@@ -133,7 +135,7 @@ function StatusRow({ id, icon, tone, label, num, unit, text, masked, count, hint
       {num && (
         <span className="sys-fixed">
           <span className="num">{num}</span>
-          {unit && `${NNBSP}${unit}`}
+          {unit && `${LANG === "ru" ? NNBSP : ""}${unit}`}
         </span>
       )}
       {text &&
