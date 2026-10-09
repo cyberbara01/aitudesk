@@ -39,6 +39,7 @@ export const en: TransferStrings = {
     launchersWord: (n: number) => pluralEn(n, "shortcut", "shortcuts"),
     sites: (hosts: string, more: number) => (more > 0 ? `${hosts} and ${more} more` : hosts),
     scheme: (name: string) => `“${name}” scheme`,
+    opacity: (n: number) => `${n}% opacity`,
     marked: (n: number) => (n === 0 ? "no marked rooms" : `${n} marked ${pluralEn(n, "room", "rooms")}`),
     lessons: (n: number) => (n === 0 ? "No classes" : `${n} ${pluralEn(n, "class", "classes")} a week`),
     notes: (n: number) => (n === 0 ? "No notes" : `${n} ${pluralEn(n, "note", "notes")}`),

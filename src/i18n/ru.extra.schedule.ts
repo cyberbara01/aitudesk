@@ -21,6 +21,8 @@ const RU = {
   tomorrow: "завтра",
   /** Tooltip of a room that the map knows (the room text is a link to the map tile). */
   showOnMap: "Показать на карте",
+  /** Карандаш у пары на виджете. */
+  editLesson: "Изменить пару",
   /** «Ближайшая пара завтра в 08:00», «Ближайшая пара в среду в 08:00»; prepositions stay with their word. */
   nextLesson: (when: string, time: string) => `Ближайшая пара ${when.replace(/ /g, NBSP)} в${NBSP}${time}`,
 

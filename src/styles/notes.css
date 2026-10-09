@@ -115,11 +115,17 @@
 }
 
 .note-row {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: var(--s2);
   padding: var(--s1) 0;
 }
+/* The pencil (base.css .row-edit) on the first 20 px line at the right end, left of the eye while privacy is on. */
+.note-row > .row-edit { top: calc(var(--s1) - 2px); right: 0; }
+.note-row:has(> .reveal-btn) > .row-edit { right: calc(24px + var(--s2)); }
+/* «+ Добавить заметку»: the plus in the check's 20 px column, the words where the note texts start. */
+.notes-list .list-add-icon { width: 20px; }
 .note-body {
   display: flex;
   flex-direction: column;

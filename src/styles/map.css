@@ -941,3 +941,7 @@
 .row-control .map-fieldset:disabled .seg-indicator { background: var(--ctl-fill-hover); border-color: var(--text-disabled); box-shadow: none; }
 .row-control .map-fieldset:disabled .seg-indicator::after { background: var(--text-disabled); }
 .row:has(.map-fieldset:disabled) .row-label { color: var(--text-disabled); }
+
+/* «Прозрачность»: the sliders take the place of a control, their percent above the track on the right. */
+.row-control .slider.map-opacity { width: 240px; }
+.row-control .slider.map-opacity .slider-head { justify-content: flex-end; }

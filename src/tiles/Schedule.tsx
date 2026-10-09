@@ -1,12 +1,15 @@
 // «Расписание»: a row of weekdays on top, the chosen day's lessons below. The lesson running now gets an
 // accent bar and «Сейчас · до 09:20», the first upcoming one «Далее · через 25 мин», finished ones are
-// dimmed. The time is re-read at minute boundaries while today still has lessons ahead, otherwise only
+// dimmed. A pencil pops up on the hovered lesson and opens it in the settings, «+ Добавить пару» after the day's
+// lessons (and in an empty day) adds one to that day, and the right-click menu does both. The time is re-read at minute boundaries while today still has lessons ahead, otherwise only
 // around midnight. Nothing renders before the stored settings are loaded, so the first frame is final.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emitTo } from "@tauri-apps/api/event";
+import type { MenuItemSpec } from "../components/ContextMenu";
 import { EmptyState } from "../components/EmptyState";
+import { AddRow, EditButton } from "../components/ListActions";
 import { MaskedText, PrivacyScope, RevealButton, useRevealed } from "../components/Masked";
 import { Segmented, type SegmentedOption } from "../components/Segmented";
 import { Tile, type Grow } from "../components/Tile";
@@ -50,8 +53,8 @@ const FADE_THRESHOLD = 1;
 const GROW: Grow = { w: 280, h: 256 };
 /** Lists lower than this (a tile about 200 px high or less) get 8 px edge fades instead of 16 px. */
 const SHORT_LIST = 120;
-/** The text lines of a row, as laid out (title as one unit, also while masked). */
-const LINE_SELECTOR = ".sched-head, .sched-title, .sched-meta";
+/** The text lines of a row, as laid out (title as one unit, also while masked), and «+ Добавить пару» after them. */
+const LINE_SELECTOR = ".sched-head, .sched-title, .sched-meta, .list-add";
 /** Fade over the last complete line when the list is cut at a line boundary and more follows. */
 const SNAP_FADE = "8px";
 /** «Показать на карте» bubble: the kit Tooltip's delay and its distance from the room and the window edges. */
@@ -63,8 +66,11 @@ const TIP_GAP = 4;
  */
 const focusPeek = (listHeight: number) => (listHeight < SHORT_LIST ? 4 : 12);
 
-/** «Добавить пару»: the settings page opens straight on a new lesson. */
-const openNewLesson = () => void invoke("open_settings", { tab: "schedule", edit: "new" }).catch(() => undefined);
+/** «Добавить пару»: the settings page opens straight on a new lesson, for `day` when given (else today). */
+const openNewLesson = (day?: Weekday) =>
+  void invoke("open_settings", { tab: "schedule", edit: day ? `new-${day}` : "new" }).catch(() => undefined);
+/** The pencil and «Изменить»: the settings page opens on this lesson. */
+const openLesson = (id: string) => void invoke("open_settings", { tab: "schedule", edit: id }).catch(() => undefined);
 
 /**
  * The current time as the tile needs it. While today has a lesson that has not ended, it ticks on every
@@ -206,6 +212,7 @@ export function LessonRow({ lesson, state, now, preview, roomLink }: LessonRowPr
         <MaskedText id={lesson.id} text={lesson.title.trim() || ru.schedule.lesson} className="sched-title body-strong" />
         <LessonMeta lesson={lesson} roomLink={preview ? undefined : roomLink} />
       </div>
+      {!preview && <EditButton label={extra.editLesson} onEdit={() => openLesson(lesson.id)} />}
       {!preview && <RevealButton id={lesson.id} />}
     </div>
   );
@@ -216,7 +223,7 @@ export function LessonRow({ lesson, state, now, preview, roomLink }: LessonRowPr
  * bottom the list ends on a whole text line: a line the edge would slice is hidden (the rest of the box
  * stays empty) and a short fade over the last complete line says that more follows.
  */
-function LessonList({ lessons, now, mapLink }: { lessons: readonly Lesson[]; now: Date; mapLink: boolean }) {
+function LessonList({ lessons, day, now, mapLink }: { lessons: readonly Lesson[]; day: Weekday; now: Date; mapLink: boolean }) {
   const states = useMemo(() => dayStates(lessons, now), [lessons, now]);
   const ref = useRef<HTMLDivElement>(null);
   const [fade, setFade] = useState({ top: false, bottom: false, short: false });
@@ -367,6 +374,7 @@ function LessonList({ lessons, now, mapLink }: { lessons: readonly Lesson[]; now
         {lessons.map((l) => (
           <LessonRow key={l.id} lesson={l} state={states.get(l.id) ?? "later"} now={now} roomLink={roomLink} />
         ))}
+        <AddRow label={ru.schedule.addLesson} onAdd={() => openNewLesson(day)} item />
       </div>
       {/* In the page's body, like every tooltip: inside a grown widget the scaled content would carry it off. */}
       {tipFor &&
@@ -388,13 +396,13 @@ function EmptySchedule() {
       className="sched-empty"
       title={extra.emptyTitle}
       hint={extra.emptyHint}
-      action={{ label: ru.schedule.addLesson, icon: "add", onClick: openNewLesson }}
+      action={{ label: ru.schedule.addLesson, icon: "add", onClick: () => openNewLesson() }}
     />
   );
 }
 
-/** A day without lessons; for today also when the next one is. */
-function EmptyDay({ isToday, lessons, today }: { isToday: boolean; lessons: readonly Lesson[]; today: Weekday }) {
+/** A day without lessons, with «Добавить пару» for it; for today also when the next one is. */
+function EmptyDay({ day, isToday, lessons, today }: { day: Weekday; isToday: boolean; lessons: readonly Lesson[]; today: Weekday }) {
   const next = isToday ? nextLessonAfter(lessons, today) : null;
   const when = next ? (next.tomorrow ? extra.tomorrow : ru.schedule.weekdaysAt[next.day - 1]) : "";
   return (
@@ -403,6 +411,7 @@ function EmptyDay({ isToday, lessons, today }: { isToday: boolean; lessons: read
       className="sched-empty"
       title={isToday ? ru.schedule.noLessonsToday : ru.schedule.noLessons}
       hint={next ? extra.nextLesson(when, next.lesson.start) : undefined}
+      action={{ label: ru.schedule.addLesson, icon: "add", onClick: () => openNewLesson(day) }}
     />
   );
 }
@@ -443,8 +452,19 @@ export function ScheduleTile() {
     [days],
   );
 
+  // Right-click on a lesson: «Изменить» it; anywhere: «Добавить пару» to the day shown.
+  const menuItems = useCallback(
+    (target: HTMLElement): MenuItemSpec[] => {
+      const add: MenuItemSpec = { id: "add-lesson", label: ru.schedule.addLesson, icon: "add", onSelect: () => openNewLesson(viewDay) };
+      const id = target.closest<HTMLElement>(".sched-row[data-id]")?.dataset.id;
+      if (!id || !lessons.some((l) => l.id === id)) return [add];
+      return [{ id: "edit-lesson", label: ru.menu.edit, icon: "edit", onSelect: () => openLesson(id) }, add];
+    },
+    [lessons, viewDay],
+  );
+
   return (
-    <Tile label="schedule" className="tile-schedule" background={background} grow={GROW}>
+    <Tile label="schedule" className="tile-schedule" background={background} grow={GROW} menuItems={menuItems}>
       {loaded && (
         <PrivacyScope masked={privacy}>
           {lessons.length === 0 ? (
@@ -463,9 +483,9 @@ export function ScheduleTile() {
               </div>
               {dayLessons.length > 0 ? (
                 // Keyed by day: a newly chosen day opens at its first lesson. Rooms link to the map tile while it is on.
-                <LessonList key={viewDay} lessons={dayLessons} now={now} mapLink={s.tiles.map} />
+                <LessonList key={viewDay} lessons={dayLessons} day={viewDay} now={now} mapLink={s.tiles.map} />
               ) : (
-                <EmptyDay isToday={viewDay === today} lessons={lessons} today={today} />
+                <EmptyDay day={viewDay} isToday={viewDay === today} lessons={lessons} today={today} />
               )}
             </>
           )}

@@ -1,4 +1,4 @@
-//! Tile positions: defaults (the column layout below), persistence in settings.json, show/hide, per-tile enable.
+//! Tile positions: defaults (the designed layout below), persistence in settings.json, show/hide, per-tile enable.
 
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -129,71 +129,135 @@ pub fn work_area(win: &WebviewWindow) -> WorkArea {
     }
 }
 
-/// Column tiles of the default layout, top to bottom, with their default heights (logical px).
-const COLUMN: &[(&str, f64)] = &[
+/// Default heights of the tiles (logical px); every tile is COL_W wide except the map.
+const HEIGHTS: &[(&str, f64)] = &[
     ("clock", 120.0),
     ("system", 144.0),
+    ("perf", 132.0),
     ("launchers", 184.0),
     ("schedule", 256.0),
     ("notes", 200.0),
-    ("perf", 132.0),
 ];
+const COL_W: f64 = 280.0;
+const MARGIN: f64 = 24.0;
+const GAP: f64 = 16.0;
 const MAP_W: f64 = 720.0;
 const MAP_H: f64 = 360.0;
 /// The map tile's minimum size (src/components/Tile.tsx); it keeps its 2:1 shape when narrowed.
 const MAP_MIN_W: f64 = 400.0;
 const MAP_MIN_H: f64 = 220.0;
+/// The two columns on the right, top to bottom: the left one, then the one along the right edge. Their heights
+/// (184 + 200 and 144 + 256) end within 16 px of each other.
+const RIGHT_COLUMNS: [&[&str]; 2] = [&["launchers", "notes"], &["system", "schedule"]];
+/// The fallback layout of a narrow screen: one column along the right edge, continued to the left.
+const COLUMN: &[&str] = &["clock", "system", "launchers", "schedule", "notes", "perf"];
+/// Where the map begins in the top left corner, in the screen's own logical px (not scaled with the tiles' zoom):
+/// right of the first column of desktop icons (Windows' medium icons, 76 px apart, the Recycle Bin of a fresh
+/// install among them), so the map never lies over an icon that then could not be clicked.
+const MAP_LEFT: f64 = 84.0;
 
-/// Default layout (logical px at the tiles' zoom, «Масштаб виджетов»): the column tiles flow top to bottom along
-/// the right edge and continue in a new column to the left when the screen is not tall enough; the map sits
-/// bottom-aligned to the left of the columns.
+fn height_of(label: &str) -> f64 {
+    HEIGHTS.iter().find(|(l, _)| *l == label).map_or(120.0, |(_, h)| *h)
+}
+
+/// Default layout (logical px at the tiles' zoom, «Масштаб виджетов»), with the space to the edges and between the
+/// tiles always the same: the map in the top left corner, beside the first column of desktop icons; the clock in
+/// the middle of the top edge with «Нагрузка» under it; on the right two columns, system and launchers on top, the
+/// schedule and the notes under them. A screen too narrow for that (about 1300 px of widget space or less: a 1024 px
+/// wide one, or a small one at a zoom larger than «Авто» gives it) gets one column along the right edge, continued
+/// to the left, and the map at the bottom left of it. Own widgets start in the middle, below the top row.
 fn default_rect(app: &AppHandle, label: &str, wa: &WorkArea) -> Rect {
-    let s = wa.scale * crate::zoom::current();
+    let zoom = crate::zoom::current();
+    let s = wa.scale * zoom;
     let px = |v: f64| (v * s).round() as i32;
-    let margin = 24.0;
-    let gap = 16.0;
-    let col_w = 280.0;
     let width = wa.w as f64 / s;
-    let bottom = wa.h as f64 / s - margin;
-    let right_x = width - margin - col_w;
+    let bottom = wa.h as f64 / s - MARGIN;
 
-    let mut x = right_x;
-    let mut y = margin;
-    let mut found = None;
-    for &(name, h) in COLUMN {
-        if y > margin && y + h > bottom {
-            x -= col_w + gap;
-            y = margin;
-        }
-        if name == label {
-            found = Some((x, y, col_w, h));
-        }
-        y += h + gap;
-    }
-    // `x` is now the leftmost column used.
-    let (lx, ly, lw, lh) = match (label, found) {
-        (_, Some(r)) => r,
-        // A custom widget: a square in the middle of the screen, each next one a little lower and to the right.
-        (l, None) if crate::custom::is_custom(l) => {
-            let side = crate::custom::DEFAULT_SIZE;
-            let step = 32.0 * (crate::custom::index_of(app, l) % 8) as f64;
-            let cx = ((width - side) / 2.0 + step).min(width - margin - side).max(margin);
-            let cy = ((bottom + margin - side) / 2.0 + step).min(bottom - side).max(margin);
-            (cx, cy, side, side)
-        }
-        ("map", None) => {
-            // Left of the columns; on a narrow screen narrower (down to its minimum) rather than over a column.
-            let w = (x - gap - margin).clamp(MAP_MIN_W, MAP_W);
-            let h = (w * MAP_H / MAP_W).round().max(MAP_MIN_H);
-            ((x - gap - w).max(margin), (bottom - h).max(margin), w, h)
-        }
-        _ => (margin, margin, col_w, 120.0),
+    // The right columns start here; the clock's column and the narrowest map must fit to the left of them.
+    let right_x = width - MARGIN - 2.0 * COL_W - GAP;
+    let map_x = (MAP_LEFT / zoom.max(0.5)).max(MARGIN);
+    let map_room = right_x - GAP - COL_W - GAP - map_x;
+    let tallest = RIGHT_COLUMNS
+        .iter()
+        .map(|c| c.iter().map(|l| height_of(l) + GAP).sum::<f64>() - GAP)
+        .fold(0.0, f64::max);
+    let designed = map_room >= MAP_MIN_W && MARGIN + tallest <= bottom;
+    let (lx, ly, lw, lh) = if crate::custom::is_custom(label) {
+        // A custom widget: a square in the middle of the screen (in the designed layout below its top row of
+        // widgets), each next one a little lower and to the right.
+        let side = crate::custom::DEFAULT_SIZE;
+        let step = 32.0 * (crate::custom::index_of(app, label) % 8) as f64;
+        let top = if designed { MARGIN + tallest.max(MAP_H) + GAP } else { MARGIN };
+        let cx = ((width - side) / 2.0 + step).min(width - MARGIN - side).max(MARGIN);
+        let cy = (((bottom + MARGIN - side) / 2.0).max(top) + step).min(bottom - side).max(MARGIN);
+        (cx, cy, side, side)
+    } else if designed {
+        designed_rect(label, width, right_x, map_x, map_room)
+    } else {
+        column_rect(label, width, bottom)
     };
     Rect {
         x: wa.x + px(lx),
         y: wa.y + px(ly),
         w: px(lw) as u32,
         h: px(lh) as u32,
+    }
+}
+
+/// The designed layout (see `default_rect`); the map begins at `map_x` and has `map_room` for its width.
+fn designed_rect(label: &str, width: f64, right_x: f64, map_x: f64, map_room: f64) -> (f64, f64, f64, f64) {
+    let map_w = map_room.min(MAP_W);
+    if label == "map" {
+        return (map_x, MARGIN, map_w, (map_w * MAP_H / MAP_W).round().max(MAP_MIN_H));
+    }
+    // The clock's column in the middle of the screen, unless the map or the right columns are in the way (min and
+    // max rather than clamp: with the narrowest map both bounds are the same sum, which rounding may tip over).
+    let mid_x = ((width - COL_W) / 2.0).min(right_x - GAP - COL_W).max(map_x + map_w + GAP);
+    match label {
+        "clock" => return (mid_x, MARGIN, COL_W, height_of("clock")),
+        "perf" => return (mid_x, MARGIN + height_of("clock") + GAP, COL_W, height_of("perf")),
+        _ => {}
+    }
+    for (i, column) in RIGHT_COLUMNS.iter().enumerate() {
+        let x = right_x + i as f64 * (COL_W + GAP);
+        let mut y = MARGIN;
+        for &name in column.iter() {
+            if name == label {
+                return (x, y, COL_W, height_of(name));
+            }
+            y += height_of(name) + GAP;
+        }
+    }
+    (MARGIN, MARGIN, COL_W, 120.0)
+}
+
+/// The narrow-screen layout: the tiles flow top to bottom along the right edge and continue in a new column to the
+/// left when the screen is not tall enough; the map sits bottom-aligned to the left of the columns.
+fn column_rect(label: &str, width: f64, bottom: f64) -> (f64, f64, f64, f64) {
+    let mut x = width - MARGIN - COL_W;
+    let mut y = MARGIN;
+    let mut found = None;
+    for &name in COLUMN {
+        let h = height_of(name);
+        if y > MARGIN && y + h > bottom {
+            x -= COL_W + GAP;
+            y = MARGIN;
+        }
+        if name == label {
+            found = Some((x, y, COL_W, h));
+        }
+        y += h + GAP;
+    }
+    // `x` is now the leftmost column used.
+    match (label, found) {
+        (_, Some(r)) => r,
+        ("map", None) => {
+            // Left of the columns; on a narrow screen narrower (down to its minimum) rather than over a column.
+            let w = (x - GAP - MARGIN).clamp(MAP_MIN_W, MAP_W);
+            let h = (w * MAP_H / MAP_W).round().max(MAP_MIN_H);
+            ((x - GAP - w).max(MARGIN), (bottom - h).max(MARGIN), w, h)
+        }
+        _ => (MARGIN, MARGIN, COL_W, 120.0),
     }
 }
 

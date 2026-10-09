@@ -65,6 +65,19 @@ a { color: var(--accent-text); text-decoration: none; }
 .tile.no-bg { background: transparent; border-color: transparent; box-shadow: none; }
 /* «Прозрачность: нет»: a solid tile (its acrylic is switched off natively, Tile.tsx). */
 :root[data-material="solid"] .tile:not(.no-bg) { background: var(--tile-fallback); }
+/* A widget that may be see-through (the map's «Непрозрачность», Tile.tsx): the whole of it fades, background
+   included. Its native glass is off meanwhile (glass cannot fade), so the tint is denser than over the glass and
+   reads as the same frosted panel. Towards whole it is quick, back it is gentle; nothing moves at rest. */
+.tile.see-through {
+  opacity: var(--tile-opacity, 1);
+  transition: opacity 420ms cubic-bezier(.4, 0, .2, 1);
+}
+.tile.see-through:not(.no-bg) { background: color-mix(in srgb, var(--tile-fallback) 84%, transparent); }
+:root[data-material="solid"] .tile.see-through:not(.no-bg) { background: var(--tile-fallback); }
+.tile.see-through.lit { transition-duration: 200ms; transition-timing-function: cubic-bezier(0, 0, .2, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .tile.see-through { transition: none; }
+}
 
 .tile.editing {
   outline: 1px dashed var(--accent);
@@ -73,6 +86,53 @@ a { color: var(--accent-text); text-decoration: none; }
 }
 .tile.editing.no-bg { background: var(--accent-soft); }
 .tile.editing * { pointer-events: none; }
+/* List widgets (src/components/ListActions.tsx). The pencil floats over the right end of the hovered row (left of
+   the privacy eye), on the floating-control fill of the map's buttons, and pops in with a small scale; at rest it
+   takes no room, so the text keeps its width. The row places it (schedule.css, notes.css). */
+.row-edit {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  opacity: 0;
+  scale: .88;
+  pointer-events: none;
+  transition: opacity var(--t-base) var(--ease-in), scale var(--t-base) var(--ease-in);
+}
+.reveal-row:hover > .row-edit,
+.row-edit:focus-within { opacity: 1; scale: 1; pointer-events: auto; }
+.row-edit-btn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--surface-base) 90%, transparent);
+  box-shadow: 0 0 0 1px var(--ctl-stroke), 0 2px 6px rgba(0, 0, 0, .2);
+  color: var(--text-2);
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.row-edit-btn:hover { background: color-mix(in srgb, color-mix(in srgb, var(--surface-base) 88%, var(--text)) 94%, transparent); color: var(--text); }
+.row-edit-btn:active { background: color-mix(in srgb, var(--surface-base) 78%, transparent); color: var(--text-2); }
+.tile.editing .row-edit { display: none; }
+/* «+ Добавить …» after the last row: quiet like a placeholder, the hover fill reaches 4 px past the content. */
+.list-add-item { flex: none; }
+.list-add {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--s2);
+  width: calc(100% + 2 * var(--s1));
+  margin: 0 calc(-1 * var(--s1));
+  padding: var(--s1);
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  text-align: left;
+  transition: background-color var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.list-add:hover { background: var(--ctl-fill-hover); color: var(--text); }
+.list-add:active { background: var(--ctl-fill-pressed); color: var(--text-2); }
+.list-add-icon { display: grid; place-items: center; flex: none; }
+.list-add-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile.editing .resize-grip,
 .tile.editing .edit-pill,
 .tile.editing .edit-pill *,

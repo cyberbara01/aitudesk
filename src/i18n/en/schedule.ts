@@ -14,6 +14,7 @@ export const en: ScheduleStrings = {
   startsIn: (m: number) => (m < 60 ? `in ${m} min` : m % 60 === 0 ? `in ${m / 60} h` : `in ${Math.floor(m / 60)} h ${m % 60} min`),
   tomorrow: "tomorrow",
   showOnMap: "Show on the map",
+  editLesson: "Edit class",
   nextLesson: (when: string, time: string) => `Next class ${when.replace(/ /g, NBSP)} at${NBSP}${time}`,
 
   pageDesc:

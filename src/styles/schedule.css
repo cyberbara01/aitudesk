@@ -81,6 +81,7 @@
 
 /* Row: bar · text · eye. The bar column is always 3 px wide, so a state change never shifts the text. */
 .sched-row {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: var(--s2);
@@ -161,6 +162,11 @@
 .sched-room:hover { color: var(--text); text-decoration-color: var(--accent); }
 /* Privacy: the eye sits at the right end of the row, centred on it. */
 .sched-row > .reveal-btn { align-self: center; }
+/* The pencil (base.css .row-edit) centred on the row like the eye, left of it while privacy is on. */
+.sched-row > .row-edit { top: 50%; right: 0; translate: 0 -50%; }
+.sched-row:has(> .reveal-btn) > .row-edit { right: calc(24px + var(--s2)); }
+/* «+ Добавить пару»: from the bars' edge (the list has no room on its left), the plus where the lesson texts start. */
+.sched-list .list-add { width: calc(100% + var(--s1)); margin-left: 0; padding-left: calc(3px + var(--s2)); }
 
 /* Empty states (kit EmptyState, compact; its hint gives way on short tiles): they fill the rest of the tile
    and are centred while they fit, otherwise they start at the top and scroll, so nothing is clipped. The

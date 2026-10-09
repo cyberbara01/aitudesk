@@ -56,6 +56,16 @@ export const en: MapStrings = {
   nextLessonHint:
     "The room of the current class, or of the one starting within 30 minutes, is highlighted on the plan. If it is on another floor, a dot appears on that floor's button",
   nextLessonPrivate: "Not shown while the schedule hides its content on the desktop",
+  opacityTitle: "Transparency",
+  opacityDesc: "The map can be see-through so it does not cover the wallpaper, and it comes forward smoothly under the pointer",
+  opacity: "Opacity",
+  opacityHint: "While the pointer is elsewhere. 0%: the map is not seen, 100%: the usual map",
+  opacityUnseen: "The map can't be seen at all, yet its place on the desktop still takes the clicks meant for icons. Turn on “Show on hover” or turn the map off in “Widgets”",
+  hoverReveal: "Show on hover",
+  hoverRevealHint: "Under the pointer the map smoothly becomes more opaque, and fades again when the pointer leaves",
+  hoverRevealWhole: "Works when the opacity is below 100%",
+  hoverOpacity: "Opacity on hover",
+  hoverOpacityHint: "At least as much as without the pointer. While the map is moved or painted, it is shown whole",
   legendOther: "·",
 
   gestures: "The wheel or a two-finger pinch on the touchpad zooms, dragging moves the map, a double-click fits the whole map",

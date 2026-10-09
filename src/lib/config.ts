@@ -604,8 +604,10 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       const hosts = [...new Set(s.launchers.custom.map((c) => hostOf(c.url)))];
       return `${line}: ${x.sites(hosts.slice(0, 3).join(", "), hosts.length - 3)}`;
     }
-    case "map":
-      return `${x.scheme(ru.settings.map.schemes[s.map.scheme])}, ${x.marked(s.map.favorites.length)}`;
+    case "map": {
+      const see = s.map.opacity < 100 ? `, ${x.opacity(s.map.opacity)}` : "";
+      return `${x.scheme(ru.settings.map.schemes[s.map.scheme])}${see}, ${x.marked(s.map.favorites.length)}`;
+    }
     case "schedule":
       return x.lessons(s.schedule.lessons.length);
     case "reminders": {

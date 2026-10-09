@@ -27,17 +27,19 @@ use std::time::Instant;
 
 use tauri::{AppHandle, Emitter, Manager};
 use windows::core::{w, BOOL};
-use windows::Win32::Foundation::{HWND, LPARAM, RECT};
+use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_CLOAKED};
+use windows::Win32::System::Threading::GetCurrentProcessId;
 use windows::Win32::UI::Accessibility::{SetWinEventHook, HWINEVENTHOOK};
+use windows::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass};
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, EnumWindows, FindWindowExW, GetClassNameW, GetForegroundWindow, GetShellWindow, GetWindow,
-    GetWindowLongPtrW, GetWindowLongW, GetWindowRect, IsIconic, IsWindowVisible, KillTimer, SetForegroundWindow, SetTimer,
-    SetWindowLongPtrW, SetWindowPos, SystemParametersInfoW, SPI_GETWORKAREA, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
-    WS_EX_LAYERED, WS_EX_TRANSPARENT,
+    GetWindowLongPtrW, GetWindowLongW, GetWindowRect, GetWindowThreadProcessId, IsIconic, IsWindowVisible, KillTimer,
+    SetForegroundWindow, SetTimer, SetWindowLongPtrW, SetWindowPos, SystemParametersInfoW, SPI_GETWORKAREA,
+    SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS, WINDOWPOS, WM_WINDOWPOSCHANGING, WS_EX_LAYERED, WS_EX_TRANSPARENT,
     EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, GWLP_HWNDPARENT, GWL_EXSTYLE,
     GW_HWNDNEXT, GW_HWNDPREV, GW_OWNER, HWND_BOTTOM, HWND_NOTOPMOST, HWND_TOPMOST, SET_WINDOW_POS_FLAGS,
-    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, WINEVENT_OUTOFCONTEXT,
+    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING, SWP_NOSIZE, SWP_NOZORDER, WINEVENT_OUTOFCONTEXT,
     WS_DISABLED, WS_EX_APPWINDOW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
@@ -471,9 +473,49 @@ pub fn is_foreground(h: HWND) -> bool {
     unsafe { GetForegroundWindow() == h }
 }
 
+/// Id of our z-order subclass on the tile windows.
+const KEEP_PLACE_SUBCLASS: usize = 0xA17E;
+/// Set while `activate` runs (on the main thread, which owns the tiles: their messages arrive inside the call).
+static ACTIVATING: AtomicBool = AtomicBool::new(false);
+
+/// A tile window of ours: this process, never activated by clicks (the pop-up and the settings window are not).
+fn is_our_tile(h: HWND) -> bool {
+    if h.0.is_null() {
+        return false;
+    }
+    let mut pid = 0u32;
+    // SAFETY: plain queries about a window handle.
+    unsafe {
+        GetWindowThreadProcessId(h, Some(&mut pid));
+        pid == GetCurrentProcessId() && GetWindowLongW(h, GWL_EXSTYLE) as u32 & WS_EX_NOACTIVATE.0 != 0
+    }
+}
+
+/// Activating a tile (our `activate`, or the menu's own SetForegroundWindow on a tile already in front) makes
+/// Windows lift it, and with it every other tile of the desktop host, above the other programs' windows: the
+/// widgets showed over the window in front until the next check put them back. Such a raise is dropped, so the
+/// tiles keep their place right above the desktop. Our own placements go to HWND_BOTTOM and pass, and the lift
+/// over a raised desktop (Win+D) never comes while a tile is being activated or is in front.
+unsafe extern "system" fn keep_place(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM, _id: usize, _data: usize) -> LRESULT {
+    if msg == WM_WINDOWPOSCHANGING && lparam.0 != 0 {
+        // SAFETY: for WM_WINDOWPOSCHANGING, lparam points to the WINDOWPOS of this change, writable by the window.
+        let pos = unsafe { &mut *(lparam.0 as *mut WINDOWPOS) };
+        let reorders = pos.flags.0 & SWP_NOZORDER.0 == 0 && pos.hwndInsertAfter != HWND_BOTTOM;
+        if reorders && (ACTIVATING.load(Ordering::SeqCst) || is_our_tile(unsafe { GetForegroundWindow() })) {
+            pos.flags |= SWP_NOZORDER;
+        }
+    }
+    unsafe { DefSubclassProc(hwnd, msg, wparam, lparam) }
+}
+
 /// Attach one tile right away (startup, before it is revealed): style, owner, place right above the desktop.
+/// Main thread only (the subclass belongs to the window's thread).
 pub fn attach(h: HWND) {
     ensure_tile_style(h);
+    // SAFETY: the subclass procedure lives for the whole program; installing it twice only updates it.
+    unsafe {
+        let _ = SetWindowSubclass(h, Some(keep_place), KEEP_PLACE_SUBCLASS, 0);
+    }
     if let Some(host) = desktop_host() {
         ensure_owner(&[h], host);
     }
@@ -511,13 +553,15 @@ pub fn place_tile(h: HWND, x: i32, y: i32, w: u32, height: u32) {
     }
 }
 
-/// Activate a tile on purpose, so a text field in it gets the keyboard (the map search). Clicks alone never
-/// activate a tile; this runs while the click is being handled, so Windows lets the app take the foreground.
-/// The next foreground change puts the tile back right above the desktop (`check`).
+/// Activate a tile on purpose, so a text field in it gets the keyboard (the map search) and its menu closes on a
+/// click elsewhere. Clicks alone never activate a tile; this runs while the click is being handled, so Windows lets
+/// the app take the foreground. The tile stays where it is in the z-order (`keep_place`).
 pub fn activate(h: HWND) {
+    ACTIVATING.store(true, Ordering::SeqCst);
     unsafe {
         let _ = SetForegroundWindow(h);
     }
+    ACTIVATING.store(false, Ordering::SeqCst);
 }
 
 /// Install the sentinel, the hooks and the poll timer. Must run on the main (message-pumping) thread:

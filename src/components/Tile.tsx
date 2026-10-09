@@ -37,6 +37,13 @@ interface TileProps {
    * shows more rows, and made bigger both ways shows bigger text. The map, which zooms itself, leaves it out.
    */
   grow?: Grow;
+  /**
+   * How opaque the widget is on the desktop, 0..1 (the map's «Непрозрачность»), while it may be less than whole;
+   * undefined = always whole. Meanwhile its native glass is off (glass cannot fade), so the CSS tint is its
+   * background, and a change of the value fades (base.css .tile.see-through). Whole in edit mode, folded to its
+   * icon and in the pop-up.
+   */
+  opacity?: number;
   children: ReactNode;
 }
 
@@ -137,7 +144,7 @@ function TileFace({ view, art, name, open }: { view: TileView; art: ReactNode; n
  * Glass tile root: material, 1 px border, top edge highlight, radius, padding; context menu; edit mode; views.
  * Inside the pop-up (PopupHost) it is the content of the card: no edit mode, and its menu can close the pop-up.
  */
-export function Tile({ label, minSize, className, background = true, menuItems, face, grow, children }: TileProps) {
+export function Tile({ label, minSize, className, background = true, menuItems, face, grow, opacity, children }: TileProps) {
   const s = useSettings();
   const popup = usePopup();
   const locked = s.lockLayout;
@@ -168,7 +175,8 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
   // work for nothing). The pop-up's card draws its own background.
   const hasBackground = background || foldable;
   const solid = resolveLook(s.style, s.look, s.theme).material === "solid";
-  const glass = hasBackground && !solid;
+  const seeThrough = opacity !== undefined && !popup && !foldable;
+  const glass = hasBackground && !solid && !seeThrough;
   useEffect(() => {
     if (!popup) invoke("set_tile_glass", { on: glass }).catch(() => undefined);
   }, [glass, popup]);
@@ -242,6 +250,7 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     foldable ? `view-${view} folded` : "",
     foldable && open ? "popup-open" : "",
     hasBackground ? "" : "no-bg",
+    seeThrough ? "see-through" : "",
     editing ? "editing" : "",
   ]
     .filter(Boolean)
@@ -252,6 +261,8 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     <div
       ref={rootRef}
       className={cls}
+      // While it is moved or resized the widget is whole, so its edges can be seen.
+      style={seeThrough ? ({ "--tile-opacity": editing ? 1 : opacity } as CSSProperties) : undefined}
       onContextMenu={onContextMenu}
       onPointerDownCapture={onPointerDownCapture}
       onPointerDown={editing ? edit.onDragStart : undefined}

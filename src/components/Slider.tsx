@@ -7,6 +7,8 @@ interface SliderProps {
   step?: number;
   onChange: (value: number) => void;
   label?: string;
+  /** The name for screen readers when the slider has no `label` of its own (its row shows the words). */
+  ariaLabel?: string;
   /** Formats the readout; default = the number. */
   format?: (v: number) => string;
   disabled?: boolean;
@@ -27,7 +29,7 @@ function readout(text: string) {
 }
 
 /** Range slider with label and tabular readout; accent fill up to the thumb. */
-export function Slider({ value, min, max, step = 1, onChange, label, format, disabled, className }: SliderProps) {
+export function Slider({ value, min, max, step = 1, onChange, label, ariaLabel, format, disabled, className }: SliderProps) {
   const id = useId();
   const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
   const style = { "--slider-pct": `${pct}%` } as CSSProperties;
@@ -52,6 +54,7 @@ export function Slider({ value, min, max, step = 1, onChange, label, format, dis
         step={step}
         value={value}
         disabled={disabled}
+        aria-label={label ? undefined : ariaLabel}
         style={style}
         onChange={(e) => onChange(Number(e.target.value))}
       />

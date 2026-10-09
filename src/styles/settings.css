@@ -308,8 +308,7 @@
 /* Pictures are 224 px wide, so the text keeps about 250 px beside them at the default window size. */
 .ob-picture { flex: 0 0 auto; align-self: center; display: grid; place-items: center; width: 224px; max-width: 100%; margin-left: auto; }
 
-/* A corner of the desktop: wallpaper of the palette in use, tiles in its tokens (clock and a list on the
-   right, the map along the bottom). */
+/* A desktop: wallpaper of the palette in use, tiles in its tokens. */
 .ob-desk { position: relative; width: 224px; max-width: 100%; height: 112px; border-radius: var(--r-card); background: var(--desk); overflow: hidden; }
 .ob-tile {
   position: absolute;
@@ -320,12 +319,24 @@
   border: 1px solid var(--tile-border);
   box-shadow: inset 0 1px 0 var(--tile-edge);
 }
-.ob-clock { right: var(--s3); top: var(--s3); width: 88px; height: 36px; }
 .ob-time { color: var(--text); font-family: var(--font-display); font-size: var(--subtitle-size); line-height: 1; font-weight: 300; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.ob-list { right: var(--s3); top: 56px; width: 88px; height: 44px; }
-.ob-map { left: var(--s3); bottom: var(--s3); width: 100px; height: 52px; flex-direction: row; flex-wrap: wrap; align-content: center; justify-content: flex-start; }
 .ob-room { width: 24px; height: 12px; border-radius: var(--r2); background: var(--map-room-fill); border: 1px solid var(--map-room-stroke); }
-.ob-room.wide { width: 40px; }
+/* Step 1: the widgets as they first appear (src-tauri/src/layout.rs): the map in the top left corner, the clock with
+   the load under it in the middle, launchers and notes, system and schedule in two columns on the right. Their
+   places, not their exact sizes; the lower part of the desktop stays free, as on the real one. */
+.ob-tile.ob-mini { gap: 3px; padding: 4px; border-radius: 4px; }
+.ob-lmap { left: 12px; top: 8px; width: 78px; height: 44px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+.ob-lmap > .ob-room { width: auto; height: auto; }
+.ob-lclock { left: 98px; top: 8px; width: 48px; height: 22px; align-items: center; }
+.ob-lclock > .ob-time { font-size: 11px; }
+.ob-lperf { left: 98px; top: 34px; width: 48px; height: 18px; flex-direction: row; align-items: center; justify-content: space-evenly; }
+.ob-ring { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--text-3); border-top-color: var(--accent); border-right-color: var(--accent); }
+.ob-llaunch { left: 152px; top: 8px; width: 28px; height: 24px; display: grid; grid-template-columns: 1fr 1fr; place-items: center; }
+.ob-dot { width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+.ob-lnotes { left: 152px; top: 36px; width: 28px; height: 28px; }
+.ob-lsys { left: 184px; top: 8px; width: 32px; height: 20px; }
+.ob-lsched { left: 184px; top: 32px; width: 32px; height: 36px; }
+.ob-mini > .ob-bar { height: 3px; }
 /* The map step: a plan of six rooms with their numbers under a search field, the floor switch beside it. */
 .ob-maptile { inset: var(--s2); flex-direction: row; align-items: stretch; gap: var(--s2); padding: var(--s2); }
 .ob-plan { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 20px 1fr 1fr; gap: 4px; }

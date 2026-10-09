@@ -31,7 +31,7 @@ import { useSettings } from "../lib/useSettings";
 import { ClockFace } from "../tiles/Clock";
 import { useRootAttribute } from "./shell/hooks";
 
-/** The clock widget's size in the default layout (src-tauri/src/layout.rs COLUMN), logical px. */
+/** The clock widget's size in the default layout (src-tauri/src/layout.rs HEIGHTS), logical px. */
 const DEFAULT_WIDGET = { w: 280, h: 120 };
 /** Padding of the preview desk and of a preset card's desk, CSS px (clock.css: --s6 and --s3). */
 const DESK_PAD = 24;

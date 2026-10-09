@@ -4,6 +4,8 @@
 // mode (brush button, palette, click a room) or from the context menu; marks live in settings.map.favorites.
 // «Показывать ближайшую пару» marks the room of the lesson running now or starting within 30 minutes
 // (src/map/nextLesson.ts), with a dot on its floor's button while another floor is shown and a bubble on hover.
+// «Непрозрачность» fades the whole widget on the desktop; with «Проявлять при наведении» it comes forward under the
+// pointer, while its search field is in use and while it shows a room the schedule asked for (useLit).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -13,6 +15,7 @@ import { Tile } from "../components/Tile";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.map";
 import { FAVORITE_COLORS, mapVars } from "../lib/design";
+import { isMenuOpen } from "../lib/nativeMenu";
 import { minutesUntil } from "../lib/schedule";
 import { settings, type Lesson, type MapSettings } from "../lib/settings";
 import { IN_POPUP, openTile, useFolded } from "../lib/tileView";
@@ -44,6 +47,73 @@ const FOCUS_HOLD_MS = 12000;
 /** The lesson bubble opens after the kit Tooltip's delay (ms). */
 const TIP_DELAY = 500;
 const NO_LESSONS: readonly Lesson[] = [];
+/**
+ * A see-through map comes forward as soon as the pointer is over it and goes back this long after it has left (ms),
+ * so a quick pass over its edge does not make it blink.
+ */
+const FADE_BACK_MS = 160;
+/** While the map's own menu is open (the pointer is on the menu), whether it has closed is checked this often (ms). */
+const MENU_CHECK_MS = 250;
+
+/**
+ * Whether the pointer is over the page, for a see-through map with «Проявлять при наведении» (`active`). Only the
+ * pointer's way in and out are listened to: nothing runs while it rests. The map's own menu keeps it lit: the
+ * pointer leaves the page for the menu, and after the menu the page's hover state decides.
+ */
+function usePointerOver(active: boolean): boolean {
+  const [over, setOver] = useState(false);
+  useEffect(() => {
+    if (!active) {
+      setOver(false);
+      return;
+    }
+    const root = document.documentElement;
+    let timer = 0;
+    const enter = () => {
+      window.clearTimeout(timer);
+      setOver(true);
+    };
+    const settle = () => {
+      if (isMenuOpen()) timer = window.setTimeout(settle, MENU_CHECK_MS);
+      else setOver(root.matches(":hover"));
+    };
+    const leave = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(settle, FADE_BACK_MS);
+    };
+    root.addEventListener("pointerenter", enter);
+    root.addEventListener("pointerleave", leave);
+    setOver(root.matches(":hover"));
+    return () => {
+      window.clearTimeout(timer);
+      root.removeEventListener("pointerenter", enter);
+      root.removeEventListener("pointerleave", leave);
+    };
+  }, [active]);
+  return over;
+}
+
+/** Whether a text field of the page (the map search) has the keyboard. */
+function useTyping(active: boolean): boolean {
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    if (!active) {
+      setTyping(false);
+      return;
+    }
+    const update = (e: FocusEvent) => {
+      const to = e.type === "focusin" ? e.target : e.relatedTarget;
+      setTyping(to instanceof HTMLInputElement);
+    };
+    document.addEventListener("focusin", update);
+    document.addEventListener("focusout", update);
+    return () => {
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", update);
+    };
+  }, [active]);
+  return typing;
+}
 
 /** The bubble's two lines: the title, then when the lesson runs (no marker at all while the schedule is private). */
 function lessonTip(next: NextLesson): { title: string; when: string } {
@@ -135,9 +205,14 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
     fromEvent.current = false;
   }, []);
 
+  // A see-through map comes forward while it shows a room the schedule asked for (focusRoom): until the user takes
+  // over the search, the room turns out not to be on the plan, or the hold is over.
+  const [showing, setShowing] = useState(false);
+
   const onSearchText = useCallback(
     (raw: string) => {
       setFlash(false);
+      setShowing(false);
       setQueryText(raw);
     },
     [setQueryText],
@@ -145,6 +220,7 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
 
   const onSearchClear = useCallback(() => {
     setFlash(false);
+    setShowing(false);
     clear();
   }, [clear]);
 
@@ -152,6 +228,7 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
     if (!flash) return;
     const t = window.setTimeout(() => {
       setFlash(false);
+      setShowing(false);
       clear();
     }, NOT_FOUND_MS);
     return () => window.clearTimeout(t);
@@ -171,8 +248,10 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
       setQueryText(room);
       fromEvent.current = true;
       setFocusSeq((s) => s + 1);
+      setShowing(true);
       window.clearTimeout(hold.current);
       hold.current = window.setTimeout(() => {
+        setShowing(false);
         if (textRef.current.trim().toUpperCase() === room.toUpperCase()) clear();
       }, FOCUS_HOLD_MS);
     },
@@ -332,8 +411,24 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
     [floor, map.favorites, painting, tool, paintRoom, canUndoPaint, undoPaint],
   );
 
+  // «Непрозрачность»: below 100 the widget fades (Tile); under the pointer, while its search is in use or a room is
+  // shown it is lit to «Непрозрачность при наведении»; while painting it is whole. Folded or in the pop-up, never.
+  const seeThrough = map.opacity < 100 && !folded && !IN_POPUP;
+  const reveals = seeThrough && map.hoverReveal;
+  const pointerOver = usePointerOver(reveals);
+  const typing = useTyping(reveals);
+  const lit = painting || (reveals && (pointerOver || typing || showing));
+  const opacity = !seeThrough ? undefined : painting ? 1 : (lit ? map.hoverOpacity : map.opacity) / 100;
+
   return (
-    <Tile label="map" minSize={MIN_SIZE} className="tile-map" background={map.background} menuItems={menuItems}>
+    <Tile
+      label="map"
+      minSize={MIN_SIZE}
+      className={lit ? "tile-map lit" : "tile-map"}
+      background={map.background}
+      menuItems={menuItems}
+      opacity={opacity}
+    >
       <div
         className="map-root"
         data-map-scheme={map.scheme}

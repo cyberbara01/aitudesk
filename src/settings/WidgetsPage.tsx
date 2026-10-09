@@ -69,7 +69,7 @@ function CustomRow({ widget, view, onEdit }: { widget: CustomWidget; view: TileV
         <SizeSelect label={customLabel(widget.id)} name={name} value={view} />
         <Switch checked={widget.enabled} onChange={toggle} ariaLabel={name} />
         <Tooltip text={c.settingsOf(name)}>
-          <IconButton icon="settings" variant="subtle" label={c.settingsOf(name)} onClick={onEdit} />
+          <IconButton icon="settings" variant="subtle" className="tile-gear" label={c.settingsOf(name)} onClick={onEdit} />
         </Tooltip>
       </div>
     </div>
@@ -174,7 +174,7 @@ export function WidgetsPage({ editId }: Props) {
             <SizeSelect label={id} name={ru.tiles[id]} value={s.tileViews[id] ?? "manual"} />
             <Switch checked={s.tiles[id]} onChange={(on) => toggleTile(id, on)} ariaLabel={ru.tiles[id]} />
             <Tooltip text={x.tileSettings(ru.tiles[id])}>
-              <IconButton icon="settings" variant="subtle" label={x.tileSettings(ru.tiles[id])} onClick={() => navigate(id)} />
+              <IconButton icon="settings" variant="subtle" className="tile-gear" label={x.tileSettings(ru.tiles[id])} onClick={() => navigate(id)} />
             </Tooltip>
           </IconRow>
         ))}

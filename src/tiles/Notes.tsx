@@ -1,13 +1,15 @@
 // «Заметки»: notes in the order chosen in the settings (by the nearest deadline with overdue ones on top,
 // newest / oldest added first, or «Свой порядок»), done ones last and dimmed when «Показывать выполненные» is
 // on. Each row: a round «выполнено» toggle, the text (two lines at most), a countdown chip and the absolute
-// deadline next to it (under it in a narrow row). A widget made bigger both ways shows everything bigger. A row dragged with the mouse moves within its group (active or done;
+// deadline next to it (under it in a narrow row); a pencil pops up on the hovered row and opens its editor, and
+// «+ Добавить заметку» ends the list. A widget made bigger both ways shows everything bigger. A row dragged with the mouse moves within its group (active or done;
 // useDragReorder, pointer only, as the widget never takes the keyboard) and the sort becomes «Свой порядок»;
 // not while the widget itself is being moved. One scheduler drives every countdown (see useDeadlineClock): per
 // second only while a deadline is within the hour, otherwise on the minute, and no timer at all without deadlines.
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MenuItemSpec } from "../components/ContextMenu";
 import { EmptyState } from "../components/EmptyState";
+import { AddRow, EditButton } from "../components/ListActions";
 import { MaskedText, PrivacyScope, RevealButton } from "../components/Masked";
 import { Tile, type Grow } from "../components/Tile";
 import { ru } from "../i18n/ru";
@@ -74,6 +76,7 @@ const NoteRow = memo(function NoteRow({ note, chip, tone, when }: NoteRowProps) 
           </div>
         )}
       </div>
+      <EditButton label={extra.tile.edit} onEdit={() => void openNotesSettings(note.id)} />
       <RevealButton id={note.id} />
     </div>
   );
@@ -118,7 +121,8 @@ export function NotesTile() {
     let cut = 0;
     for (const row of Array.from(el.children) as HTMLElement[]) {
       const text = row.querySelector<HTMLElement>(".note-text");
-      const ends = [text ? text.offsetTop + text.offsetHeight : 0, row.offsetTop + row.offsetHeight];
+      // The text is placed within its row (the row is positioned for its pencil), the row within the list.
+      const ends = [text ? row.offsetTop + text.offsetTop + text.offsetHeight : 0, row.offsetTop + row.offsetHeight];
       for (const end of ends) if (end <= avail + 0.5 && end > cut) cut = end;
       if (row.offsetTop >= avail) break;
     }
@@ -212,6 +216,7 @@ export function NotesTile() {
             />
           );
         })}
+        <AddRow label={extra.tile.add} onAdd={addNote} item />
       </div>
     );
   }

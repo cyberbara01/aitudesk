@@ -37,6 +37,18 @@
 .row-control .select.look-select { width: 236px; }
 .row-control .select.look-select .select-btn { min-width: 0; width: 100%; }
 .row-control .select.tile-size .select-btn { min-width: 0; width: 100%; }
+/* The gear into a widget's settings («Виджеты»): it looks like any icon button, but it answers over the whole height
+   of its row, from just right of the switch out to the row's right edge: a wide target. The area belongs to the
+   button (its ::before, placed in the row), so the hover fill shows on the button itself. */
+.row:has(.icon-btn.tile-gear) { position: relative; }
+.row-control .icon-btn.tile-gear::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: calc(var(--s5) + var(--ctl-h) + var(--s1));
+}
 
 .cw-row { min-height: 56px; gap: var(--s3); }
 .cw-row > .row-text { flex: 1 1 auto; }

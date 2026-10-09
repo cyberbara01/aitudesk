@@ -1,5 +1,6 @@
 // Settings → «Карта»: «Внешний вид» (scheme cards with legends, «Фон карты», codes, pictograms,
-// the next lesson's room), «Элементы управления» (floor switch side and visibility, search field, zoom buttons), «Этажи»,
+// the next lesson's room), «Прозрачность» (how see-through the map is, and under the pointer), «Элементы управления»
+// (floor switch side and visibility, search field, zoom buttons), «Этажи»,
 // «Отмеченные кабинеты» (colour, code, note, remove) and the section reset. The tile on the desktop is the
 // live preview. Marked-room edits go through src/map/favorites.ts (functional updates of the store).
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
@@ -9,9 +10,11 @@ import { EmptyState } from "../components/EmptyState";
 import { ResetSection } from "../components/ResetSection";
 import { Page, Row, Section } from "../components/Section";
 import { Segmented, type SegmentedOption } from "../components/Segmented";
+import { Slider } from "../components/Slider";
 import { Switch } from "../components/Switch";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.map";
+import { formatPercent } from "../lib/clock";
 import { FAVORITE_COLORS, MAP_CODE_WEIGHTS, MAP_SCHEMES, mapVars } from "../lib/design";
 import { settings, type MapCodeWeight, type MapFavorite, type MapScheme, type MapSettings } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
@@ -83,6 +86,8 @@ const LEGEND: readonly { type: string; text: string }[] = [
 const NOTE_MAX = 60;
 /** A colour dragged in the custom editor is written once it rests this long (ms), not on every pointer move. */
 const COLOR_COMMIT_MS = 150;
+/** A slider being dragged reaches the store (and the map on the desktop) at most this often (ms). */
+const LIVE_COMMIT_MS = 120;
 
 const byFloorThenCode = (a: MapFavorite, b: MapFavorite) =>
   (floorOfRoom(a.room) ?? 9) - (floorOfRoom(b.room) ?? 9) || a.room.localeCompare(b.room, LOCALE);
@@ -148,6 +153,10 @@ export function MapPage() {
             ariaLabel={extra.nextLesson}
           />
         </Row>
+      </Section>
+
+      <Section title={extra.opacityTitle} description={extra.opacityDesc}>
+        <OpacityRows map={m} />
       </Section>
 
       <Section title={T.controls} description={extra.gestures}>
@@ -249,6 +258,83 @@ function MapColorRow({ label, value, field }: { label: string; value: string; fi
     <Row label={label} stack>
       <ColorPicker value={draft ?? value} onChange={pick} />
     </Row>
+  );
+}
+
+type OpacityPatch = Partial<Pick<MapSettings, "opacity" | "hoverOpacity">>;
+
+/**
+ * «Непрозрачность», «Проявлять при наведении» and «Непрозрачность при наведении». The sliders answer at once, the
+ * map on the desktop follows within LIVE_COMMIT_MS, and a value still pending is written when the page goes. Under
+ * the pointer the map only ever gets more opaque: the second slider stops at the first one's value and is pushed
+ * up by it.
+ */
+function OpacityRows({ map }: { map: MapSettings }) {
+  const [draft, setDraft] = useState<OpacityPatch>({});
+  const pending = useRef<OpacityPatch | null>(null);
+  const timer = useRef(0);
+  // Each write lets go of the draft values it carried (also a write that changed nothing, so a later reset of the
+  // section shows through); a value dragged further meanwhile stays.
+  const flush = useCallback(() => {
+    window.clearTimeout(timer.current);
+    timer.current = 0;
+    const p = pending.current;
+    pending.current = null;
+    if (!p) return;
+    void settings.updateMap(p).finally(() =>
+      setDraft((d) => {
+        const keys = Object.keys(d) as (keyof OpacityPatch)[];
+        const left = keys.filter((k) => d[k] !== p[k]);
+        return left.length === keys.length ? d : (Object.fromEntries(left.map((k) => [k, d[k]])) as OpacityPatch);
+      }),
+    );
+  }, []);
+  useEffect(() => flush, [flush]);
+  const opacity = draft.opacity ?? map.opacity;
+  const hover = Math.max(draft.hoverOpacity ?? map.hoverOpacity, opacity);
+  const patch = (p: OpacityPatch) => {
+    setDraft((d) => ({ ...d, ...p }));
+    pending.current = { ...(pending.current ?? {}), ...p };
+    if (!timer.current) timer.current = window.setTimeout(flush, LIVE_COMMIT_MS);
+  };
+  const whole = opacity === 100;
+  // Not seen at all and never coming forward: the place on the desktop still takes the clicks.
+  const unseen = opacity === 0 && !map.hoverReveal;
+  return (
+    <>
+      <Row label={extra.opacity} hint={unseen ? extra.opacityUnseen : extra.opacityHint}>
+        <Slider
+          className="map-opacity"
+          min={0}
+          max={100}
+          value={opacity}
+          ariaLabel={extra.opacity}
+          format={formatPercent}
+          onChange={(v) => patch(v > hover ? { opacity: v, hoverOpacity: v } : { opacity: v })}
+        />
+      </Row>
+      <Row label={extra.hoverReveal} hint={whole ? extra.hoverRevealWhole : extra.hoverRevealHint}>
+        <Switch
+          checked={map.hoverReveal}
+          disabled={whole}
+          onChange={(v) => void settings.updateMap({ hoverReveal: v })}
+          ariaLabel={extra.hoverReveal}
+        />
+      </Row>
+      {map.hoverReveal && !whole && (
+        <Row label={extra.hoverOpacity} hint={extra.hoverOpacityHint}>
+          <Slider
+            className="map-opacity"
+            min={0}
+            max={100}
+            value={hover}
+            ariaLabel={extra.hoverOpacity}
+            format={formatPercent}
+            onChange={(v) => patch({ hoverOpacity: Math.max(v, opacity) })}
+          />
+        </Row>
+      )}
+    </>
   );
 }
 

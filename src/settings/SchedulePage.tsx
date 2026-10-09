@@ -64,7 +64,10 @@ function useToday(): Weekday {
   return today;
 }
 
-/** `editId`: "new" opens the editor on a new lesson for today, a lesson id opens that lesson (from the tile). */
+/**
+ * `editId` (from the widget): "new" opens the editor on a new lesson for today, "new-<1..7>" on a new lesson for that
+ * weekday, a lesson id on that lesson.
+ */
 export function SchedulePage({ editId }: { editId?: string | null }) {
   const s = useSettings();
   const { lessons, showWeekend, showEmptyDays, followToday, background, privacy } = s.schedule;
@@ -78,8 +81,11 @@ export function SchedulePage({ editId }: { editId?: string | null }) {
   useEffect(() => {
     if (editHandled.current || !editId) return;
     editHandled.current = true;
-    if (editId === "new") {
-      setEditor({ key: Date.now(), lesson: null, day: today });
+    const fresh = /^new(?:-([1-7]))?$/.exec(editId);
+    if (fresh) {
+      const d = fresh[1] ? (Number(fresh[1]) as Weekday) : today;
+      setDay(d);
+      setEditor({ key: Date.now(), lesson: null, day: d });
       return;
     }
     const l = settings.get().schedule.lessons.find((x) => x.id === editId);

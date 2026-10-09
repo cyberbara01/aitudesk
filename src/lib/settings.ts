@@ -257,6 +257,12 @@ export interface MapSettings {
   background: boolean;
   /** With the glass off: a soft fill under the building outline. Off = only the plan itself, no backdrop at all. */
   silhouette: boolean;
+  /** «Непрозрачность» of the map on the desktop while the pointer is not over it, 0..100 (0: not seen at all). */
+  opacity: number;
+  /** «Проявлять при наведении»: under the pointer the map turns `hoverOpacity` opaque, smoothly. */
+  hoverReveal: boolean;
+  /** The map's opacity under the pointer, `opacity`..100. */
+  hoverOpacity: number;
   defaultFloor: 1 | 2 | 3;
   /** Reopen on the floor that was shown last time instead of defaultFloor. */
   rememberFloor: boolean;
@@ -483,6 +489,9 @@ export const DEFAULT_MAP: MapSettings = {
   codeColor: "",
   background: true,
   silhouette: true,
+  opacity: 100,
+  hoverReveal: true,
+  hoverOpacity: 100,
   defaultFloor: 1,
   rememberFloor: true,
   lastFloor: 1,
@@ -822,6 +831,7 @@ export function normalize(saved: unknown): Settings {
   // map
   const m = isObj(s.map) ? s.map : {};
   const favRaw = Array.isArray(m.favorites) ? m.favorites : [];
+  const mapOpacity = Math.round(num(m.opacity, d.map.opacity, 0, 100));
   const map: MapSettings = {
     scheme: oneOf(m.scheme, ["glass", "pastel", "vivid", "outline", "tint", "blueprint"] as const, d.map.scheme),
     color: hex(m.color, d.map.color),
@@ -829,6 +839,10 @@ export function normalize(saved: unknown): Settings {
     codeColor: m.codeColor === "" ? "" : hex(m.codeColor, d.map.codeColor),
     background: bool(m.background, d.map.background),
     silhouette: bool(m.silhouette, d.map.silhouette),
+    opacity: mapOpacity,
+    hoverReveal: bool(m.hoverReveal, d.map.hoverReveal),
+    // Under the pointer the map only ever gets more opaque.
+    hoverOpacity: Math.max(mapOpacity, Math.round(num(m.hoverOpacity, d.map.hoverOpacity, 0, 100))),
     defaultFloor: num(m.defaultFloor, d.map.defaultFloor, 1, 3) as 1 | 2 | 3,
     rememberFloor: bool(m.rememberFloor, d.map.rememberFloor),
     lastFloor: num(m.lastFloor, d.map.lastFloor, 1, 3) as 1 | 2 | 3,

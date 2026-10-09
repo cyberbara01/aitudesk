@@ -35,7 +35,7 @@ export const en: ShellStrings = {
     autostartFailed: "Couldn't change autostart. Try again",
     reset: "Reset",
     layoutLabel: "Widget layout",
-    layoutHint: "The widgets go back to their original places and sizes",
+    layoutHint: "The widgets go back to their original places and sizes. On a usual screen that is the map at the top left, the clock and Performance in the middle, the rest on the right",
     layoutTitle: "Reset the layout?",
     layoutText: (manual: string) =>
       `Every widget goes back to its original place and size, and every widget's size becomes “${manual}” again. This cannot be undone.`,
@@ -145,11 +145,11 @@ export const en: ShellStrings = {
       `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and everything inside grows along with it. Ctrl+Z undoes a step, “${done}” saves. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
     mapTitle: "AITU map",
     mapText:
-      "The mouse wheel or a two-finger pinch on the touchpad zooms the plan, dragging moves it and a double-click fits it whole. Switch floors with the buttons on the side; on hover you also get room search (223 or C1.2.223) and a brush to paint your rooms.",
+      "The mouse wheel or a two-finger pinch on the touchpad zooms the plan, dragging moves it and a double-click fits it whole. Switch floors with the buttons on the side; on hover you also get room search (223 or C1.2.223) and a brush to paint your rooms. In the map's section you can make it see-through: under the pointer it comes forward smoothly.",
     mapSample: { search: "223", rooms: ["221", "223", "225", "220", "222", "224"] },
     dataTitle: "Classes, notes and shortcuts",
     dataText:
-      "Add your schedule, notes with deadlines and shortcuts to your sites in these sections; the widgets show them right away. Drag notes with the mouse, in the list or right on the widget, to put them in your own order. Click a room in the schedule to find it on the map.",
+      "Add your schedule, notes with deadlines and shortcuts to your sites in these sections; the widgets show them right away. A class or a note can also be added right on the widget with the “+” at the end of the list, and the pencil that appears on a class or a note under the pointer opens it for editing. Drag notes with the mouse, in the list or right on the widget, to put them in your own order. Click a room in the schedule to find it on the map.",
     lookTitle: "Design, theme and size",
     lookText: (appearance: string, a: string, b: string, c: string) =>
       `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, numbers, corners, spacing, borders and transparency can be chosen on their own instead of being taken from the design. The widgets and this window change at once.`,

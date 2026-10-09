@@ -55,23 +55,44 @@ function Step({ n, title, text, picture, aside, actions }: StepProps) {
   );
 }
 
-/** A corner of the desktop: the clock and a list tile in the right column, the map along the bottom. */
+/** The desktop as the widgets first appear on it (src-tauri/src/layout.rs): the map in the top left corner, the clock
+ *  with the load under it in the middle, the other widgets in two columns on the right. */
 function DeskPicture({ desk }: { desk: CSSProperties }) {
   return (
     <div className="ob-desk" style={desk}>
-      <span className="ob-tile ob-clock">
+      <span className="ob-tile ob-mini ob-lmap">
+        {Array.from({ length: 6 }, (_, i) => (
+          <span key={i} className="ob-room" />
+        ))}
+      </span>
+      <span className="ob-tile ob-mini ob-lclock">
         <span className="ob-time">{extra.appearance.sampleTime}</span>
       </span>
-      <span className="ob-tile ob-list">
-        <span className="ob-bar accent" />
+      <span className="ob-tile ob-mini ob-lperf">
+        <span className="ob-ring" />
+        <span className="ob-ring" />
+        <span className="ob-ring" />
+      </span>
+      <span className="ob-tile ob-mini ob-llaunch">
+        <span className="ob-dot" />
+        <span className="ob-dot" />
+        <span className="ob-dot" />
+        <span className="ob-dot" />
+      </span>
+      <span className="ob-tile ob-mini ob-lnotes">
+        <span className="ob-bar" />
+        <span className="ob-bar short" />
+        <span className="ob-bar" />
+      </span>
+      <span className="ob-tile ob-mini ob-lsys">
         <span className="ob-bar" />
         <span className="ob-bar short" />
       </span>
-      <span className="ob-tile ob-map">
-        <span className="ob-room" />
-        <span className="ob-room" />
-        <span className="ob-room wide" />
-        <span className="ob-room" />
+      <span className="ob-tile ob-mini ob-lsched">
+        <span className="ob-bar accent" />
+        <span className="ob-bar" />
+        <span className="ob-bar short" />
+        <span className="ob-bar" />
       </span>
     </div>
   );

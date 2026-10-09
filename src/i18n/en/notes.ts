@@ -12,6 +12,7 @@ export const en: NotesStrings = {
     allDone: "All done",
     allDoneHint: "Completed notes are hidden",
     add: "Add note",
+    edit: "Edit note",
     markDone: "Mark as done",
     markUndone: "Mark as not done",
   },

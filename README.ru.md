@@ -39,12 +39,12 @@
 <td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Ярлыки</b><br>Сайты AITU с их настоящими иконками и свои: иконка сайта, из набора или буква, свой цвет</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Заметки</b><br>Задачи с дедлайном и обратным отсчётом; порядок расставляется мышью</td>
-<td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Расписание</b><br>Пары по дням недели, текущая и следующая подсвечены</td>
+<td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Заметки</b><br>Задачи с дедлайном и обратным отсчётом; добавляются и правятся прямо на виджете, порядок расставляется мышью</td>
+<td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Расписание</b><br>Пары по дням недели, текущая и следующая подсвечены; пару можно добавить и изменить прямо на виджете</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Напоминания</b><br>Уведомления Windows перед парой и дедлайном, тихие часы</td>
-<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>Карта AITU</b><br>Этажи университета, поиск кабинета, шесть цветовых схем или свой цвет, цвет и толщина номеров, метки, приближение колесом или двумя пальцами</td>
+<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>Карта AITU</b><br>Этажи университета, поиск кабинета, шесть цветовых схем или свой цвет, цвет и толщина номеров, прозрачность с проявлением под курсором, метки, приближение колесом или двумя пальцами</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Свои виджеты</b><br>Ваша картинка или GIF на рабочем столе, до 20 штук</td>
