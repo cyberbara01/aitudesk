@@ -53,9 +53,9 @@ fn hwnd(win: &WebviewWindow) -> Option<HWND> {
 
 /// The pop-up window, made the first time it is needed: like a tile (same browser arguments, so it shares their
 /// browser process), but activatable and without acrylic (the page draws the card and its shadow, so they animate).
-/// Clear around the card through DirectComposition only (no redirection bitmap): the usual way of a transparent
-/// window, DWM's blur-behind, turns the whole window into one solid colour when Windows' transparency effects are
-/// off or the energy saver has turned them off, which covered the whole desktop around the card.
+/// Clear around the card through DirectComposition only (no redirection bitmap, so no blur-behind that depends on
+/// Windows' transparency effects), and with no system material behind it at all (glass.rs clear_backdrop): on some
+/// Windows 11 builds the automatic choice drew Mica behind the whole window, one dark colour over the desktop.
 pub fn ensure(app: &AppHandle) -> Option<WebviewWindow> {
     if let Some(win) = app.get_webview_window(LABEL) {
         return Some(win);
@@ -84,6 +84,7 @@ pub fn ensure(app: &AppHandle) -> Option<WebviewWindow> {
         .ok()?;
     let _ = win.set_zoom(crate::zoom::current());
     layout::no_browser_keys(&win);
+    crate::glass::clear_backdrop(&win);
     if let Some(h) = hwnd(&win) {
         crate::desktop_watch::attach_popup(h);
     }
@@ -126,6 +127,9 @@ pub fn open(app: &AppHandle, tile: &WebviewWindow, label: &str, room: Option<Str
     let (icon_pos, icon_size) = (tile.outer_position().unwrap_or_default(), tile.outer_size().unwrap_or_default());
     *SHOWN.lock().unwrap() = Some(label.to_string());
     layout::set_page_visible(&win, true);
+    // Again on every opening: whatever set a material on the window meanwhile (the theme, another program), the
+    // desktop around the card must stay as it is.
+    crate::glass::clear_backdrop(&win);
     crate::desktop_watch::place_tile(h, wa.x, wa.y, wa.w, wa.h);
     crate::desktop_watch::activate(h);
     let show = Show {

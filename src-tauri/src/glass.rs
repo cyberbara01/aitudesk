@@ -1,4 +1,5 @@
-//! Window materials: acrylic + DWM rounded corners for the tiles, Mica / acrylic / solid for the settings window.
+//! Window materials: acrylic + DWM rounded corners for the tiles, Mica / acrylic / solid for the settings window,
+//! nothing at all behind the pop-up.
 
 use std::collections::HashMap;
 use std::ffi::c_void;
@@ -9,8 +10,9 @@ use tauri::{Theme, WebviewWindow};
 use windows::core::BOOL;
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Dwm::{
-    DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE, DWMWA_USE_IMMERSIVE_DARK_MODE,
-    DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND, DWMWCP_ROUND, DWM_WINDOW_CORNER_PREFERENCE,
+    DwmSetWindowAttribute, DWMSBT_NONE, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE, DWMWA_SYSTEMBACKDROP_TYPE,
+    DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND, DWMWCP_ROUND,
+    DWM_SYSTEMBACKDROP_TYPE, DWM_WINDOW_CORNER_PREFERENCE,
 };
 use windows::Win32::UI::Shell::{DefSubclassProc, SetWindowSubclass};
 use windows::Win32::UI::WindowsAndMessaging::{SendMessageW, WM_NCACTIVATE};
@@ -64,6 +66,26 @@ fn set_corners(hwnd: HWND, round: bool) {
             &none as *const u32 as *const c_void,
             std::mem::size_of::<u32>() as u32,
         );
+    }
+}
+
+/// No system material behind the window, no rounded corners and no border: the pop-up, which covers the screen's
+/// work area and is clear around its card. Left at «auto», Windows 11 itself may decide to draw Mica behind a window
+/// that has a caption style (tao keeps one on undecorated windows), and some builds do so behind the whole window:
+/// the desktop around the card turned into one dark colour taken from the wallpaper. On Windows before 11 22H2 the
+/// backdrop attribute does not exist and nothing is drawn anyway.
+pub fn clear_backdrop(window: &WebviewWindow) {
+    if let Some(hwnd) = hwnd_of(window) {
+        // SAFETY: plain DWM attribute writes on this window's own handle, with values of the sizes the calls expect.
+        unsafe {
+            let _ = DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_SYSTEMBACKDROP_TYPE,
+                &DWMSBT_NONE as *const DWM_SYSTEMBACKDROP_TYPE as *const c_void,
+                std::mem::size_of::<DWM_SYSTEMBACKDROP_TYPE>() as u32,
+            );
+        }
+        set_corners(hwnd, false);
     }
 }
 
