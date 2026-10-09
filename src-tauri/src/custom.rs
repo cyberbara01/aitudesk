@@ -194,6 +194,8 @@ fn create(app: &AppHandle, label: &str) -> tauri::Result<WebviewWindow> {
         .position(-32000.0, -32000.0)
         .decorations(false)
         .transparent(true)
+        // Clear without DWM's blur-behind, like every widget (see popup.rs).
+        .no_redirection_bitmap(true)
         .skip_taskbar(true)
         .shadow(false)
         .resizable(false)

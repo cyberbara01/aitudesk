@@ -53,6 +53,9 @@ fn hwnd(win: &WebviewWindow) -> Option<HWND> {
 
 /// The pop-up window, made the first time it is needed: like a tile (same browser arguments, so it shares their
 /// browser process), but activatable and without acrylic (the page draws the card and its shadow, so they animate).
+/// Clear around the card through DirectComposition only (no redirection bitmap): the usual way of a transparent
+/// window, DWM's blur-behind, turns the whole window into one solid colour when Windows' transparency effects are
+/// off or the energy saver has turned them off, which covered the whole desktop around the card.
 pub fn ensure(app: &AppHandle) -> Option<WebviewWindow> {
     if let Some(win) = app.get_webview_window(LABEL) {
         return Some(win);
@@ -63,6 +66,7 @@ pub fn ensure(app: &AppHandle) -> Option<WebviewWindow> {
         .position(-32000.0, -32000.0)
         .decorations(false)
         .transparent(true)
+        .no_redirection_bitmap(true)
         .skip_taskbar(true)
         .shadow(false)
         .resizable(false)

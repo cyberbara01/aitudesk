@@ -27,5 +27,8 @@ fn browser_args() {
     for w in windows {
         let label = w["label"].as_str().unwrap_or("?");
         assert_eq!(w["scrollBarStyle"].as_str(), Some("fluentOverlay"), "window {label}: scrollBarStyle must be fluentOverlay");
+        // See popup.rs: without it the clear parts of a widget turn into a solid colour when Windows' transparency
+        // effects are off (or the energy saver turns them off).
+        assert_eq!(w["noRedirectionBitmap"].as_bool(), Some(true), "window {label}: noRedirectionBitmap must be true");
     }
 }
