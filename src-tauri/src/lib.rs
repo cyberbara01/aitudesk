@@ -36,6 +36,31 @@ pub fn is_tile(label: &str) -> bool {
 }
 
 /// Labels of the tile windows that exist now: the built-in ones, then the custom widgets'.
+/// The last display-scale change seen (see on_window_event); only the newest one does the work.
+static SCALE_CHANGE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// A display-scale change, handled 300 ms after the last tile reported it, on the main thread.
+fn scale_changed_later(app: &tauri::AppHandle, label: &str) {
+    use std::sync::atomic::Ordering;
+    let generation = SCALE_CHANGE.fetch_add(1, Ordering::SeqCst) + 1;
+    let (app, label) = (app.clone(), label.to_string());
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        if SCALE_CHANGE.load(Ordering::SeqCst) != generation {
+            return;
+        }
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            let Some(win) = handle.get_webview_window(&label) else { return };
+            let wa = layout::work_area(&win);
+            if zoom::screen_changed(&handle, &wa) {
+                zoom::apply(&handle, &wa);
+            }
+            layout::replace_shown(&handle);
+        });
+    });
+}
+
 pub fn tile_labels(app: &tauri::AppHandle) -> Vec<String> {
     let mut labels: Vec<String> = TILES.iter().map(|l| l.to_string()).collect();
     let mut own: Vec<String> = app.webview_windows().into_keys().filter(|l| custom::is_custom(l)).collect();
@@ -162,18 +187,13 @@ pub fn run() {
         // system menu) stays: a closed widget window would be gone until the next start, whatever the settings
         // say. The pop-up closes the way it always does, back into its icon.
         .on_window_event(|window, event| {
-            // Windows' display scale changed under the widgets: the saved layout follows it once (the other tiles'
-            // events then find nothing changed) and every tile goes to its place.
+            // Windows' display scale changed under the widgets. Every tile gets the message, and after each handler
+            // the window system moves that tile to a rect of its own choosing, so the work waits for the burst to end
+            // (and the taskbar to settle): the saved layout follows the new scale once and every tile goes to its place.
             if let tauri::WindowEvent::ScaleFactorChanged { .. } = event {
                 let app = window.app_handle();
                 if tile_labels(app).iter().any(|l| l == window.label()) {
-                    if let Some(win) = app.get_webview_window(window.label()) {
-                        let wa = layout::work_area(&win);
-                        if zoom::screen_changed(app, &wa) {
-                            zoom::apply(app, &wa);
-                            layout::replace_shown(app);
-                        }
-                    }
+                    scale_changed_later(app, window.label());
                 }
             }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

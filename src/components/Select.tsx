@@ -44,14 +44,20 @@ export function Select<T extends string>({ options, value, onChange, label, aria
   const [active, setActive] = useState(() => Math.max(0, options.findIndex((o) => o.value === value)));
   const rootRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
-  const [up, setUp] = useState(false);
+  /** Opened upwards: the list's distance from the bottom of the select (px), above its button; null: below. */
+  const [up, setUp] = useState<number | null>(null);
   const current = options.find((o) => o.value === value);
+  /** Opens on the chosen option, so the list scrolls to it and not to an option hovered last time. */
+  const openList = () => {
+    setActive(Math.max(0, options.findIndex((o) => o.value === value)));
+    setOpen(true);
+  };
 
   useLayoutEffect(() => {
     const pop = popRef.current;
     const btn = rootRef.current?.querySelector<HTMLElement>(".select-btn");
     if (!open || !pop || !btn) {
-      setUp(false);
+      setUp(null);
       return;
     }
     const b = btn.getBoundingClientRect();
@@ -60,7 +66,8 @@ export function Select<T extends string>({ options, value, onChange, label, aria
     const below = box.bottom - b.bottom;
     const above = b.top - box.top;
     const flip = need > below && above > below;
-    setUp(flip);
+    // Above the button itself, not above a label over it.
+    setUp(flip ? rootRef.current!.offsetHeight - btn.offsetTop + 4 : null);
     if (!flip && need > below) pop.scrollIntoView({ block: "nearest" });
     const chosen = pop.querySelector<HTMLElement>(".popover-item.selected");
     if (chosen) pop.scrollTop = Math.max(0, chosen.offsetTop - (pop.clientHeight - chosen.offsetHeight) / 2);
@@ -93,7 +100,7 @@ export function Select<T extends string>({ options, value, onChange, label, aria
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       if (!open) {
-        setOpen(true);
+        openList();
         return;
       }
       const d = e.key === "ArrowDown" ? 1 : -1;
@@ -101,7 +108,7 @@ export function Select<T extends string>({ options, value, onChange, label, aria
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (open) choose(active);
-      else setOpen(true);
+      else openList();
     } else if (e.key === "Escape" && open) {
       e.preventDefault();
       e.stopPropagation();
@@ -123,7 +130,7 @@ export function Select<T extends string>({ options, value, onChange, label, aria
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKey}
       >
         <span className="select-text" style={styledValue ? current?.style : undefined}>
@@ -132,7 +139,13 @@ export function Select<T extends string>({ options, value, onChange, label, aria
         <Icon name={open ? "chevron_up" : "chevron_down"} size={16} />
       </button>
       {open && (
-        <div ref={popRef} className={up ? "popover up" : "popover"} role="listbox" aria-activedescendant={`${id}-opt-${active}`}>
+        <div
+          ref={popRef}
+          className="popover"
+          role="listbox"
+          aria-activedescendant={`${id}-opt-${active}`}
+          style={up === null ? undefined : { top: "auto", bottom: up }}
+        >
           {options.map((o, i) => (
             <button
               key={o.value}

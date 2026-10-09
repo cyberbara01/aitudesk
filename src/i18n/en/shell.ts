@@ -142,7 +142,7 @@ export const en: ShellStrings = {
       `The clock, system info, computer load, shortcuts, the AITU map, the schedule and notes sit right on the wallpaper, under all windows: to see them, minimize your windows or press Win+D. Choose which of them to show in “${widgets}”, where you can also add widgets of your own with a picture or a GIF.`,
     menuTitle: "Right-click",
     menuText: (move: string, open: string, done: string, size: string) =>
-      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and the clock, system, performance and shortcuts grow along with it. Ctrl+Z undoes a step, “${done}” saves. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
+      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and everything inside grows along with it. Ctrl+Z undoes a step, “${done}” saves. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
     mapTitle: "AITU map",
     mapText:
       "The mouse wheel or a two-finger pinch on the touchpad zooms the plan, dragging moves it and a double-click fits it whole. Switch floors with the buttons on the side; on hover you also get room search (223 or C1.2.223) and a brush to paint your rooms.",

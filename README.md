@@ -110,8 +110,8 @@ The settings window:
 3. The settings window opens with a short guide, and the widgets appear on the desktop. They start with Windows from
    then on; this can be turned off in “General”.
 
-Windows 11, 64-bit, is required. To move a widget or change its size, right-click it: the clock, system, performance
-and shortcuts grow along with it. In “Size” a widget can also fold into an icon that grows into a pop-up in the middle
+Windows 11, 64-bit, is required. To move a widget or change its size, right-click it: everything
+inside grows along with it. In “Size” a widget can also fold into an icon that grows into a pop-up in the middle
 of the screen. Which widgets are shown, their sizes and your own picture widgets are in “Widgets”. The interface is
 in English or Russian, following Windows; switch the language in “General” or with the “RU | EN” button at the bottom
 of the settings window.

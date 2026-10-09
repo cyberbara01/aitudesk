@@ -216,6 +216,8 @@ pub fn restore_one(app: &AppHandle, win: &WebviewWindow, label: &str) {
     }
     if enabled && !hidden {
         vis.pending.lock().unwrap().insert(label.to_string(), rect);
+        // The first widget on an empty desktop (every other one off): the desktop watch starts again.
+        crate::desktop_watch::wake(app);
     } else {
         set_page_visible(win, false);
     }
@@ -249,7 +251,8 @@ pub fn forget(app: &AppHandle, label: &str) {
     }
 }
 
-/// Every saved rect through `f` (the zoom of the tiles changed, see zoom.rs), written back at once.
+/// Every saved rect through `f` (the zoom of the tiles or the display scale changed, see zoom.rs), written back
+/// at once.
 pub fn scale_saved(app: &AppHandle, f: impl Fn(&Rect) -> Rect) {
     let saved = load_layout(app);
     if saved.is_empty() {

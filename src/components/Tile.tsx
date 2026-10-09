@@ -98,8 +98,10 @@ const DEFAULT_MIN: Record<TileId, { w: number; h: number }> = {
   perf: { w: 260, h: 120 },
   launchers: { w: 120, h: 136 },
   map: { w: 400, h: 220 },
-  schedule: { w: 200, h: 120 },
-  notes: { w: 200, h: 120 },
+  // The day row and one whole lesson (time, subject, teacher).
+  schedule: { w: 200, h: 160 },
+  // One note with its countdown and deadline, in every design's padding.
+  notes: { w: 200, h: 140 },
 };
 /** An own widget is a picture: any size down to a small square. */
 const CUSTOM_MIN = { w: 64, h: 64 };

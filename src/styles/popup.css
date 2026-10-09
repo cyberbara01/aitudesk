@@ -1,6 +1,6 @@
 /* =====================================================================================
    The pop-up of a folded widget (src/popup/PopupHost.tsx, src-tauri/src/popup.rs). The window covers the work
-   area: a soft dim lies over the desktop, lightest around the card, and the widget's card stands in the middle.
+   area, clear: the desktop stays as it is, and the widget's card stands in the middle.
    The card grows out of the widget's icon and the icon flies into its header (src/popup/motion.ts); what is here
    is the card at rest. Light falls from above: a faint sheen on the top of the sheet, a bright top edge, a
    hairline around it and a deep shadow in four layers (contact, near, far, ambient). Nothing here keeps a

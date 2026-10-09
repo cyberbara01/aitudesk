@@ -165,7 +165,7 @@ export const en: MainStrings = {
       autostart: "Start with Windows",
       autostartHint: "The widgets appear right after you sign in",
       arrangeHint:
-        "To move a widget or change its size, right-click it and choose “Move and resize”. Drag the bottom-right corner to resize it, and the clock, system, performance and shortcuts grow along with it. The arrow button or Ctrl+Z undoes the last change, and “Done” finishes",
+        "To move a widget or change its size, right-click it and choose “Move and resize”. Drag the bottom-right corner to resize it, and everything inside grows along with it. The arrow button or Ctrl+Z undoes the last change, and “Done” finishes",
       resetLayout: "Reset layout",
       resetLayoutDone: "Layout reset",
     },
@@ -358,7 +358,7 @@ export const en: MainStrings = {
       openSource: "Open source",
       privacy: "Privacy",
       privacyText:
-        "The app never goes online on its own: no telemetry, ads or auto-updates. It uses the network only when you ask for it: to open a shortcut in your browser, or to download a site icon once when you add or change a shortcut (if the site gives none, Google's icon service finds one by the site's name). Settings, classes and notes stay on this computer.",
+        "The app never goes online on its own: no telemetry, ads or auto-updates. It uses the network only when you ask for it: to open a shortcut in your browser, or to download a site icon once when you add or change a shortcut (if the site gives none, Google's icon service finds one by the site's name). The university sites' icons are built in. Settings, classes and notes stay on this computer.",
     },
   },
 };

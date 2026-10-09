@@ -258,11 +258,19 @@ pub fn sync(app: &AppHandle) {
     }
 }
 
-/// An unreadable settings file was set aside next to the store (lib.rs protect_store_file).
+/// How long the pictures stay after an unreadable settings file was set aside: time to repair it.
+const KEEP_FOR_REPAIR: std::time::Duration = std::time::Duration::from_secs(7 * 24 * 3600);
+
+/// An unreadable settings file was set aside next to the store (lib.rs protect_store_file) within the last week.
 fn broken_settings_kept(app: &AppHandle) -> bool {
     let Ok(folder) = app.path().app_data_dir() else { return true };
     std::fs::read_dir(folder)
-        .map(|entries| entries.flatten().any(|e| e.file_name().to_string_lossy().starts_with("settings.broken-")))
+        .map(|entries| {
+            entries.flatten().any(|e| {
+                e.file_name().to_string_lossy().starts_with("settings.broken-")
+                    && e.metadata().and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).is_none_or(|age| age < KEEP_FOR_REPAIR)
+            })
+        })
         .unwrap_or(false)
 }
 

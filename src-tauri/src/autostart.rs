@@ -139,14 +139,20 @@ pub fn remember(app: &AppHandle, on: bool) {
 
 /// At every start but the first: the user wants the start and its Run value is gone (an update's uninstaller
 /// deleted it), so it is written back, unless the start was switched off in Windows' own settings. A store from
-/// before this key learns the current state.
+/// before this key (an update from a version that did not keep the choice, whose uninstaller has just deleted the
+/// value) gets the start back too, the default, unless Windows' own switch says off.
 pub fn restore(app: &AppHandle) {
     let wanted = app.store(crate::layout::STORE_FILE).ok().and_then(|s| s.get(WANTED_KEY)).and_then(|v| v.as_bool());
     match wanted {
         Some(true) if read_string(RUN, NAME).is_none() && approved() != Some(false) => {
             let _ = write_run();
         }
-        None => remember(app, is_enabled()),
+        None => {
+            if read_string(RUN, NAME).is_none() && approved() != Some(false) {
+                let _ = write_run();
+            }
+            remember(app, is_enabled());
+        }
         _ => {}
     }
 }

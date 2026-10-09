@@ -15,7 +15,6 @@ fn encode(s: &str) -> String {
     out
 }
 
-/// Open the settings window on `tab` (optionally editing launcher `edit`), or focus it if it is already open.
 /// The page the settings window opens on when nothing asks for one (a start by hand, the tray): «Виджеты» while
 /// every widget is hidden, since the button that shows them again is there, else «Общие».
 pub fn home_tab(app: &AppHandle) -> &'static str {
@@ -26,6 +25,7 @@ pub fn home_tab(app: &AppHandle) -> &'static str {
     }
 }
 
+/// Open the settings window on `tab` (optionally editing launcher `edit`), or focus it if it is already open.
 pub fn open(app: &AppHandle, tab: &str, edit: Option<&str>) {
     if let Some(win) = app.get_webview_window(LABEL) {
         let _ = win.emit("settings-navigate", serde_json::json!({ "tab": tab, "edit": edit }));

@@ -148,12 +148,14 @@ a { color: var(--accent-text); text-decoration: none; }
 .tile:is(.view-small, .view-medium) .edit-pill { top: 50%; transform: translate(-50%, -50%); }
 
 /* Content that grows with its widget (Tile `grow`): laid out at the size it was drawn for and scaled up from the
-   top left corner to fill the widget; the widget's own layout (flex or block, its direction) passes through. */
+   top left corner to fill the widget; the widget's own layout (flex or block, its direction, the gap between its
+   parts) passes through. */
 .tile-grow {
   display: inherit;
   flex-direction: inherit;
   align-items: inherit;
   justify-content: inherit;
+  gap: inherit;
   flex: none;
   align-self: flex-start;
   width: 100%;
@@ -468,8 +470,6 @@ a { color: var(--accent-text); text-decoration: none; }
 .select-btn:hover { background: var(--ctl-fill-hover); }
 .select-btn .icon { color: var(--text-3); flex-shrink: 0; }
 .select-btn .select-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* A select's list opens above its button when only there it has room (.up, set by Select). */
-.popover.up { top: auto; bottom: calc(100% + 4px); }
 .popover {
   position: absolute;
   z-index: 50;

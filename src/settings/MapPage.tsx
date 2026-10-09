@@ -96,11 +96,7 @@ export function MapPage() {
             ))}
           </div>
         </Row>
-        {m.scheme === "tint" && (
-          <Row label={extra.color} stack>
-            <ColorPicker value={m.color} onChange={(hex) => update({ color: hex })} />
-          </Row>
-        )}
+        {m.scheme === "tint" && <MapColorRow value={m.color} />}
         <Row label={extra.backdrop} hint={extra.backdropHints[backdrop]}>
           <Segmented options={BACKDROP_OPTIONS} value={backdrop} onChange={(v) => update(BACKDROP_PATCH[v])} ariaLabel={extra.backdrop} />
         </Row>
@@ -197,6 +193,35 @@ function SchemeCard({ id, tint, selected, onSelect }: { id: MapScheme; tint: str
         <span className="card-hint">{T.schemes[`${id}Hint` as const]}</span>
       </span>
     </button>
+  );
+}
+
+/**
+ * «Цвет карты» of «Свой цвет». The picker answers at once; the colour is written COLOR_COMMIT_MS after the last
+ * move (a drag across the palette would otherwise save the settings and redraw the plan on every step), and at
+ * once when the page goes.
+ */
+function MapColorRow({ value }: { value: string }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const pending = useRef<string | null>(null);
+  const timer = useRef(0);
+  const flush = useCallback(() => {
+    window.clearTimeout(timer.current);
+    const hex = pending.current;
+    pending.current = null;
+    if (hex) void settings.updateMap({ color: hex }).finally(() => setDraft((d) => (d === hex ? null : d)));
+  }, []);
+  useEffect(() => () => flush(), [flush]);
+  const pick = (hex: string) => {
+    setDraft(hex);
+    pending.current = hex;
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(flush, COLOR_COMMIT_MS);
+  };
+  return (
+    <Row label={extra.color} stack>
+      <ColorPicker value={draft ?? value} onChange={pick} />
+    </Row>
   );
 }
 

@@ -41,7 +41,7 @@ export const en: MapStrings = {
     silhouette: "No glass: a soft underlay beneath the building keeps the plan readable on any wallpaper",
     none: "Only the plan itself, right on the wallpaper, with no underlay at all",
   },
-  labelsHint: "Numbers on the plan. In the smallest rooms they appear as you zoom in",
+  labelsHint: "Numbers on the plan. Small ones appear as you zoom in, so the whole-floor view stays clean",
   labelsWhenZoomed: "Numbers only when zoomed in",
   labelsWhenZoomedHint: "The whole-floor view shows no numbers; they appear once the map is zoomed in a little: two wheel notches or a pinch",
   iconsHint: "Hidden while the map is too small",

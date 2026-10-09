@@ -1,8 +1,9 @@
 // Welcome page: shown instead of «Общие» the first time the settings window opens, and later from
 // «Как пользоваться». Six calm steps, each beside a small picture drawn with the real kit (tokens, the tile
 // menu's own classes, the style cards) or beside real shortcuts to the pages it mentions, then «Начать»,
-// which marks the page as seen and opens «Общие». The last step shows the start with Windows (on from the first
-// start) with its switch right here: it decides whether the widgets are still there after a restart.
+// which marks the page as seen and opens «Виджеты». The last step shows the start with Windows (on from the first
+// start) with its switch right here, and its text follows that switch: it decides whether the widgets are still
+// there after a restart.
 import { type CSSProperties, type ReactNode } from "react";
 import { autostartChanged, disable, enable } from "../../lib/autostart";
 import { Button } from "../../components/Button";

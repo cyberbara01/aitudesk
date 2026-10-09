@@ -322,8 +322,9 @@
    and an opaque seam drawn twice looks exactly like one, so every seam has the same weight, and the building's
    curves and slanted walls are the anti-aliased edges of fills, smooth at any pixel ratio. (A 1 px hairline in a
    translucent colour lands between pixels, turns grey and soft, shows steps on shallow curves, and doubles where
-   two rooms draw it.) Codes are text on those fills and need no halo. No filter anywhere: the plan is one layer
-   of plain fills and strokes, as cheap to rasterise at rest as the lines were.
+   two rooms draw it.) Codes are text on those fills and need no halo. No filter on the plan: it is one layer of
+   plain fills and strokes, as cheap to rasterise at rest as the lines were; only the few letterings that lie on
+   the bare wallpaper get a soft shade (below).
    Hues are data. A light hue darkened by a dark background turns olive or brown (sand, peach), so on dark palettes
    the coloured schemes keep their fills luminous: the hues mostly undiluted with dark codes. Light palettes get
    light tints. Rooms without a letter, the most common kind, take the calm cream so the typed rooms (P, K, L)
@@ -338,10 +339,10 @@
      --mp-fill-wc / -exit / -tech  toilets, escape routes, technical rooms (subdued)
      --mp-stairs / --mp-void       stairwells and the atrium voids: wells below the plate
      --mp-wall                     the few lines on the plate: walls in the corridors, atrium rails, coworking curves
-     --mp-mark                     lines on a fill: the gym court
+     --mp-court                    lines on a fill: the gym court
      --mp-label / -label-free / -block   room codes, free lettering, the block names C1.1 / C1.2 / C1.3
      --mp-pict-* / --mp-glyph-*    pictogram plate and glyph per kind (toilet, exit, stairs)
-     --mp-halo                     the halo of lettering that lies on the wallpaper (no glass)
+     --mp-shade                    the shade under lettering that lies on the wallpaper (no glass)
    ===================================================================================== */
 [data-map-scheme] {
   /* «Пастель» hues */
@@ -490,6 +491,7 @@
 }
 /* «Яркая», light palettes: the same saturated fills, deep pictogram plates. */
 :root[data-scheme="light"] [data-map-scheme="vivid"] {
+  --mp-label: rgb(0 0 0 / .85);
   --mp-fill-tech: color-mix(in srgb, rgb(var(--viv-tech)) 60%, white);
   --mp-wall: color-mix(in srgb, var(--mp-ink) 36%, var(--mp-plate));
   --mp-label-free: color-mix(in srgb, var(--mp-ink) 80%, var(--mp-plate));
@@ -538,14 +540,17 @@
    readable plan; codes, lettering and pictograms take the palette's ink with a little of the hue. */
 [data-map-scheme="tint"] {
   --mp-tint: var(--map-tint, #3B82F6);
-  --mp-fill-o: color-mix(in srgb, var(--mp-tint) 36%, var(--mp-plate));
-  --mp-fill-p: color-mix(in srgb, var(--mp-tint) 56%, var(--mp-plate));
-  --mp-fill-k: color-mix(in srgb, var(--mp-tint) 46%, var(--mp-plate));
-  --mp-fill-l: color-mix(in srgb, var(--mp-tint) 66%, var(--mp-plate));
-  --mp-fill-x: color-mix(in srgb, var(--mp-tint) 26%, var(--mp-plate));
+  /* What the dark fills mix: a light colour (sand, white) is first brought down to a mid lightness, keeping its
+     hue, so the light codes read on every fill. */
+  --mp-tint-fill: var(--mp-tint);
+  --mp-fill-o: color-mix(in srgb, var(--mp-tint-fill) 36%, var(--mp-plate));
+  --mp-fill-p: color-mix(in srgb, var(--mp-tint-fill) 56%, var(--mp-plate));
+  --mp-fill-k: color-mix(in srgb, var(--mp-tint-fill) 46%, var(--mp-plate));
+  --mp-fill-l: color-mix(in srgb, var(--mp-tint-fill) 66%, var(--mp-plate));
+  --mp-fill-x: color-mix(in srgb, var(--mp-tint-fill) 26%, var(--mp-plate));
   --mp-fill-wc: var(--mp-fill-o);
   --mp-fill-exit: var(--mp-fill-o);
-  --mp-fill-tech: color-mix(in srgb, var(--mp-tint) 12%, var(--mp-plate));
+  --mp-fill-tech: color-mix(in srgb, var(--mp-tint-fill) 12%, var(--mp-plate));
   --mp-rim: color-mix(in srgb, var(--mp-tint) 50%, var(--mp-plate));
   --mp-label: color-mix(in srgb, var(--mp-ink) 92%, var(--mp-tint));
   --mp-label-free: color-mix(in srgb, var(--mp-ink) 82%, var(--mp-tint));
@@ -557,6 +562,9 @@
   --mp-glyph-exit: var(--mp-plate);
   --mp-glyph-stairs: var(--mp-plate);
   --mp-court: color-mix(in srgb, var(--mp-ink) 18%, var(--mp-fill-x));
+}
+@supports (color: oklch(from red l c h)) {
+  [data-map-scheme="tint"] { --mp-tint-fill: oklch(from var(--mp-tint) min(l, 0.6) c h); }
 }
 /* «Свой цвет», light palettes: light tints of the hue on white, dark codes, deep pictogram plates. */
 :root[data-scheme="light"] [data-map-scheme="tint"] {
@@ -775,8 +783,8 @@
 }
 
 /* =====================================================================================
-   Level of detail (src/map/lod.ts): codes under about 4.5 device px of cap height, other lettering under 6.5 px
-   and pictograms under 9 px on screen get .lod-off
+   Level of detail (src/map/lod.ts, the sizes in src/map/types.ts): codes under 5 device px of cap height, other
+   lettering under 6.5 px and pictograms under 12 px on screen get .lod-off
    (on the room group for its code, on the element itself otherwise). They fade out in 83 ms and back in 167 ms;
    visibility keeps hidden ones out of painting.
    ===================================================================================== */

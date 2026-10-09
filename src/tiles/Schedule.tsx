@@ -3,6 +3,7 @@
 // dimmed. The time is re-read at minute boundaries while today still has lessons ahead, otherwise only
 // around midnight. Nothing renders before the stored settings are loaded, so the first frame is final.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emitTo } from "@tauri-apps/api/event";
 import { EmptyState } from "../components/EmptyState";
@@ -367,11 +368,14 @@ function LessonList({ lessons, now, mapLink }: { lessons: readonly Lesson[]; now
           <LessonRow key={l.id} lesson={l} state={states.get(l.id) ?? "later"} now={now} roomLink={roomLink} />
         ))}
       </div>
-      {tipFor && (
-        <div ref={tipRef} role="tooltip" className="tooltip" style={tipPos ?? { left: 0, top: 0, visibility: "hidden" }}>
-          {extra.showOnMap}
-        </div>
-      )}
+      {/* In the page's body, like every tooltip: inside a grown widget the scaled content would carry it off. */}
+      {tipFor &&
+        createPortal(
+          <div ref={tipRef} role="tooltip" className="tooltip" style={tipPos ?? { left: 0, top: 0, visibility: "hidden" }}>
+            {extra.showOnMap}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

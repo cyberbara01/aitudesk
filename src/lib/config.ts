@@ -421,6 +421,12 @@ export function applyParts(current: Settings, fileSettings: ConfigFile["settings
   for (const key of keys) setKey(patch, key, next[key]);
   if (patch.schedule) patch.schedule = { ...patch.schedule, privacy: patch.schedule.privacy || current.schedule.privacy };
   if (patch.notes) patch.notes = { ...patch.notes, privacy: patch.notes.privacy || current.notes.privacy };
+  // A file from before «Свой порядок» remembered a hand-made order has no `arranged`: its notes are in that order
+  // exactly when its sort was «Свой порядок».
+  const fileNotes = fileSettings.notes;
+  if (patch.notes && isObj(fileNotes) && !Object.hasOwn(fileNotes, "arranged")) {
+    patch.notes = { ...patch.notes, arranged: patch.notes.sort === "manual" };
+  }
   if (patch.system) patch.system = { ...patch.system, hideNames: patch.system.hideNames || current.system.hideNames };
   if (patch.launchers) {
     // The tile keeps calling a built-in launcher «LMS» or «DU», so a file may not send it to a lookalike page:
