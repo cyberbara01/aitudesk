@@ -1,11 +1,11 @@
 // The pop-up window (src-tauri/src/popup.rs) covers the screen's work area. A folded widget («Маленький»,
-// «Средний») opens here: the desktop dims softly, the widget's card grows out of its icon on a spring and a copy of
+// «Средний») opens here: the widget's card grows out of its icon on a spring over the untouched desktop, and a copy of
 // the icon's picture flies into the card's header (src/popup/motion.ts). A click beside the card, Esc (unless something inside took
 // it: the map search, paint mode, a menu), the close button, the icon again or leaving for another window play it
 // all back into the icon. Only one widget is shown at a time; the code of the folded widgets is loaded ahead of
 // the first click, so the card opens at once. A room clicked in the schedule while the map is folded opens the
 // map here and shows that room.
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { IconButton } from "../components/Button";
@@ -124,7 +124,6 @@ export function PopupHost() {
   }, []);
 
   const stageRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const shadowRef = useRef<HTMLDivElement>(null);
@@ -181,9 +180,8 @@ export function PopupHost() {
   // (the icon shows through); two frames later, with the window surely on screen, everything moves.
   useLayoutEffect(() => {
     const cur = shownRef.current;
-    const [stage, backdrop, card, shellEl, shadow, content, flyEl, headArt] = [
+    const [stage, card, shellEl, shadow, content, flyEl, headArt] = [
       stageRef.current,
-      backdropRef.current,
       cardRef.current,
       shellRef.current,
       shadowRef.current,
@@ -191,10 +189,9 @@ export function PopupHost() {
       flyRef.current,
       headArtRef.current,
     ];
-    if (!cur || !stage || !backdrop || !card || !shellEl || !shadow || !content || !flyEl || !headArt) return;
+    if (!cur || !stage || !card || !shellEl || !shadow || !content || !flyEl || !headArt) return;
     const g = geometry(cur, settings.get().tileViews[cur.label]);
     const reduced = reducedMotion();
-    backdrop.style.opacity = "0";
     if (reduced) {
       card.style.opacity = "0";
     } else {
@@ -213,7 +210,6 @@ export function PopupHost() {
       const anims: Animation[] = [];
       const forwards = { fill: "forwards" as const };
       if (reduced) {
-        anims.push(backdrop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, ...forwards }));
         anims.push(card.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, ...forwards }));
       } else {
         const { cardFrames, shellFrames, shadowFrames } = morph(g.icon, g.card, TILE_RADIUS, g.radius, OPEN.points);
@@ -233,7 +229,6 @@ export function PopupHost() {
             timing,
           ),
         );
-        anims.push(backdrop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: "cubic-bezier(.2, 0, 0, 1)", ...forwards }));
       }
       const run: Motion = { kind: "open", anims, started: performance.now() };
       motion.current = run;
@@ -247,7 +242,6 @@ export function PopupHost() {
           shellEl.style.opacity = "";
           shadow.style.opacity = "";
           content.style.opacity = "";
-          backdrop.style.opacity = "1";
           flyEl.style.visibility = "hidden";
           flyEl.style.opacity = "";
           headArt.style.visibility = "";
@@ -272,9 +266,8 @@ export function PopupHost() {
   // picture fading onto the icon's own; then the native side hears it and the window goes.
   const close = useCallback(() => {
     const cur = shownRef.current;
-    const [stage, backdrop, card, shellEl, shadow, content, flyEl, headArt] = [
+    const [stage, card, shellEl, shadow, content, flyEl, headArt] = [
       stageRef.current,
-      backdropRef.current,
       cardRef.current,
       shellRef.current,
       shadowRef.current,
@@ -282,7 +275,7 @@ export function PopupHost() {
       flyRef.current,
       headArtRef.current,
     ];
-    if (!cur || closing.current || !stage || !backdrop || !card || !shellEl || !shadow || !content || !flyEl || !headArt) return;
+    if (!cur || closing.current || !stage || !card || !shellEl || !shadow || !content || !flyEl || !headArt) return;
     closing.current = true;
     stage.classList.add("closing");
     const g = geometry(cur, settings.get().tileViews[cur.label]);
@@ -306,7 +299,6 @@ export function PopupHost() {
     const fadeFrom = (el: HTMLElement) => Number(getComputedStyle(el).opacity) || 0;
     if (reduced) {
       anims.push(card.animate([{ opacity: fadeFrom(card) }, { opacity: 0 }], { duration: 140, ...forwards }));
-      anims.push(backdrop.animate([{ opacity: fadeFrom(backdrop) }, { opacity: 0 }], { duration: 140, ...forwards }));
     } else {
       const ps = CLOSE.points.map((q) => from * (1 - q));
       const { cardFrames, shellFrames, shadowFrames } = morph(g.icon, g.card, TILE_RADIUS, g.radius, ps);
@@ -318,7 +310,6 @@ export function PopupHost() {
       anims.push(shadow.animate(shadowFrames, timing));
       anims.push(flyEl.animate(fly(g.faceArt, g.headArt, ps), timing));
       anims.push(content.animate([{ opacity: fadeFrom(content), offset: 0 }, { opacity: 0, offset: 0.3 }, { opacity: 0, offset: 1 }], timing));
-      anims.push(backdrop.animate([{ opacity: fadeFrom(backdrop) }, { opacity: 0 }], { duration: 260, easing: "cubic-bezier(.4, 0, 1, 1)", ...forwards }));
     }
     const run: Motion = { kind: "close", anims, started: performance.now() };
     motion.current = run;
@@ -339,7 +330,7 @@ export function PopupHost() {
       }, 0);
     };
     // Another window came to the front (a click on the taskbar, Alt+Tab, a link that opened the browser): the
-    // pop-up goes, so the dim never stays behind other windows. A menu of the widget keeps it.
+    // pop-up goes, so the card never stays behind other windows. A menu of the widget keeps it.
     let blurTimer = 0;
     const onBlur = () => {
       window.clearTimeout(blurTimer);
@@ -394,18 +385,11 @@ export function PopupHost() {
   const Widget = isCustomLabel(show.label) ? null : WIDGETS[show.label as TileId];
   const { card } = show;
   const head = { x: card.x + HEAD_PAD, y: card.y + (HEAD - HEAD_ART) / 2 };
-  // The dim is lightest around the card.
-  const light = {
-    "--cx": `${((card.x + card.w / 2) / Math.max(1, window.innerWidth)) * 100}%`,
-    "--cy": `${((card.y + card.h / 2) / Math.max(1, window.innerHeight)) * 100}%`,
-  } as CSSProperties;
 
   return (
     <div ref={stageRef} key={show.seq} className="popup-stage">
       <div
-        ref={backdropRef}
         className="popup-backdrop"
-        style={light}
         onPointerDown={(e) => {
           if (e.target === e.currentTarget && e.button === 0) close();
         }}

@@ -1,6 +1,6 @@
 //! The pop-up of a folded widget («Маленький», «Средний»): the icon keeps its place, and a click on it opens the
-//! whole widget in a card in the middle of the screen. The window covers the screen's work area: the page dims the
-//! desktop softly and grows the card out of the icon, and a click beside the card, Esc, the close button or leaving
+//! whole widget in a card in the middle of the screen. The window covers the screen's work area: the page leaves the
+//! desktop as it is and grows the card out of the icon, and a click beside the card, Esc, the close button or leaving
 //! for another window closes it the same way back into the icon. The window is made once (as soon as some widget
 //! is folded) and parked between uses with its page told to stop drawing, so opening costs a move and a frame and
 //! an idle pop-up costs nothing. It belongs to the desktop like the tiles (Win+D keeps it).
@@ -52,7 +52,7 @@ fn hwnd(win: &WebviewWindow) -> Option<HWND> {
 }
 
 /// The pop-up window, made the first time it is needed: like a tile (same browser arguments, so it shares their
-/// browser process), but activatable and without acrylic (the page draws the dim and the card, so both animate).
+/// browser process), but activatable and without acrylic (the page draws the card and its shadow, so they animate).
 pub fn ensure(app: &AppHandle) -> Option<WebviewWindow> {
     if let Some(win) = app.get_webview_window(LABEL) {
         return Some(win);

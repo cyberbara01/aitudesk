@@ -14,13 +14,11 @@
 }
 .popup-stage.closing { pointer-events: none; }
 
+/* Clear: the desktop around the card stays as it is (a dim read as a grey veil over a light wallpaper). The layer
+   only takes the click beside the card that closes it. */
 .popup-backdrop {
   position: absolute;
   inset: 0;
-  background: radial-gradient(110% 110% at var(--cx, 50%) var(--cy, 50%), rgba(6, 7, 10, .22) 0%, rgba(6, 7, 10, .52) 100%);
-}
-:root[data-scheme="light"] .popup-backdrop {
-  background: radial-gradient(110% 110% at var(--cx, 50%) var(--cy, 50%), rgba(28, 32, 44, .10) 0%, rgba(28, 32, 44, .34) 100%);
 }
 
 .popup-card {
