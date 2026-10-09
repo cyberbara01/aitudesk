@@ -5,3 +5,7 @@
 *.woff2 binary
 *.ttf binary
 *.exe binary
+# The map's geometry, converted from aitumap by a script: GitHub folds it in diffs and leaves it out of the
+# language bar.
+src/map/floors/*.tsx linguist-generated=true
+src/map/parts/*.tsx linguist-generated=true

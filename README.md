@@ -1,16 +1,8 @@
-<div align="center">
-
-<img src="src-tauri/icons/128x128@2x.png" width="96" height="96" alt="AITU Desk">
-
 # AITU Desk
 
 **English** · [Русский](README.ru.md)
 
-**Desktop widgets for Windows 11: a clock, battery and network, computer load, shortcuts, notes with deadlines, the
-class schedule, the map of Astana IT University and your own pictures.** They sit right on the wallpaper, under your
-windows, stay out of the way and don't vanish with Win+D.
-
-[![Download for Windows 11](https://img.shields.io/badge/Download_for_Windows_11-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B)](https://github.com/cyberbara01/aitudesk/releases/latest)
+<img align="left" src="src-tauri/icons/128x128@2x.png" width="132" height="132" alt="AITU Desk">
 
 [![Version](https://img.shields.io/github/v/release/cyberbara01/aitudesk?label=version&color=0078D4)](https://github.com/cyberbara01/aitudesk/releases/latest)
 [![Windows 11](https://img.shields.io/badge/Windows-11%2C_64--bit-0078D4)](#installation)
@@ -18,16 +10,25 @@ windows, stay out of the way and don't vanish with Win+D.
 [![MIT license](https://img.shields.io/badge/license-MIT-2EA043)](LICENSE)
 [![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043)](#why-you-can-trust-it)
 [![No admin rights](https://img.shields.io/badge/admin_rights-not_needed-2EA043)](#installation)
-<br>
-[![Tauri 2](https://img.shields.io/badge/Tauri_2-24C8DB?logo=tauri&logoColor=white)](https://tauri.app)
-[![Rust](https://img.shields.io/badge/Rust-B7410E?logo=rust&logoColor=white)](https://www.rust-lang.org)
-[![React](https://img.shields.io/badge/React-087EA4?logo=react&logoColor=white)](https://react.dev)
 
-<img src="docs/screenshots/en/desktop-dark.png" alt="AITU Desk widgets on the desktop" width="760">
+**Widgets for the Windows 11 desktop, made for students of Astana IT University.** A clock, battery and network,
+computer load, shortcuts, notes with deadlines, the class schedule, the AITU map and your own pictures lie right on
+the wallpaper: under your windows, out of the way, and still there after Win+D.
 
-</div>
+Everything is set up in one window, in English or Russian. The app sends nothing anywhere and, when idle, barely
+touches the processor.
 
-## What it does
+<br clear="left">
+
+<p align="center">
+  <a href="https://github.com/cyberbara01/aitudesk/releases/latest"><img src="https://img.shields.io/badge/Download_for_Windows_11-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B" alt="Download for Windows 11"></a>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/desktop-laptop-en.png" alt="AITU Desk on a laptop: the map, the clock and the load at the top, notes, system, shortcuts and the schedule around them" width="100%">
+</p>
+
+## What's inside
 
 <table>
 <tr>
@@ -59,25 +60,38 @@ windows, stay out of the way and don't vanish with Win+D.
 Not at AITU? Everything except the map is useful to you too, and the map and the university's shortcuts can be
 turned off.
 
-## Why you can trust it
+## How it works
 
-- **Open source** under the MIT license: everything the app does is in this repository.
-- **Sends nothing**: no telemetry, ads, accounts or auto-updates.
-- **Needs no admin rights** and installs for your account only.
-- **Built on GitHub**: GitHub Actions builds the installer of every release from the source, with checksums next
-  to it.
-- **Light**: the installer is about 3 MB, and when idle the app barely touches the processor.
+<table>
+<tr>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-desk.png" width="100%" alt=""><br><b>Right on the wallpaper</b><br><sub>The map at the top left, the clock and the load in the middle, the rest on the right. Move and resize them as you like</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-menu.png" width="100%" alt=""><br><b>Right-click a widget</b><br><sub>Move it, resize it (everything inside grows with it), fold it into an icon, open its settings</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-popup.png" width="100%" alt=""><br><b>An icon that grows</b><br><sub>A small or medium widget is an icon; a click grows it into a card in the middle of the screen</sub></td>
+</tr>
+<tr>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-list.png" width="100%" alt=""><br><b>Add and edit on the spot</b><br><sub>A “+” at the end of the schedule and the notes, a pencil on the row under the pointer</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-map.png" width="100%" alt=""><br><b>The AITU map</b><br><sub>Find a room (223 or C1.2.223), switch floors, paint your rooms; it can stay see-through until you point at it</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-styles.png" width="100%" alt=""><br><b>Three designs</b><br><sub>Windows 11, Aqua and Rice, with five themes, your accent color and fine-tuning of every part</sub></td>
+</tr>
+</table>
 
 ## Screenshots
 
-Three designs, the same widgets in each: Windows 11 (light theme), Aqua (glass) and Rice (black). Any design
-goes with any theme and accent color.
+The same laptop in Russian: the map zoomed in on the second floor with marked rooms and the search field, the load
+as bars, the notes and the schedule still empty, each with its button to add the first one.
+
+<p align="center">
+  <img src="docs/screenshots/desktop-laptop-ru.png" alt="The same laptop with the interface in Russian" width="100%">
+</p>
+
+Three designs, the same widgets in each: Windows 11 (light theme), Aqua (glass) and Rice (black). Any design goes
+with any theme and accent color.
 
 <p align="center">
   <img src="docs/screenshots/en/designs.png" alt="The same widgets in three designs: Windows 11, Aqua and Rice" width="760">
 </p>
 
-A widget can be folded into a small icon; a click grows it into a pop-up in the middle of the screen.
+A widget folded into an icon grows into a card in the middle of the screen; the rest of the desktop stays as it is.
 
 <p align="center">
   <img src="docs/screenshots/en/desktop-light.png" alt="Widgets folded into icons, the map grown out of its icon into a pop-up; light theme" width="760">
@@ -110,11 +124,8 @@ The settings window:
 3. The settings window opens with a short guide, and the widgets appear on the desktop. They start with Windows from
    then on; this can be turned off in “General”.
 
-Windows 11, 64-bit, is required. To move a widget or change its size, right-click it: everything
-inside grows along with it. In “Size” a widget can also fold into an icon that grows into a pop-up in the middle
-of the screen. Which widgets are shown, their sizes and your own picture widgets are in “Widgets”. The interface is
-in English or Russian, following Windows; switch the language in “General” or with the “RU | EN” button at the bottom
-of the settings window.
+Windows 11, 64-bit, is required. The interface is in English or Russian, following Windows; switch it in “General” or
+with the “RU | EN” button at the bottom of the settings window.
 
 <details>
 <summary><b>Check that the installer is genuine</b></summary>
@@ -179,6 +190,26 @@ without it they stay in case you install again. Before uninstalling you can save
 right after installing.
 </details>
 
+## Why you can trust it
+
+- **Open source** under the MIT license: everything the app does is in this repository.
+- **Sends nothing**: no telemetry, ads, accounts or auto-updates.
+- **Needs no admin rights** and installs for your account only.
+- **Built on GitHub**: GitHub Actions builds the installer of every release from the source, with checksums next
+  to it.
+- **Light**: the installer is about 3 MB, and when idle the app barely touches the processor.
+
+## Links
+
+| What | Where |
+| --- | --- |
+| Download | [The latest release](https://github.com/cyberbara01/aitudesk/releases/latest) |
+| A bug or an idea | [Issues](https://github.com/cyberbara01/aitudesk/issues) or Telegram [@capybara205](https://t.me/capybara205) |
+| Rate the app | [An anonymous form](https://forms.gle/LV7BYCqeveRyRm9YA): a single rating from 0 to 10 is enough |
+| Author | [@cyberbara01](https://github.com/cyberbara01) |
+| The AITU map | [aitumap](https://github.com/Yuujiso/aitumap) by [Yuujiso](https://github.com/Yuujiso) |
+| Third-party components | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) |
+
 <details>
 <summary><b>Building from source</b></summary>
 <br>
@@ -201,15 +232,11 @@ once a minute when seconds are not shown, and hidden widgets and widgets folded 
 a program fills the screen, the load is not read and GIFs stand still. In Windows battery saver the clock hides its
 seconds, charge, network and load are checked less often, and GIFs stand still. With transparency set to none the
 widgets drop their acrylic, which spares the graphics card.
+
+[![Tauri 2](https://img.shields.io/badge/Tauri_2-24C8DB?logo=tauri&logoColor=white)](https://tauri.app)
+[![Rust](https://img.shields.io/badge/Rust-B7410E?logo=rust&logoColor=white)](https://www.rust-lang.org)
+[![React](https://img.shields.io/badge/React-087EA4?logo=react&logoColor=white)](https://react.dev)
 </details>
-
-## Feedback
-
-- Rate the app from 0 to 10 in the [anonymous form](https://forms.gle/LV7BYCqeveRyRm9YA): a single rating is enough, ideas are optional.
-- Found a bug? Write in [Issues](https://github.com/cyberbara01/aitudesk/issues) or on Telegram [@capybara205](https://t.me/capybara205).
-
-Author: [@cyberbara01](https://github.com/cyberbara01). Map: the [aitumap](https://github.com/Yuujiso/aitumap)
-project by [Yuujiso](https://github.com/Yuujiso).
 
 ## License
 
