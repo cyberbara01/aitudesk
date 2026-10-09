@@ -90,12 +90,17 @@ export function MapPage() {
     <Page title={ru.settings.nav.map} description={extra.pageDesc}>
       <Section title={T.look}>
         <Row label={T.scheme} stack>
-          <div className="grid-4 map-scheme-grid" role="radiogroup" aria-label={T.scheme} onKeyDown={onRadioGroupKeyDown}>
+          <div className="grid-3 map-scheme-grid" role="radiogroup" aria-label={T.scheme} onKeyDown={onRadioGroupKeyDown}>
             {MAP_SCHEMES.map((id) => (
-              <SchemeCard key={id} id={id} selected={m.scheme === id} onSelect={() => update({ scheme: id })} />
+              <SchemeCard key={id} id={id} tint={m.color} selected={m.scheme === id} onSelect={() => update({ scheme: id })} />
             ))}
           </div>
         </Row>
+        {m.scheme === "tint" && (
+          <Row label={extra.color} stack>
+            <ColorPicker value={m.color} onChange={(hex) => update({ color: hex })} />
+          </Row>
+        )}
         <Row label={extra.backdrop} hint={extra.backdropHints[backdrop]}>
           <Segmented options={BACKDROP_OPTIONS} value={backdrop} onChange={(v) => update(BACKDROP_PATCH[v])} ariaLabel={extra.backdrop} />
         </Row>
@@ -168,7 +173,7 @@ export function MapPage() {
   );
 }
 
-function SchemeCard({ id, selected, onSelect }: { id: MapScheme; selected: boolean; onSelect: () => void }) {
+function SchemeCard({ id, tint, selected, onSelect }: { id: MapScheme; tint: string; selected: boolean; onSelect: () => void }) {
   return (
     <button
       type="button"
@@ -180,7 +185,7 @@ function SchemeCard({ id, selected, onSelect }: { id: MapScheme; selected: boole
         if (!selected) onSelect();
       }}
     >
-      <span className="card-preview map-legend" data-map-scheme={id} aria-hidden="true">
+      <span className="card-preview map-legend" data-map-scheme={id} style={{ "--map-tint": tint } as CSSProperties} aria-hidden="true">
         {LEGEND.map((l) => (
           <span key={l.type} className="map-legend-sw" data-type={l.type}>
             {l.text}

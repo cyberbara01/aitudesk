@@ -40,6 +40,8 @@ const RU = {
 
   // ---- Настройки: внешний вид ----
   backdrop: "Фон карты",
+  /** Цвет схемы «Свой цвет». */
+  color: "Цвет карты",
   backdropGlass: "Стекло",
   backdropSilhouette: "Подложка",
   backdropNone: "Нет",

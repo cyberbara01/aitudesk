@@ -230,7 +230,7 @@ export interface LaunchersSettings {
   background: boolean;
 }
 
-export type MapScheme = "glass" | "pastel" | "vivid" | "outline";
+export type MapScheme = "glass" | "pastel" | "vivid" | "outline" | "tint" | "blueprint";
 
 export interface MapFavorite {
   /** Full room code as in data-name, e.g. "C1.2.223K". */
@@ -242,6 +242,8 @@ export interface MapFavorite {
 
 export interface MapSettings {
   scheme: MapScheme;
+  /** «Свой цвет»: the colour the whole plan is drawn in shades of (#RRGGBB). */
+  color: string;
   /** Glass tile behind the map. */
   background: boolean;
   /** With the glass off: a soft fill under the building outline. Off = only the plan itself, no backdrop at all. */
@@ -467,6 +469,7 @@ export const DEFAULT_LAUNCHERS: LaunchersSettings = {
 
 export const DEFAULT_MAP: MapSettings = {
   scheme: "glass",
+  color: "#3B82F6",
   background: true,
   silhouette: true,
   defaultFloor: 1,
@@ -809,7 +812,8 @@ export function normalize(saved: unknown): Settings {
   const m = isObj(s.map) ? s.map : {};
   const favRaw = Array.isArray(m.favorites) ? m.favorites : [];
   const map: MapSettings = {
-    scheme: oneOf(m.scheme, ["glass", "pastel", "vivid", "outline"] as const, d.map.scheme),
+    scheme: oneOf(m.scheme, ["glass", "pastel", "vivid", "outline", "tint", "blueprint"] as const, d.map.scheme),
+    color: hex(m.color, d.map.color),
     background: bool(m.background, d.map.background),
     silhouette: bool(m.silhouette, d.map.silhouette),
     defaultFloor: num(m.defaultFloor, d.map.defaultFloor, 1, 3) as 1 | 2 | 3,

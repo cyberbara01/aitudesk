@@ -533,6 +533,89 @@
   --mp-label: color-mix(in srgb, var(--mp-ink) 80%, var(--mp-plate));
 }
 
+/* «Свой цвет»: one hue, the one chosen on «Карта» (--map-tint, set on .map-root and the legend). Every fill is that
+   hue mixed into the plate, the room types told apart by how much of it they take, so any colour gives a calm,
+   readable plan; codes, lettering and pictograms take the palette's ink with a little of the hue. */
+[data-map-scheme="tint"] {
+  --mp-tint: var(--map-tint, #3B82F6);
+  --mp-fill-o: color-mix(in srgb, var(--mp-tint) 36%, var(--mp-plate));
+  --mp-fill-p: color-mix(in srgb, var(--mp-tint) 56%, var(--mp-plate));
+  --mp-fill-k: color-mix(in srgb, var(--mp-tint) 46%, var(--mp-plate));
+  --mp-fill-l: color-mix(in srgb, var(--mp-tint) 66%, var(--mp-plate));
+  --mp-fill-x: color-mix(in srgb, var(--mp-tint) 26%, var(--mp-plate));
+  --mp-fill-wc: var(--mp-fill-o);
+  --mp-fill-exit: var(--mp-fill-o);
+  --mp-fill-tech: color-mix(in srgb, var(--mp-tint) 12%, var(--mp-plate));
+  --mp-rim: color-mix(in srgb, var(--mp-tint) 50%, var(--mp-plate));
+  --mp-label: color-mix(in srgb, var(--mp-ink) 92%, var(--mp-tint));
+  --mp-label-free: color-mix(in srgb, var(--mp-ink) 82%, var(--mp-tint));
+  --mp-block: color-mix(in srgb, var(--mp-tint) 40%, var(--mp-ink));
+  --mp-pict-wc: color-mix(in srgb, var(--mp-tint) 72%, var(--mp-ink));
+  --mp-pict-exit: var(--mp-pict-wc);
+  --mp-pict-stairs: var(--mp-pict-wc);
+  --mp-glyph-wc: var(--mp-plate);
+  --mp-glyph-exit: var(--mp-plate);
+  --mp-glyph-stairs: var(--mp-plate);
+  --mp-court: color-mix(in srgb, var(--mp-ink) 18%, var(--mp-fill-x));
+}
+/* «Свой цвет», light palettes: light tints of the hue on white, dark codes, deep pictogram plates. */
+:root[data-scheme="light"] [data-map-scheme="tint"] {
+  --mp-fill-o: color-mix(in srgb, var(--mp-tint) 16%, white);
+  --mp-fill-p: color-mix(in srgb, var(--mp-tint) 34%, white);
+  --mp-fill-k: color-mix(in srgb, var(--mp-tint) 25%, white);
+  --mp-fill-l: color-mix(in srgb, var(--mp-tint) 44%, white);
+  --mp-fill-x: color-mix(in srgb, var(--mp-tint) 9%, white);
+  --mp-fill-wc: var(--mp-fill-o);
+  --mp-fill-exit: var(--mp-fill-o);
+  --mp-fill-tech: color-mix(in srgb, var(--mp-tint) 8%, var(--mp-plate));
+  --mp-rim: color-mix(in srgb, var(--mp-tint) 55%, var(--mp-plate));
+  --mp-label: color-mix(in srgb, var(--mp-ink) 78%, var(--mp-tint));
+  --mp-label-free: color-mix(in srgb, var(--mp-ink) 70%, var(--mp-tint));
+  --mp-block: color-mix(in srgb, var(--mp-tint) 55%, var(--mp-ink));
+  --mp-pict-wc: color-mix(in srgb, var(--mp-tint) 70%, black);
+  --mp-pict-exit: var(--mp-pict-wc);
+  --mp-pict-stairs: var(--mp-pict-wc);
+  --mp-glyph-wc: #FFFFFF;
+  --mp-glyph-exit: #FFFFFF;
+  --mp-glyph-stairs: #FFFFFF;
+}
+
+/* «Чертёж»: a blueprint, the same on every palette: a deep blue plate, rooms a step lighter, pale blue lines and
+   lettering. The attribute is repeated so its plate and ink win over the palette and the bare-wallpaper plate. */
+[data-map-scheme="blueprint"][data-map-scheme="blueprint"][data-map-scheme="blueprint"][data-map-scheme="blueprint"] {
+  --mp-ink: #FFFFFF;
+  --mp-plate: #15345C;
+  --mp-room: #1D4677;
+  --mp-fill-p: #21508A;
+  --mp-fill-k: var(--mp-room);
+  --mp-fill-l: #255896;
+  --mp-fill-o: var(--mp-room);
+  --mp-fill-x: #1A3F6B;
+  --mp-fill-wc: var(--mp-room);
+  --mp-fill-exit: var(--mp-room);
+  --mp-fill-tech: #183B66;
+  --mp-rim: #8CC2FF;
+  --mp-stairs: #0F2747;
+  --mp-void: #0F2747;
+  --mp-wall: #5E8FC8;
+  --mp-label: #EAF4FF;
+  --mp-label-free: #CFE4FF;
+  --mp-block: #A9D1FF;
+  --mp-pict-wc: #9CCBFF;
+  --mp-pict-exit: #9CCBFF;
+  --mp-pict-stairs: #9CCBFF;
+  --mp-glyph-wc: #15345C;
+  --mp-glyph-exit: #15345C;
+  --mp-glyph-stairs: #15345C;
+  --mp-court: #4A7DB8;
+  --mp-shade: #0B1E38;
+  --mp-hover: #DDEBFF;
+}
+/* On a light palette the block names lie on a light tile or wallpaper: deep blue there. */
+:root[data-scheme="light"] [data-map-scheme="blueprint"][data-map-scheme="blueprint"][data-map-scheme="blueprint"][data-map-scheme="blueprint"] {
+  --mp-block: #2B5C99;
+}
+
 /* «Фон карты» off: the plan lies on the wallpaper. «Подложка» keeps the plate as the building's silhouette, rim
    and all. «Нет» drops both: the rooms stand on the wallpaper as tiles; the corridors, the atrium voids and the
    stairwells are open, and the seams take a deep tone of the palette that reads as the building's edges on light

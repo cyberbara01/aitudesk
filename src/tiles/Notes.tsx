@@ -1,7 +1,7 @@
 // «Заметки»: notes in the order chosen in the settings (by the nearest deadline with overdue ones on top,
 // newest / oldest added first, or «Свой порядок»), done ones last and dimmed when «Показывать выполненные» is
-// on. Each row: a round «выполнено» toggle, the text (two lines at most) and a countdown chip; on a tall tile the
-// absolute deadline sits next to the chip. A row dragged with the mouse moves within its group (active or done;
+// on. Each row: a round «выполнено» toggle, the text (two lines at most), a countdown chip and the absolute
+// deadline next to it (under it in a narrow row). A widget made bigger both ways shows everything bigger. A row dragged with the mouse moves within its group (active or done;
 // useDragReorder, pointer only, as the widget never takes the keyboard) and the sort becomes «Свой порядок»;
 // not while the widget itself is being moved. One scheduler drives every countdown (see useDeadlineClock): per
 // second only while a deadline is within the hour, otherwise on the minute, and no timer at all without deadlines.
@@ -9,7 +9,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MenuItemSpec } from "../components/ContextMenu";
 import { EmptyState } from "../components/EmptyState";
 import { MaskedText, PrivacyScope, RevealButton } from "../components/Masked";
-import { Tile } from "../components/Tile";
+import { Tile, type Grow } from "../components/Tile";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.notes";
 import {
@@ -40,6 +40,8 @@ const FADE_THRESHOLD = 1;
 const NO_DEADLINES: readonly number[] = [];
 
 const addNote = () => void openNotesSettings(NEW_NOTE);
+/** Drawn for the default size (src-tauri/src/layout.rs): a widget bigger both ways shows bigger text. */
+const GROW: Grow = { w: 280, h: 200 };
 const onMove = (id: string, before: string | null) => void moveNote(id, before);
 
 interface NoteRowProps {
@@ -47,7 +49,7 @@ interface NoteRowProps {
   /** Countdown text and tone; null for notes without a deadline and for done notes. */
   chip: string | null;
   tone: DueTone | null;
-  /** Absolute deadline («завтра, 09:00»), shown by CSS only when the tile is tall. */
+  /** Absolute deadline («завтра, 09:00»), next to the chip (under it when the row is narrow). */
   when: string | null;
 }
 
@@ -215,7 +217,7 @@ export function NotesTile() {
   }
 
   return (
-    <Tile label="notes" className="tile-notes" background={background} menuItems={menuItems}>
+    <Tile label="notes" className="tile-notes" background={background} menuItems={menuItems} grow={GROW}>
       <PrivacyScope masked={privacy}>{body}</PrivacyScope>
     </Tile>
   );

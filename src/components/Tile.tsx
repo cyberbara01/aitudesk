@@ -33,7 +33,8 @@ interface TileProps {
    * The content grows with the widget: `w`×`h` is the size it was drawn for (the default size, logical px). Made
    * bigger in both directions, the content is laid out at that size and scaled up by the smaller ratio (never
    * down: smaller widgets keep their own layout). `limit` may hold the scale lower (the launchers keep every
-   * shortcut in view). Widgets that show more when bigger (lists, the map) leave it out.
+   * shortcut in view). The content is laid out in the widget's box divided by the scale, so a list made only taller
+   * shows more rows, and made bigger both ways shows bigger text. The map, which zooms itself, leaves it out.
    */
   grow?: Grow;
   children: ReactNode;

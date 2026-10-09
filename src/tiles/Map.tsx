@@ -4,7 +4,7 @@
 // mode (brush button, palette, click a room) or from the context menu; marks live in settings.map.favorites.
 // «Показывать ближайшую пару» marks the room of the lesson running now or starting within 30 minutes
 // (src/map/nextLesson.ts), with a dot on its floor's button while another floor is shown and a bubble on hover.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { IconButton } from "../components/Button";
@@ -337,6 +337,8 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
       <div
         className="map-root"
         data-map-scheme={map.scheme}
+        // «Свой цвет» draws the plan in shades of this colour (map.css).
+        style={{ "--map-tint": map.color } as CSSProperties}
         data-switch={map.switchSide}
         data-switch-mode={map.switchMode}
         data-labels={map.showLabels ? "on" : "off"}

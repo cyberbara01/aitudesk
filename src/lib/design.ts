@@ -306,7 +306,7 @@ export const CLOCK_PRESETS: readonly ClockPreset[] = [
 // Map & schedule
 // ---------------------------------------------------------------------------------------------
 
-export const MAP_SCHEMES: readonly MapScheme[] = ["glass", "pastel", "vivid", "outline"];
+export const MAP_SCHEMES: readonly MapScheme[] = ["glass", "pastel", "vivid", "outline", "tint", "blueprint"];
 
 /** Default colours offered for favourite rooms. */
 export const FAVORITE_COLORS: readonly string[] = ["#60CDFF", "#9BE3A6", "#FFD66B", "#FFB6A8", "#E3B1FF", "#FF9B8E"];

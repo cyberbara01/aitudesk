@@ -146,7 +146,7 @@
 /* The eye (privacy) is 24 px: centred on the first 20 px line. */
 .note-row .reveal-btn { margin: -2px 0; }
 
-/* Chip, then the absolute deadline when the tile is tall enough; wraps instead of overflowing. */
+/* Chip, then the absolute deadline; it wraps under the chip instead of overflowing a narrow row. */
 .note-meta {
   display: flex;
   flex-wrap: wrap;
@@ -156,16 +156,12 @@
   min-width: 0;
 }
 .note-when {
-  display: none;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-3);
-}
-@media (min-height: 260px) {
-  :root[data-window="notes"] .note-when { display: block; }
 }
 
 /* Empty (kit EmptyState, compact): fills the tile and stays centred; anchored to the top if it ever overflows. */

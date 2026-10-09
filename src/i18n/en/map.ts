@@ -32,6 +32,7 @@ export const en: MapStrings = {
   floorWithLesson: (n: number) => `Floor ${n}, your next class is here`,
 
   backdrop: "Map background",
+  color: "Map color",
   backdropGlass: "Glass",
   backdropSilhouette: "Underlay",
   backdropNone: "None",

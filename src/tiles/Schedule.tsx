@@ -8,7 +8,7 @@ import { emitTo } from "@tauri-apps/api/event";
 import { EmptyState } from "../components/EmptyState";
 import { MaskedText, PrivacyScope, RevealButton, useRevealed } from "../components/Masked";
 import { Segmented, type SegmentedOption } from "../components/Segmented";
-import { Tile } from "../components/Tile";
+import { Tile, type Grow } from "../components/Tile";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.schedule";
 import { isoWeekday } from "../lib/design";
@@ -45,6 +45,8 @@ const TICK_SLACK = 50;
 const IDLE_RECHECK = 15 * 60_000;
 /** Scroll slack (px) below which the list counts as fully shown and the edge fades go away. */
 const FADE_THRESHOLD = 1;
+/** Drawn for the default size (src-tauri/src/layout.rs): a widget bigger both ways shows bigger text. */
+const GROW: Grow = { w: 280, h: 256 };
 /** Lists lower than this (a tile about 200 px high or less) get 8 px edge fades instead of 16 px. */
 const SHORT_LIST = 120;
 /** The text lines of a row, as laid out (title as one unit, also while masked). */
@@ -234,7 +236,9 @@ function LessonList({ lessons, now, mapLink }: { lessons: readonly Lesson[]; now
     if (!list) return false;
     const box = list.getBoundingClientRect();
     const r = el.getBoundingClientRect();
-    const visible = parseFloat(list.style.getPropertyValue("--cut")) || list.clientHeight;
+    // The list may be scaled up with a grown widget: its own heights times that scale are screen px.
+    const k = list.offsetHeight ? box.height / list.offsetHeight : 1;
+    const visible = (parseFloat(list.style.getPropertyValue("--cut")) || list.clientHeight) * k;
     return r.top >= box.top - 0.5 && r.bottom <= box.top + visible + 0.5;
   }, []);
   const roomLink = useMemo<RoomLink | undefined>(() => {
@@ -300,11 +304,13 @@ function LessonList({ lessons, now, mapLink }: { lessons: readonly Lesson[]; now
     // the element directly: it changes while scrolling and must not re-render the rows.
     let cut = 0;
     if (bottom) {
-      const boxTop = el.getBoundingClientRect().top;
+      const box = el.getBoundingClientRect();
+      // Screen px back to the list's own px (it is scaled up with a grown widget).
+      const k = el.offsetHeight ? box.height / el.offsetHeight : 1;
       for (const line of Array.from(el.querySelectorAll<HTMLElement>(LINE_SELECTOR))) {
         const r = line.getBoundingClientRect();
-        if (r.bottom - boxTop > height + 0.5) break;
-        if (r.top - boxTop >= -0.5) cut = r.bottom - boxTop;
+        if ((r.bottom - box.top) / k > height + 0.5) break;
+        if ((r.top - box.top) / k >= -0.5) cut = (r.bottom - box.top) / k;
       }
     }
     if (cut > 0 && cut < height - 0.5) {
@@ -434,7 +440,7 @@ export function ScheduleTile() {
   );
 
   return (
-    <Tile label="schedule" className="tile-schedule" background={background}>
+    <Tile label="schedule" className="tile-schedule" background={background} grow={GROW}>
       {loaded && (
         <PrivacyScope masked={privacy}>
           {lessons.length === 0 ? (
