@@ -117,7 +117,7 @@
 
 ## Установка
 
-1. Скачайте `AITU Desk_<версия>_x64-setup.exe` из [последнего релиза](https://github.com/cyberbara01/aitudesk/releases/latest) и запустите.
+1. Скачайте `AITU-Desk_<версия>_x64-setup.exe` из [последнего релиза](https://github.com/cyberbara01/aitudesk/releases/latest) и запустите.
 2. Если Windows покажет «Система Windows защитила ваш компьютер», нажмите «Подробнее», затем «Выполнить в любом
    случае». Предупреждение появляется, потому что приложение не подписано платным сертификатом.
 3. Откроется окно настроек с короткой инструкцией, а виджеты появятся на рабочем столе. Дальше они запускаются вместе
@@ -133,7 +133,7 @@
 Рядом с установщиком в релизе лежит `SHA256SUMS.txt`. Сравните его с хешем скачанного файла в PowerShell:
 
 ```powershell
-Get-FileHash ".\AITU Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
+Get-FileHash ".\AITU-Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 ```
 
 Сборку делает [`.github/workflows/release.yml`](.github/workflows/release.yml) из исходников этого репозитория.

@@ -41,26 +41,30 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "AITU Desk ${{ github.ref_name }}"
           releaseBody: |
-            **English.** Download `AITU Desk_*_x64-setup.exe` and run it. No administrator rights are needed: the app installs for your Windows account only.
+            **English.** Download `AITU-Desk_*_x64-setup.exe` and run it. No administrator rights are needed: the app installs for your Windows account only.
 
             SmartScreen may warn about an unknown publisher: the app is not signed with a paid certificate. Click "More info", then "Run anyway". GitHub Actions built the installer from the sources of this tag, and the code is open in this repository.
 
-            To check the file, compare it with `SHA256SUMS.txt`. In PowerShell: `Get-FileHash ".\AITU Desk_<version>_x64-setup.exe" -Algorithm SHA256`, the value must match.
+            To check the file, compare it with `SHA256SUMS.txt`. In PowerShell: `Get-FileHash ".\AITU-Desk_<version>_x64-setup.exe" -Algorithm SHA256`, the value must match.
 
             What the installer does, where the settings are kept and how to uninstall: "What the installer does" in the README.
 
-            **Русский.** Скачайте `AITU Desk_*_x64-setup.exe` и запустите. Права администратора не нужны, приложение ставится только для вашей учётной записи.
+            **Русский.** Скачайте `AITU-Desk_*_x64-setup.exe` и запустите. Права администратора не нужны, приложение ставится только для вашей учётной записи.
 
             SmartScreen может предупредить о неизвестном издателе: приложение не подписано платным сертификатом. Нажмите «Подробнее», затем «Выполнить в любом случае». Установщик собран GitHub Actions из исходников этого тега, код открыт в этом репозитории.
 
-            Проверка файла: контрольные суммы лежат в `SHA256SUMS.txt`. В PowerShell: `Get-FileHash ".\AITU Desk_<версия>_x64-setup.exe" -Algorithm SHA256`, значение должно совпасть.
+            Проверка файла: контрольные суммы лежат в `SHA256SUMS.txt`. В PowerShell: `Get-FileHash ".\AITU-Desk_<версия>_x64-setup.exe" -Algorithm SHA256`, значение должно совпасть.
 
             Что делает установщик, где хранятся настройки и как удалить приложение: раздел «Что делает установщик» в README.ru.md.
           releaseDraft: false
           prerelease: false
+          # The product name has a space, which GitHub would turn into a dot in the file name: the installer gets
+          # a name of its own, the same one the README and the release text give.
+          assetNamePattern: "AITU-Desk_[version]_x64[setup][ext]"
 
-      # SHA256 of every published file, so anyone can check the download matches this build. Values from the
-      # workflow reach the script as environment variables, never pasted into its text.
+      # SHA256 of every published file, so anyone can check the download matches this build, under the name it has
+      # in the release (assetNamePattern above). Values from the workflow reach the script as environment variables,
+      # never pasted into its text.
       - name: Publish checksums
         shell: pwsh
         env:
@@ -70,7 +74,7 @@ jobs:
         run: |
           $files = $env:ARTIFACTS | ConvertFrom-Json | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
           $lines = foreach ($f in $files) {
-            "{0}  {1}" -f (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant(), (Split-Path $f -Leaf)
+            "{0}  {1}" -f (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant(), ((Split-Path $f -Leaf) -replace ' ', '-')
           }
           [IO.File]::WriteAllLines("$PWD\SHA256SUMS.txt", [string[]]$lines)
           Get-Content SHA256SUMS.txt

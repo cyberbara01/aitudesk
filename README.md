@@ -118,7 +118,7 @@ The settings window:
 
 ## Installation
 
-1. Download `AITU Desk_<version>_x64-setup.exe` from the [latest release](https://github.com/cyberbara01/aitudesk/releases/latest) and run it.
+1. Download `AITU-Desk_<version>_x64-setup.exe` from the [latest release](https://github.com/cyberbara01/aitudesk/releases/latest) and run it.
 2. If Windows shows “Windows protected your PC”, click “More info”, then “Run anyway”. The warning appears because
    the app is not signed with a paid certificate.
 3. The settings window opens with a short guide, and the widgets appear on the desktop. They start with Windows from
@@ -135,7 +135,7 @@ Next to the installer, the release has `SHA256SUMS.txt`. Compare it with the has
 PowerShell:
 
 ```powershell
-Get-FileHash ".\AITU Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
+Get-FileHash ".\AITU-Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 ```
 
 The build is made by [`.github/workflows/release.yml`](.github/workflows/release.yml) from the source of this
