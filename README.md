@@ -120,7 +120,8 @@ The settings window:
 
 1. Download `AITU-Desk_<version>_x64-setup.exe` from the [latest release](https://github.com/cyberbara01/aitudesk/releases/latest) and run it.
 2. If Windows shows “Windows protected your PC”, click “More info”, then “Run anyway”. The warning appears because
-   the app is not signed with a paid certificate.
+   the installer is not code signed yet: the project has applied for free signing by SignPath Foundation, see the
+   [code signing policy](#code-signing-policy).
 3. The settings window opens with a short guide, and the widgets appear on the desktop. They start with Windows from
    then on; this can be turned off in “General”.
 
@@ -198,6 +199,25 @@ right after installing.
 - **Built on GitHub**: GitHub Actions builds the installer of every release from the source, with checksums next
   to it.
 - **Light**: the installer is about 3 MB, and when idle the app barely touches the processor.
+
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+| Role | Members |
+| --- | --- |
+| Committers and reviewers | [@cyberbara01](https://github.com/cyberbara01) |
+| Approvers | [@cyberbara01](https://github.com/cyberbara01) |
+
+Only `aitudesk.exe` and its installer are signed, built by
+[`.github/workflows/release.yml`](.github/workflows/release.yml) from the source of this repository, and every
+signing request is approved by hand. The project has applied to SignPath Foundation: releases published before the
+approval, 1.0.0 included, are not signed.
+
+**Privacy.** This program will not transfer any information to other networked systems unless specifically requested
+by the user or the person installing or operating it. What it asks the network for, and when, is listed under
+“Network and privacy” in [Installation](#installation).
 
 ## Links
 
