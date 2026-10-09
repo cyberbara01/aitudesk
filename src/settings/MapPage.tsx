@@ -12,8 +12,8 @@ import { Segmented, type SegmentedOption } from "../components/Segmented";
 import { Switch } from "../components/Switch";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.map";
-import { FAVORITE_COLORS, MAP_SCHEMES } from "../lib/design";
-import { settings, type MapFavorite, type MapScheme, type MapSettings } from "../lib/settings";
+import { FAVORITE_COLORS, MAP_CODE_WEIGHTS, MAP_SCHEMES, mapVars } from "../lib/design";
+import { settings, type MapCodeWeight, type MapFavorite, type MapScheme, type MapSettings } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { recolorRoom, setRoomNote, unmarkRoom } from "../map/favorites";
 import { onRadioGroupKeyDown } from "../lib/radioGroup";
@@ -40,6 +40,15 @@ const SIDE_OPTIONS: readonly SegmentedOption<MapSettings["switchSide"]>[] = [
  * silhouette under the building; Нет = nothing behind the plan at all.
  */
 type Backdrop = "glass" | "silhouette" | "none";
+
+const CODE_WEIGHT_OPTIONS: readonly SegmentedOption<MapCodeWeight>[] = MAP_CODE_WEIGHTS.map((w) => ({ value: w, label: extra.codeWeights[w] }));
+type CodeColorMode = "scheme" | "custom";
+const CODE_COLOR_OPTIONS: readonly SegmentedOption<CodeColorMode>[] = [
+  { value: "scheme", label: extra.codeColors.scheme },
+  { value: "custom", label: extra.codeColors.custom },
+];
+/** The first «Свой» colour of the codes: white on dark palettes, near black on light ones. */
+const firstCodeColor = () => (document.documentElement.dataset.scheme === "light" ? "#1F2937" : "#FFFFFF");
 
 const BACKDROP_OPTIONS: readonly SegmentedOption<Backdrop>[] = [
   { value: "glass", label: extra.backdropGlass },
@@ -92,11 +101,11 @@ export function MapPage() {
         <Row label={T.scheme} stack>
           <div className="grid-3 map-scheme-grid" role="radiogroup" aria-label={T.scheme} onKeyDown={onRadioGroupKeyDown}>
             {MAP_SCHEMES.map((id) => (
-              <SchemeCard key={id} id={id} tint={m.color} selected={m.scheme === id} onSelect={() => update({ scheme: id })} />
+              <SchemeCard key={id} id={id} look={m} selected={m.scheme === id} onSelect={() => update({ scheme: id })} />
             ))}
           </div>
         </Row>
-        {m.scheme === "tint" && <MapColorRow value={m.color} />}
+        {m.scheme === "tint" && <MapColorRow label={extra.color} value={m.color} field="color" />}
         <Row label={extra.backdrop} hint={extra.backdropHints[backdrop]}>
           <Segmented options={BACKDROP_OPTIONS} value={backdrop} onChange={(v) => update(BACKDROP_PATCH[v])} ariaLabel={extra.backdrop} />
         </Row>
@@ -111,6 +120,23 @@ export function MapPage() {
             ariaLabel={extra.labelsWhenZoomed}
           />
         </Row>
+        {/* The codes' weight and colour: greyed out while the codes are off (map.css .map-fieldset). */}
+        <Row label={extra.codeWeight} hint={extra.codeWeightHint}>
+          <fieldset className="map-fieldset" disabled={!m.showLabels}>
+            <Segmented options={CODE_WEIGHT_OPTIONS} value={m.codeWeight} onChange={(v) => update({ codeWeight: v })} ariaLabel={extra.codeWeight} />
+          </fieldset>
+        </Row>
+        <Row label={extra.codeColor} hint={extra.codeColorHint}>
+          <fieldset className="map-fieldset" disabled={!m.showLabels}>
+            <Segmented
+              options={CODE_COLOR_OPTIONS}
+              value={m.codeColor ? "custom" : "scheme"}
+              onChange={(v) => update({ codeColor: v === "custom" ? firstCodeColor() : "" })}
+              ariaLabel={extra.codeColor}
+            />
+          </fieldset>
+        </Row>
+        {m.codeColor !== "" && m.showLabels && <MapColorRow label={extra.codeColorPick} value={m.codeColor} field="codeColor" />}
         <Row label={T.icons} hint={extra.iconsHint}>
           <Switch checked={m.showIcons} onChange={(v) => update({ showIcons: v })} ariaLabel={T.icons} />
         </Row>
@@ -169,7 +195,8 @@ export function MapPage() {
   );
 }
 
-function SchemeCard({ id, tint, selected, onSelect }: { id: MapScheme; tint: string; selected: boolean; onSelect: () => void }) {
+/** A scheme with its legend, drawn with the map's own looks (the «Свой цвет» colour, the codes' weight and colour). */
+function SchemeCard({ id, look, selected, onSelect }: { id: MapScheme; look: MapSettings; selected: boolean; onSelect: () => void }) {
   return (
     <button
       type="button"
@@ -181,7 +208,7 @@ function SchemeCard({ id, tint, selected, onSelect }: { id: MapScheme; tint: str
         if (!selected) onSelect();
       }}
     >
-      <span className="card-preview map-legend" data-map-scheme={id} style={{ "--map-tint": tint } as CSSProperties} aria-hidden="true">
+      <span className="card-preview map-legend" data-map-scheme={id} style={mapVars(look)} aria-hidden="true">
         {LEGEND.map((l) => (
           <span key={l.type} className="map-legend-sw" data-type={l.type}>
             {l.text}
@@ -197,11 +224,11 @@ function SchemeCard({ id, tint, selected, onSelect }: { id: MapScheme; tint: str
 }
 
 /**
- * «Цвет карты» of «Свой цвет». The picker answers at once; the colour is written COLOR_COMMIT_MS after the last
- * move (a drag across the palette would otherwise save the settings and redraw the plan on every step), and at
- * once when the page goes.
+ * «Цвет карты» of «Свой цвет», or the codes' own colour. The picker answers at once; the colour is written
+ * COLOR_COMMIT_MS after the last move (a drag across the palette would otherwise save the settings and redraw the
+ * plan on every step), and at once when the page goes.
  */
-function MapColorRow({ value }: { value: string }) {
+function MapColorRow({ label, value, field }: { label: string; value: string; field: "color" | "codeColor" }) {
   const [draft, setDraft] = useState<string | null>(null);
   const pending = useRef<string | null>(null);
   const timer = useRef(0);
@@ -209,8 +236,8 @@ function MapColorRow({ value }: { value: string }) {
     window.clearTimeout(timer.current);
     const hex = pending.current;
     pending.current = null;
-    if (hex) void settings.updateMap({ color: hex }).finally(() => setDraft((d) => (d === hex ? null : d)));
-  }, []);
+    if (hex) void settings.updateMap({ [field]: hex }).finally(() => setDraft((d) => (d === hex ? null : d)));
+  }, [field]);
   useEffect(() => () => flush(), [flush]);
   const pick = (hex: string) => {
     setDraft(hex);
@@ -219,7 +246,7 @@ function MapColorRow({ value }: { value: string }) {
     timer.current = window.setTimeout(flush, COLOR_COMMIT_MS);
   };
   return (
-    <Row label={extra.color} stack>
+    <Row label={label} stack>
       <ColorPicker value={draft ?? value} onChange={pick} />
     </Row>
   );

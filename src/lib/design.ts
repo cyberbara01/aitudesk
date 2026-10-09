@@ -1,6 +1,7 @@
 // Design catalogues: palettes, design languages, accent presets, clock presets, colour helpers.
 // Visual values live in src/styles/tokens.css; this file only names things and does the maths.
-import type { ClockFont, ClockSettings, Look, LookDensity, LookSettings, MapScheme, StyleId, ThemeId } from "./settings";
+import type { CSSProperties } from "react";
+import type { ClockFont, ClockSettings, Look, LookDensity, LookSettings, MapCodeWeight, MapScheme, MapSettings, StyleId, ThemeId } from "./settings";
 
 // ---------------------------------------------------------------------------------------------
 // Palettes & styles
@@ -307,6 +308,19 @@ export const CLOCK_PRESETS: readonly ClockPreset[] = [
 // ---------------------------------------------------------------------------------------------
 
 export const MAP_SCHEMES: readonly MapScheme[] = ["glass", "pastel", "vivid", "outline", "tint", "blueprint"];
+export const MAP_CODE_WEIGHTS: readonly MapCodeWeight[] = ["light", "regular", "bold"];
+/** The font weight of each «Толщина номеров». */
+export const MAP_CODE_WEIGHT: Record<MapCodeWeight, number> = { light: 400, regular: 600, bold: 700 };
+
+/**
+ * The map's own looks as CSS variables on its root and on the scheme legends (map.css): the «Свой цвет» colour,
+ * the room codes' weight and, when one is chosen, their colour.
+ */
+export function mapVars(m: Pick<MapSettings, "color" | "codeWeight" | "codeColor">): CSSProperties {
+  const vars: Record<string, string | number> = { "--map-tint": m.color, "--mp-code-weight": MAP_CODE_WEIGHT[m.codeWeight] };
+  if (m.codeColor) vars["--mp-code"] = m.codeColor;
+  return vars as CSSProperties;
+}
 
 /** Default colours offered for favourite rooms. */
 export const FAVORITE_COLORS: readonly string[] = ["#60CDFF", "#9BE3A6", "#FFD66B", "#FFB6A8", "#E3B1FF", "#FF9B8E"];

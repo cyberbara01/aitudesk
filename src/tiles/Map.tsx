@@ -4,7 +4,7 @@
 // mode (brush button, palette, click a room) or from the context menu; marks live in settings.map.favorites.
 // «Показывать ближайшую пару» marks the room of the lesson running now or starting within 30 minutes
 // (src/map/nextLesson.ts), with a dot on its floor's button while another floor is shown and a bubble on hover.
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { IconButton } from "../components/Button";
@@ -12,7 +12,7 @@ import type { MenuItemSpec } from "../components/ContextMenu";
 import { Tile } from "../components/Tile";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.map";
-import { FAVORITE_COLORS } from "../lib/design";
+import { FAVORITE_COLORS, mapVars } from "../lib/design";
 import { minutesUntil } from "../lib/schedule";
 import { settings, type Lesson, type MapSettings } from "../lib/settings";
 import { IN_POPUP, openTile, useFolded } from "../lib/tileView";
@@ -337,8 +337,8 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
       <div
         className="map-root"
         data-map-scheme={map.scheme}
-        // «Свой цвет» draws the plan in shades of this colour (map.css).
-        style={{ "--map-tint": map.color } as CSSProperties}
+        // «Свой цвет», and the weight and colour of the room codes (map.css).
+        style={mapVars(map)}
         data-switch={map.switchSide}
         data-switch-mode={map.switchMode}
         data-labels={map.showLabels ? "on" : "off"}

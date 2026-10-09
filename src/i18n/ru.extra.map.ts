@@ -42,6 +42,14 @@ const RU = {
   backdrop: "Фон карты",
   /** Цвет схемы «Свой цвет». */
   color: "Цвет карты",
+  /** Толщина и цвет номеров кабинетов на плане. */
+  codeWeight: "Толщина номеров",
+  codeWeightHint: "Номера кабинетов на плане",
+  codeWeights: { light: "Тонкие", regular: "Обычные", bold: "Жирные" },
+  codeColor: "Цвет номеров",
+  codeColorHint: "У отмеченных и найденных кабинетов номера остаются в цвете, который виден на их заливке",
+  codeColors: { scheme: "Как в схеме", custom: "Свой" },
+  codeColorPick: "Свой цвет номеров",
   backdropGlass: "Стекло",
   backdropSilhouette: "Подложка",
   backdropNone: "Нет",

@@ -44,7 +44,7 @@
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Напоминания</b><br>Уведомления Windows перед парой и дедлайном, тихие часы</td>
-<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>Карта AITU</b><br>Этажи университета, поиск кабинета, шесть цветовых схем или свой цвет, метки, приближение колесом или двумя пальцами</td>
+<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>Карта AITU</b><br>Этажи университета, поиск кабинета, шесть цветовых схем или свой цвет, цвет и толщина номеров, метки, приближение колесом или двумя пальцами</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Свои виджеты</b><br>Ваша картинка или GIF на рабочем столе, до 20 штук</td>

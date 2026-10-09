@@ -33,6 +33,13 @@ export const en: MapStrings = {
 
   backdrop: "Map background",
   color: "Map color",
+  codeWeight: "Number weight",
+  codeWeightHint: "Room numbers on the plan",
+  codeWeights: { light: "Light", regular: "Regular", bold: "Bold" },
+  codeColor: "Number color",
+  codeColorHint: "Marked and found rooms keep a number color that shows on their fill",
+  codeColors: { scheme: "As in the scheme", custom: "Custom" },
+  codeColorPick: "Custom number color",
   backdropGlass: "Glass",
   backdropSilhouette: "Underlay",
   backdropNone: "None",

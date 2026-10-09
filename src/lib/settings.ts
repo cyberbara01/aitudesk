@@ -231,6 +231,8 @@ export interface LaunchersSettings {
 }
 
 export type MapScheme = "glass" | "pastel" | "vivid" | "outline" | "tint" | "blueprint";
+/** «Толщина номеров»: the weight of the room codes on the plan (src/lib/design.ts MAP_CODE_WEIGHT). */
+export type MapCodeWeight = "light" | "regular" | "bold";
 
 export interface MapFavorite {
   /** Full room code as in data-name, e.g. "C1.2.223K". */
@@ -244,6 +246,13 @@ export interface MapSettings {
   scheme: MapScheme;
   /** «Свой цвет»: the colour the whole plan is drawn in shades of (#RRGGBB). */
   color: string;
+  /** «Толщина номеров» of the room codes. */
+  codeWeight: MapCodeWeight;
+  /**
+   * «Цвет номеров»: "" for the scheme's own, else #RRGGBB. Marked and found rooms and the next lesson's keep the
+   * code colour that reads on their fill.
+   */
+  codeColor: string;
   /** Glass tile behind the map. */
   background: boolean;
   /** With the glass off: a soft fill under the building outline. Off = only the plan itself, no backdrop at all. */
@@ -470,6 +479,8 @@ export const DEFAULT_LAUNCHERS: LaunchersSettings = {
 export const DEFAULT_MAP: MapSettings = {
   scheme: "glass",
   color: "#3B82F6",
+  codeWeight: "regular",
+  codeColor: "",
   background: true,
   silhouette: true,
   defaultFloor: 1,
@@ -814,6 +825,8 @@ export function normalize(saved: unknown): Settings {
   const map: MapSettings = {
     scheme: oneOf(m.scheme, ["glass", "pastel", "vivid", "outline", "tint", "blueprint"] as const, d.map.scheme),
     color: hex(m.color, d.map.color),
+    codeWeight: oneOf(m.codeWeight, ["light", "regular", "bold"] as const, d.map.codeWeight),
+    codeColor: m.codeColor === "" ? "" : hex(m.codeColor, d.map.codeColor),
     background: bool(m.background, d.map.background),
     silhouette: bool(m.silhouette, d.map.silhouette),
     defaultFloor: num(m.defaultFloor, d.map.defaultFloor, 1, 3) as 1 | 2 | 3,

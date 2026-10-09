@@ -44,7 +44,7 @@ windows, stay out of the way and don't vanish with Win+D.
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Reminders</b><br>Windows notifications before a class and a deadline, quiet hours</td>
-<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>AITU map</b><br>The university's floors, room search, six color schemes or your own color, marks, zoom with the wheel or two fingers</td>
+<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>AITU map</b><br>The university's floors, room search, six color schemes or your own color, number color and weight, marks, zoom with the wheel or two fingers</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Your widgets</b><br>Your own picture or GIF on the desktop, up to 20 of them</td>

@@ -726,17 +726,22 @@
    curves and the Mediker group its logo: those are not labels.) */
 .map-svg :is(.map-groups-rooms, .map-groups-rooms-vk) path,
 .map-svg g[data-name]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path {
-  fill: var(--mp-label);
+  fill: var(--mp-code, var(--mp-label));
   stroke: none;
   pointer-events: none;
 }
+/* The names of the halls (data-name with aliases: library, dining and assembly hall) are not codes: they keep the
+   scheme's colour whatever «Цвет номеров» says. */
+.map-svg g[data-name*="|"]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"]) > path { fill: var(--mp-label); }
 /* Codes set as real text (codes.ts) in the style's numeric face: the drawing's glyph paths of those rooms hide.
-   Semibold keeps 6 to 9 px codes solid on every fill; text-rendering stays auto so upright codes are hinted. */
+   Semibold by default keeps 6 to 9 px codes solid on every fill; text-rendering stays auto so upright codes are
+   hinted. «Толщина номеров» and «Цвет номеров» come in as --mp-code-weight and --mp-code (design.ts mapVars); the
+   codes of marked, found and next-lesson rooms keep their own colours (below). */
 .map-svg g[data-name].has-code > path { display: none; }
 .map-svg text.map-code {
-  fill: var(--mp-label);
+  fill: var(--mp-code, var(--mp-label));
   font-family: var(--font-num);
-  font-weight: 600;
+  font-weight: var(--mp-code-weight, 600);
   text-anchor: middle;
   pointer-events: none;
 }
@@ -894,11 +899,11 @@
   border-radius: var(--r2);
   background: var(--mp-fill-o);
   box-shadow: inset 0 0 0 1px var(--mp-stroke);
-  color: var(--mp-label);
+  color: var(--mp-code, var(--mp-label));
   font-family: var(--font-mono);
   font-size: 10px;
   line-height: 1;
-  font-weight: 600;
+  font-weight: var(--mp-code-weight, 600);
 }
 .map-legend-sw[data-type="p"] { background: var(--mp-fill-p); }
 .map-legend-sw[data-type="k"] { background: var(--mp-fill-k); }
