@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.10.0.schema.json
+
+PackageIdentifier: cyberbara01.AITUDesk
+PackageVersion: {{version}}
+Platform:
+- Windows.Desktop
+MinimumOSVersion: 10.0.22000.0
+InstallerType: nullsoft
+Scope: user
+InstallModes:
+- interactive
+- silent
+UpgradeBehavior: install
+ProductCode: AITU Desk
+ReleaseDate: {{date}}
+AppsAndFeaturesEntries:
+- DisplayName: AITU Desk
+  Publisher: AITU Desk
+  DisplayVersion: {{version}}
+  ProductCode: AITU Desk
+Installers:
+- Architecture: x64
+  InstallerUrl: {{url}}
+  InstallerSha256: {{sha256}}
+ManifestType: installer
+ManifestVersion: 1.10.0

@@ -199,7 +199,7 @@ export function WelcomePage() {
         <Step
           n={2}
           title={w.menuTitle}
-          text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done, extra.views.size)}
+          text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done, extra.views.size, extra.grid.label)}
           picture={<MenuPicture />}
         />
         <Step n={3} title={w.mapTitle} text={w.mapText} picture={<MapPicture desk={desk} />} />
@@ -224,7 +224,7 @@ export function WelcomePage() {
         <Step
           n={5}
           title={w.lookTitle}
-          text={w.lookText(nav.appearance, styleNames.fluent, styleNames.aqua, styleNames.rice)}
+          text={w.lookText(nav.appearance, styleNames.fluent, styleNames.aqua, styleNames.rice, styleNames.pearl)}
           picture={<StylesPicture desk={desk} />}
           actions={
             <Button icon="paint_brush" onClick={() => navigate("appearance")}>

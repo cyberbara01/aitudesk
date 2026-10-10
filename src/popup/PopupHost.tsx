@@ -29,8 +29,8 @@ const HEAD_PAD = 14;
 /** The folded face's icon (base.css .tile-face-art) and, on a medium face, the room left of it (border + padding). */
 const FACE_ART = 40;
 const FACE_PAD = 13;
-/** The widget windows' corners (the window's own, 8 px in every design): the card leaves the icon with them. */
-const TILE_RADIUS = 8;
+/** The widgets' corners («Углы виджетов», CSS --r-tile): the card leaves the icon with them. */
+const tileRadius = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--r-tile")) || 8;
 /** After the icon on the desktop got its picture back, the page lets go of the card (no blink in between). */
 const LET_GO_MS = 40;
 /** Leaving for another window closes the pop-up; a short wait skips focus that only passes through. */
@@ -95,7 +95,7 @@ function geometry(show: Show, view: TileView | undefined): Geometry {
   };
   const headArt: Rect = { x: card.x + HEAD_PAD, y: card.y + (HEAD - HEAD_ART) / 2, w: HEAD_ART, h: HEAD_ART };
   const rCard = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--r-card")) || 8;
-  return { icon, card, faceArt, headArt, radius: Math.max(12, rCard + 6) };
+  return { icon, card, faceArt, headArt, radius: Math.max(12, rCard + 6, tileRadius()) };
 }
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -196,7 +196,7 @@ export function PopupHost() {
       card.style.opacity = "0";
     } else {
       card.style.transform = cardStart(g.icon, g.card);
-      shellEl.style.borderRadius = shellStart(g.icon, g.card, TILE_RADIUS);
+      shellEl.style.borderRadius = shellStart(g.icon, g.card, tileRadius());
       shellEl.style.opacity = "0";
       shadow.style.opacity = "0";
       content.style.opacity = "0";
@@ -212,7 +212,7 @@ export function PopupHost() {
       if (reduced) {
         anims.push(card.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, ...forwards }));
       } else {
-        const { cardFrames, shellFrames, shadowFrames } = morph(g.icon, g.card, TILE_RADIUS, g.radius, OPEN.points);
+        const { cardFrames, shellFrames, shadowFrames } = morph(g.icon, g.card, tileRadius(), g.radius, OPEN.points);
         const timing = { duration: OPEN.ms, easing: "linear", ...forwards };
         anims.push(card.animate(cardFrames, timing));
         anims.push(shellEl.animate(shellFrames, timing));
@@ -301,7 +301,7 @@ export function PopupHost() {
       anims.push(card.animate([{ opacity: fadeFrom(card) }, { opacity: 0 }], { duration: 140, ...forwards }));
     } else {
       const ps = CLOSE.points.map((q) => from * (1 - q));
-      const { cardFrames, shellFrames, shadowFrames } = morph(g.icon, g.card, TILE_RADIUS, g.radius, ps);
+      const { cardFrames, shellFrames, shadowFrames } = morph(g.icon, g.card, tileRadius(), g.radius, ps);
       const timing = { duration: CLOSE.ms, easing: "linear", ...forwards };
       headArt.style.visibility = "hidden";
       flyEl.style.visibility = "visible";

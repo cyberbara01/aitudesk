@@ -1,5 +1,6 @@
 mod accent;
 mod autostart;
+mod backdrop;
 mod commands;
 mod cputemp;
 mod custom;
@@ -7,6 +8,7 @@ mod desktop_watch;
 mod favicon;
 mod files;
 mod glass;
+mod grid;
 mod lang;
 mod layout;
 mod notify;
@@ -221,6 +223,10 @@ pub fn run() {
             commands::get_user_name,
             commands::fetch_site_icon,
             commands::set_tile_glass,
+            commands::get_desktop_grid,
+            commands::align_tiles,
+            commands::unalign_tiles,
+            commands::snap_tile,
             commands::set_tiles_hidden,
             commands::get_tiles_hidden,
             commands::reset_layout,

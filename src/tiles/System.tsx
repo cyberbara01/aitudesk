@@ -202,7 +202,7 @@ interface RowsFit {
 /** Heights (logical px) a tile with `rows` rows needs: rows, the padding of its density on both sides, 1 px border. */
 function rowsFit(rows: number, s: Settings): RowsFit {
   const pad = DENSITY_PAD[resolveLook(s.style, s.look, s.theme).density];
-  const rowMin = s.style === "aqua" ? 28 : 24;
+  const rowMin = s.style === "pearl" ? 30 : s.style === "aqua" ? 28 : 24;
   const frame = 2 * pad + 2;
   return { comfortable: Math.ceil((rows * ROW_H + frame) / 8) * 8, tight: rows * rowMin + frame };
 }

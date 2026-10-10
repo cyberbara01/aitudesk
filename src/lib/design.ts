@@ -36,16 +36,18 @@ export const THEMES: readonly ThemeMeta[] = [
   },
 ];
 
-export const STYLES: readonly { id: StyleId }[] = [{ id: "fluent" }, { id: "aqua" }, { id: "rice" }];
+export const STYLES: readonly { id: StyleId }[] = [{ id: "fluent" }, { id: "aqua" }, { id: "rice" }, { id: "pearl" }];
 
 /**
  * What each design gives to the parts of «Тонкая настройка» left at «Как в дизайне». The controls (switches,
  * segmented buttons, the selected tab) always keep the design's own look.
  */
 export const STYLE_LOOK: Record<StyleId, Look> = {
-  fluent: { font: "segoe", numbers: "text", shape: "strict", density: "normal", border: "normal", material: "matte" },
-  aqua: { font: "inter", numbers: "text", shape: "soft", density: "roomy", border: "normal", material: "glass" },
-  rice: { font: "inter", numbers: "mono", shape: "medium", density: "normal", border: "accent", material: "solid" },
+  fluent: { font: "segoe", numbers: "text", shape: "strict", corners: "8", density: "normal", border: "normal", material: "matte" },
+  aqua: { font: "inter", numbers: "text", shape: "soft", corners: "8", density: "roomy", border: "normal", material: "glass" },
+  rice: { font: "inter", numbers: "mono", shape: "medium", corners: "8", density: "normal", border: "accent", material: "solid" },
+  // Large soft corners and frosted glass, no outlines (its controls: src/styles/pearl.css).
+  pearl: { font: "inter", numbers: "text", shape: "soft", corners: "20", density: "roomy", border: "none", material: "glass" },
 };
 
 /** The look in use: the design's parts with the ones chosen on their own. The glass palette is glass unless
@@ -57,6 +59,7 @@ export function resolveLook(style: StyleId, look: LookSettings, theme: ThemeId):
     font: pick("font"),
     numbers: pick("numbers"),
     shape: pick("shape"),
+    corners: pick("corners"),
     density: pick("density"),
     border: pick("border"),
     material: look.material === "auto" ? (theme === "glass" ? "glass" : base.material) : look.material,

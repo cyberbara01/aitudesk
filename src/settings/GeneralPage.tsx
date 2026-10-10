@@ -1,9 +1,12 @@
 // «Общие»: the program itself. «Запуск» (start with Windows, on from the first start), «Язык» (the same choice as
-// the small «RU | EN» button in the bottom-left corner, src/settings/shell/LanguageSwitch.tsx), and the resets:
-// the widgets' layout, the appearance, and everything («Сбросить всё», the app as right after installing).
+// the small «RU | EN» button in the bottom-left corner, src/settings/shell/LanguageSwitch.tsx), «Файлы программы»
+// (the program's folder and the settings folder, each shown in File Explorer with its path), and the resets: the
+// widgets' layout, the appearance, and everything («Сбросить всё», the app as right after installing).
 // Everything about the widgets themselves is on «Виджеты» (WidgetsPage.tsx).
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { appDataDir, join, resourceDir } from "@tauri-apps/api/path";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Button } from "../components/Button";
 import { Dialog } from "../components/Dialog";
 import { Page, Row, Section } from "../components/Section";
@@ -12,6 +15,7 @@ import { Switch } from "../components/Switch";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
 import { disable, enable } from "../lib/autostart";
+import { realignIfOn } from "../lib/grid";
 import { settings, type LanguageSetting } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { ResultText, autostartOn, useExternal, type Outcome } from "./shell/external";
@@ -23,6 +27,41 @@ const g = ru.settings.general;
 const x = extra.general;
 
 const LANGUAGE_SELECT: readonly SelectOption<LanguageSetting>[] = LANGUAGE_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
+
+/** The file File Explorer selects in each folder: the program (next to its uninstaller), the settings file. */
+const PROGRAM_FILE = () => resourceDir().then((dir) => join(dir, "aitudesk.exe"));
+const SETTINGS_FILE = () => appDataDir().then((dir) => join(dir, "settings.json"));
+
+/** The folder of a file, for the hint: where the program keeps it (a verbatim «\\?\» prefix is not for people). */
+const folderOf = (file: string) =>
+  file.slice(0, Math.max(file.lastIndexOf("\\"), file.lastIndexOf("/"))).replace(/^\\\\\?\\/, "");
+
+/** A folder of the program: what is in it and where it is, and a button that shows it in File Explorer. */
+function FolderRow({ icon, label, hint, file }: { icon: string; label: string; hint: string; file: () => Promise<string> }) {
+  const [path, setPath] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    file().then(
+      (f) => alive && setPath(f),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [file]);
+  return (
+    <IconRow icon={icon} label={label} hint={path ? x.folderAt(hint, folderOf(path)) : hint}>
+      <Button
+        icon="folder_open"
+        aria-label={x.openFolderOf(label)}
+        disabled={!path}
+        onClick={() => path && void revealItemInDir(path).catch(() => undefined)}
+      >
+        {x.openFolder}
+      </Button>
+    </IconRow>
+  );
+}
 
 export function GeneralPage() {
   const s = useSettings();
@@ -55,6 +94,7 @@ export function GeneralPage() {
     try {
       await settings.update({ tileViews: {} });
       await invoke("reset_layout");
+      await realignIfOn();
       flashLayoutReset("done");
     } catch {
       flashLayoutReset("failed");
@@ -98,6 +138,11 @@ export function GeneralPage() {
             ariaLabel={x.language}
           />
         </IconRow>
+      </Section>
+
+      <Section title={x.files}>
+        <FolderRow icon="folder" label={x.programFolder} hint={x.programFolderHint} file={PROGRAM_FILE} />
+        <FolderRow icon="document" label={x.dataFolder} hint={x.dataFolderHint} file={SETTINGS_FILE} />
       </Section>
 
       <Section title={x.reset}>

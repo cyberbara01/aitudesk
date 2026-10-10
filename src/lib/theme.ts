@@ -45,6 +45,7 @@ function applyAppearance(a: Appearance) {
   root.setAttribute("data-font", a.look.font);
   root.setAttribute("data-numfont", a.look.numbers);
   root.setAttribute("data-shape", a.look.shape);
+  root.setAttribute("data-corners", a.look.corners);
   root.setAttribute("data-density", a.look.density);
   root.setAttribute("data-border", a.look.border);
   root.setAttribute("data-material", a.look.material);
@@ -134,7 +135,7 @@ export function useTheme(): Appearance {
   const dark = theme === "glass" ? (windowsDark ?? true) : isDarkTheme(theme);
   const accentKey = `${s.accent.mode}|${s.accent.preset}|${s.accent.custom}`;
   const look = resolveLook(s.style, s.look, theme);
-  const lookKey = `${look.font}|${look.numbers}|${look.shape}|${look.density}|${look.border}|${look.material}`;
+  const lookKey = `${look.font}|${look.numbers}|${look.shape}|${look.corners}|${look.density}|${look.border}|${look.material}`;
   const known = loaded && windowsDark !== null;
 
   useEffect(() => {

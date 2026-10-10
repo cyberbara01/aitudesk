@@ -48,7 +48,7 @@
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Свои виджеты</b><br>Ваша картинка или GIF на рабочем столе, до 20 штук</td>
-<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Оформление</b><br>Три дизайна и тонкая настройка: шрифт, формы, рамки, прозрачность. Темы, свой акцент, масштаб</td>
+<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Оформление</b><br>Четыре дизайна и тонкая настройка: шрифт, формы, углы виджетов, рамки, прозрачность. Темы, свой акцент, масштаб</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Приватность</b><br>Текст на рабочем столе можно скрыть точками, как пароль</td>
@@ -62,18 +62,38 @@
 
 <table>
 <tr>
-<td width="33%" valign="top" align="center"><img src="docs/screenshots/guide-desk.png" width="100%" alt=""><br><b>Прямо на обоях</b><br><sub>Карта слева вверху, часы и нагрузка посередине, остальное справа. Двигайте и меняйте размер как удобно</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/guide-desk.png" width="100%" alt=""><br><b>Прямо на обоях</b><br><sub>Карта слева вверху, часы и нагрузка посередине, остальное справа. Двигайте и меняйте размер как удобно или выровняйте по сетке значков</sub></td>
 <td width="33%" valign="top" align="center"><img src="docs/screenshots/guide-menu.png" width="100%" alt=""><br><b>Правая кнопка мыши</b><br><sub>Переместить, изменить размер (всё внутри растёт вместе с виджетом), свернуть в значок, открыть настройки</sub></td>
 <td width="33%" valign="top" align="center"><img src="docs/screenshots/guide-popup.png" width="100%" alt=""><br><b>Значок, который вырастает</b><br><sub>Маленький и средний виджет лежат значком, по щелчку он вырастает в карточку посередине экрана</sub></td>
 </tr>
 <tr>
 <td width="33%" valign="top" align="center"><img src="docs/screenshots/guide-list.png" width="100%" alt=""><br><b>Добавить и поправить на месте</b><br><sub>«+» в конце расписания и заметок, карандаш у пары или заметки под курсором</sub></td>
 <td width="33%" valign="top" align="center"><img src="docs/screenshots/guide-map.png" width="100%" alt=""><br><b>Карта AITU</b><br><sub>Поиск кабинета (223 или C1.2.223), этажи, свои цветные метки; может быть полупрозрачной, пока на неё не навели</sub></td>
-<td width="33%" valign="top" align="center"><img src="docs/screenshots/guide-styles.png" width="100%" alt=""><br><b>Три дизайна</b><br><sub>Windows 11, Aqua и Rice, пять тем, свой акцентный цвет и тонкая настройка каждой части</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/guide-styles.png" width="100%" alt=""><br><b>Четыре дизайна</b><br><sub>Windows 11, Aqua, Rice и Pearl, пять тем, свой акцентный цвет и тонкая настройка каждой части, даже углов виджетов</sub></td>
 </tr>
 </table>
 
 ## Скриншоты
+
+<p align="center">
+  <img src="docs/screenshots/board-designs.webp" alt="Четыре дизайна, одни и те же виджеты: Windows 11, Aqua, Rice и Pearl" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/board-grid.webp" alt="Виджеты по сетке значков рабочего стола и одни часы с прямыми углами, 12 и 24 px" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/board-desktop.webp" alt="Ноутбук: виджеты свёрнуты в значки, карта открыта из значка карточкой посередине экрана" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/board-map.webp" alt="Виджет карты AITU на втором этаже с отмеченными кабинетами и что умеет карта" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/board-settings.webp" alt="Три окна настроек в трёх дизайнах: виджеты, оформление и расписание" width="100%">
+</p>
 
 Тот же ноутбук на английском: карта целиком, часы с секундами, нагрузка кольцами, заметки скрыты точками, в
 расписании пары на субботу.
@@ -82,44 +102,35 @@
   <img src="docs/screenshots/desktop-laptop-en.png" alt="Тот же ноутбук с интерфейсом на английском" width="100%">
 </p>
 
-Три дизайна, одни и те же виджеты: Windows 11 (светлая тема), Aqua (стекло) и Rice (чёрная). Любой дизайн сочетается
-с любой темой и акцентным цветом.
+<details>
+<summary><b>Все страницы настроек</b></summary>
+<br>
 
-<p align="center">
-  <img src="docs/screenshots/designs.png" alt="Одни и те же виджеты в трёх дизайнах: Windows 11, Aqua и Rice" width="760">
-</p>
-
-Виджет, свёрнутый в значок, вырастает в карточку посередине экрана, а остальной стол остаётся как был.
-
-<p align="center">
-  <img src="docs/screenshots/desktop-light.png" alt="Виджеты свёрнуты в значки, карта выросла из значка в окно; светлая тема" width="760">
-</p>
-
-Окно настроек:
-
-<p align="center">
-  <img src="docs/screenshots/settings-widgets.png" alt="Виджеты: какие лежат на столе, их размер и свои виджеты с картинкой" width="49%">
-  <img src="docs/screenshots/settings-general.png" alt="Общие: запуск вместе с Windows, язык, сброс" width="49%">
-</p>
-<p align="center">
-  <img src="docs/screenshots/settings-appearance.png" alt="Оформление: дизайн и его части по отдельности" width="49%">
-  <img src="docs/screenshots/settings-perf.png" alt="Нагрузка: процессор, видеокарта, память и диск" width="49%">
-</p>
-<p align="center">
-  <img src="docs/screenshots/settings-notes.png" alt="Заметки в своём порядке: заметку перетаскивают мышью" width="49%">
-  <img src="docs/screenshots/settings-own-widget.png" alt="Свой виджет с живым предпросмотром" width="49%">
-</p>
-<p align="center">
-  <img src="docs/screenshots/settings-reminders.png" alt="Напоминания о парах и дедлайнах" width="49%">
-  <img src="docs/screenshots/settings-configs.png" alt="Конфиги: настройки в файле" width="49%">
-</p>
+<table>
+<tr>
+<td width="50%" valign="top" align="center"><img src="docs/screenshots/settings-widgets.webp" alt="Виджеты: какие лежат на столе, их размер и свои виджеты с картинкой" width="100%"><br><sub>Виджеты: какие лежат на столе, их размер и свои виджеты с картинкой</sub></td>
+<td width="50%" valign="top" align="center"><img src="docs/screenshots/settings-general.webp" alt="Общие: запуск вместе с Windows, язык, файлы программы, сброс" width="100%"><br><sub>Общие: запуск вместе с Windows, язык, файлы программы, сброс</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top" align="center"><img src="docs/screenshots/settings-appearance.webp" alt="Оформление: дизайн и его части по отдельности" width="100%"><br><sub>Оформление: дизайн и его части по отдельности</sub></td>
+<td width="50%" valign="top" align="center"><img src="docs/screenshots/settings-perf.webp" alt="Нагрузка: процессор, видеокарта, память и диск" width="100%"><br><sub>Нагрузка: процессор, видеокарта, память и диск</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top" align="center"><img src="docs/screenshots/settings-notes.webp" alt="Заметки с дедлайнами, в своём порядке" width="100%"><br><sub>Заметки с дедлайнами, в своём порядке</sub></td>
+<td width="50%" valign="top" align="center"><img src="docs/screenshots/settings-own-widget.webp" alt="Свой виджет с живым предпросмотром" width="100%"><br><sub>Свой виджет с живым предпросмотром</sub></td>
+</tr>
+<tr>
+<td width="50%" valign="top" align="center"><img src="docs/screenshots/settings-reminders.webp" alt="Напоминания о парах и дедлайнах" width="100%"><br><sub>Напоминания о парах и дедлайнах</sub></td>
+<td width="50%" valign="top" align="center"><img src="docs/screenshots/settings-configs.webp" alt="Конфиги: настройки в файле" width="100%"><br><sub>Конфиги: настройки в файле</sub></td>
+</tr>
+</table>
+</details>
 
 ## Установка
 
 1. Скачайте `AITU-Desk_<версия>_x64-setup.exe` из [последнего релиза](https://github.com/cyberbara01/aitudesk/releases/latest) и запустите.
 2. Если Windows покажет «Система Windows защитила ваш компьютер», нажмите «Подробнее», затем «Выполнить в любом
-   случае». Предупреждение появляется, потому что установщик пока не подписан: проект подал заявку на бесплатную
-   подпись от SignPath Foundation, подробнее в разделе [«Подпись кода»](#подпись-кода).
+   случае». Предупреждение появляется, потому что приложение не подписано платным сертификатом.
 3. Откроется окно настроек с короткой инструкцией, а виджеты появятся на рабочем столе. Дальше они запускаются вместе
    с Windows, это выключается в «Общих».
 
@@ -204,8 +215,8 @@ Get-FileHash ".\AITU-Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 | Что | Где |
 | --- | --- |
 | Скачать | [Последний релиз](https://github.com/cyberbara01/aitudesk/releases/latest) |
-| Ошибка или идея | [Issues](https://github.com/cyberbara01/aitudesk/issues) или Telegram [@capybara205](https://t.me/capybara205) |
-| Оценить приложение | [Анонимная форма](https://forms.gle/LV7BYCqeveRyRm9YA): хватит одной оценки от 0 до 10 |
+| Ошибка или идея | [Issues](https://github.com/cyberbara01/aitudesk/issues), Telegram [@capybara205](https://t.me/capybara205) или [анонимная форма](https://forms.gle/LV7BYCqeveRyRm9YA) |
+| Оценить приложение | [Та же форма](https://forms.gle/LV7BYCqeveRyRm9YA): хватит одной оценки от 0 до 10 |
 | Автор | [@cyberbara01](https://github.com/cyberbara01) |
 | Карта AITU | проект [aitumap](https://github.com/Yuujiso/aitumap) от [Yuujiso](https://github.com/Yuujiso) |
 | Сторонние компоненты | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) |

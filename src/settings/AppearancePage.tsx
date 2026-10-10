@@ -37,6 +37,7 @@ const STYLE_TEXT: Record<StyleId, { title: string; hint: string }> = {
   fluent: { title: a.styles.fluent, hint: a.styles.fluentHint },
   aqua: { title: a.styles.aqua, hint: a.styles.aquaHint },
   rice: { title: a.styles.rice, hint: a.styles.riceHint },
+  pearl: { title: a.styles.pearl, hint: a.styles.pearlHint },
 };
 
 const accentName = (id: string): string => (a.accents as Record<string, string>)[id] ?? id;
@@ -272,7 +273,7 @@ export function AppearancePage() {
       </Section>
 
       <Section title={a.style} description={a.styleHint} padded>
-        <div className="grid-3" role="radiogroup" aria-label={a.style} onKeyDown={onRadioGroupKeyDown}>
+        <div className="grid-2" role="radiogroup" aria-label={a.style} onKeyDown={onRadioGroupKeyDown}>
           {STYLES.map(({ id }) => {
             const selected = s.style === id;
             return (

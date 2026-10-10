@@ -104,7 +104,7 @@ const FIRST_FRAME_MAX_MS: u64 = 2500;
 /// one renderer process, so they finish their first frame one after another, a few hundred ms apart.
 const TOGETHER_MS: u64 = 1200;
 
-fn is_parked(pos: PhysicalPosition<i32>) -> bool {
+pub(crate) fn is_parked(pos: PhysicalPosition<i32>) -> bool {
     pos.x <= PARK + 1000
 }
 
@@ -339,6 +339,20 @@ pub fn content_rect(app: &AppHandle, label: &str) -> Option<Rect> {
     }
     let (w, h) = full_size(app, &win, label);
     Some(Rect { x: 0, y: 0, w, h })
+}
+
+/// The saved rect of every tile that has one (grid.rs keeps a copy to put back).
+pub fn saved(app: &AppHandle) -> HashMap<String, Rect> {
+    load_layout(app)
+}
+
+/// A whole saved layout back in place: stored, and every tile on screen moved to it.
+pub fn replace_saved(app: &AppHandle, layout: HashMap<String, Rect>) {
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(LAYOUT_KEY, json!(layout));
+        let _ = store.save();
+    }
+    replace_shown(app);
 }
 
 fn load_layout(app: &AppHandle) -> HashMap<String, Rect> {
@@ -667,6 +681,7 @@ pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
 
 /// Drop the saved layout and re-place every tile at its default rect.
 pub fn reset(app: &AppHandle) -> Result<(), String> {
+    crate::grid::forget_undo(app);
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     store.delete(LAYOUT_KEY);
     store.save().map_err(|e| e.to_string())?;
@@ -772,6 +787,7 @@ fn clamp_into(r: Rect, wa: &WorkArea) -> Rect {
 
 /// Apply the tile rects of a settings file (adapted to this screen) and move the tiles there.
 pub fn import(app: &AppHandle, file: LayoutFile) -> Result<(), String> {
+    crate::grid::forget_undo(app);
     let Some(first) = first_tile(app) else { return Ok(()) };
     let screen = work_area(&first);
     let valid = |a: &WorkArea| {

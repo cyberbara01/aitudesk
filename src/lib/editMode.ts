@@ -1,10 +1,13 @@
 // Edit mode: drag the whole tile, resize it by its bottom-right grip, snap to an 8 px grid and to the screen
 // edges with a 24 px margin; Esc exits and positions are saved. Every move or resize of the session can be
-// undone, the last one first («Отменить» on the tile, its menu, Ctrl+Z).
+// undone, the last one first («Отменить» on the tile, its menu, Ctrl+Z). With «Выравнивать по сетке» on, a tile
+// let go lands in the nearest free cells of the desktop icons (src-tauri/src/grid.rs) and resizes by whole cells.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, PhysicalPosition, PhysicalSize } from "@tauri-apps/api/window";
+import { minSizes } from "./grid";
+import { settings } from "./settings";
 
 export const EDIT_EVENT = "edit-mode";
 
@@ -22,6 +25,22 @@ interface Rect {
   y: number;
   w: number;
   h: number;
+}
+
+/** The desktop icon grid in physical px (grid.rs Grid): the work area's corner, the cell, a widget's margin in it. */
+interface DesktopGrid {
+  x: number;
+  y: number;
+  cx: number;
+  cy: number;
+  gap: number;
+}
+
+/** A side of `len` physical px made whole cells of `cell` with the margins, never below `min`. */
+function cellSize(len: number, cell: number, gap: number, min: number): number {
+  let n = Math.max(1, Math.round((len + 2 * gap) / cell));
+  while (n * cell - 2 * gap < min) n += 1;
+  return n * cell - 2 * gap;
 }
 
 /** Steps kept per tile and session: far more than anyone undoes, small enough to never matter. */
@@ -164,8 +183,11 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         el.removeEventListener("pointercancel", up);
         if (raf) cancelAnimationFrame(raf);
         if (next) await win.setPosition(new PhysicalPosition(next.x, next.y));
-        remember(before, { ...before, ...(next ?? {}) });
-        await save();
+        // On the grid, a tile that moved glides into the nearest free cells (the native side saves that place).
+        const snapped =
+          next && settings.get().gridSnap ? await invoke<Rect | null>("snap_tile", { mins: minSizes() }).catch(() => null) : null;
+        remember(before, snapped ?? { ...before, ...(next ?? {}) });
+        if (!snapped) await save();
       };
       el.addEventListener("pointermove", move);
       el.addEventListener("pointerup", up);
@@ -183,6 +205,7 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
       invoke("activate_tile").catch(() => undefined);
       const win = getCurrentWindow();
       const [size, pos, wa] = await Promise.all([win.outerSize(), win.outerPosition(), invoke<WorkArea>("get_work_area")]);
+      const grid = settings.get().gridSnap ? await invoke<DesktopGrid>("get_desktop_grid").catch(() => null) : null;
       const before: Rect = { x: pos.x, y: pos.y, w: size.width, h: size.height };
       const ms = wa.scale;
       const s = window.devicePixelRatio || wa.scale;
@@ -197,7 +220,10 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
       const move = (ev: PointerEvent) => {
         const w = Math.max(minSize.w * s, size.width + (ev.screenX - origin.x) * ms);
         const h = Math.max(minSize.h * s, size.height + (ev.screenY - origin.y) * ms);
-        next = { w: Math.round(Math.round(w / g) * g), h: Math.round(Math.round(h / g) * g) };
+        // On the grid the size goes by whole cells (the tile's corner stays in its cell); otherwise by 8 px.
+        next = grid
+          ? { w: cellSize(w, grid.cx, grid.gap, minSize.w * s), h: cellSize(h, grid.cy, grid.gap, minSize.h * s) }
+          : { w: Math.round(Math.round(w / g) * g), h: Math.round(Math.round(h / g) * g) };
         if (!raf) raf = requestAnimationFrame(flush);
       };
       const up = async () => {

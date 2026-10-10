@@ -177,12 +177,45 @@ pub async fn apply_tile_views(app: AppHandle) {
     });
 }
 
-/// Glass background of the calling tile on/off (settings «Фон виджета»).
+/// Glass background of the calling tile on/off (settings «Фон виджета») with its corner radius in CSS px
+/// («Углы виджетов») and the page's device pixel ratio. Returns the radius the glass really has.
 #[tauri::command]
-pub fn set_tile_glass(window: WebviewWindow, on: bool) {
+pub fn set_tile_glass(window: WebviewWindow, on: bool, radius: Option<f64>, ratio: Option<f64>) -> f64 {
+    let radius = radius.unwrap_or(8.0);
     if crate::is_tile(window.label()) {
-        crate::glass::set_tile_glass(&window, on);
+        crate::glass::set_tile_glass(&window, on, radius, ratio.unwrap_or(1.0))
+    } else {
+        radius
     }
+}
+
+/// «Выравнивать по сетке», the desktop's icon grid for the calling window's screen (edit mode sizes a widget in
+/// whole cells with it).
+#[tauri::command]
+pub async fn get_desktop_grid(window: WebviewWindow) -> crate::grid::Grid {
+    crate::grid::read(&layout::work_area(&window))
+}
+
+/// «Выравнивать по сетке» switched on: every widget on screen to the cells of the desktop icons. `mins` are the
+/// widgets' smallest sizes in CSS px (a widget sized to its cells never goes below it).
+#[tauri::command]
+pub async fn align_tiles(app: AppHandle, mins: std::collections::HashMap<String, (f64, f64)>) -> Result<(), String> {
+    crate::grid::align_all(&app, &mins)
+}
+
+/// «Выравнивать по сетке» switched off: back to the places from before, if nothing moved since.
+#[tauri::command]
+pub async fn unalign_tiles(app: AppHandle) {
+    crate::grid::unalign(&app);
+}
+
+/// A widget let go after a move while the grid is on: into the nearest free cells. Returns its new rect.
+#[tauri::command]
+pub async fn snap_tile(app: AppHandle, window: WebviewWindow, mins: std::collections::HashMap<String, (f64, f64)>) -> Option<Rect> {
+    if !crate::is_tile(window.label()) {
+        return None;
+    }
+    crate::grid::snap_one(&app, &window, &mins)
 }
 
 /// «Все виджеты» in «Виджеты»: hide or show every tile (the choice survives a restart).

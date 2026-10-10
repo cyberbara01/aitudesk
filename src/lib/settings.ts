@@ -17,8 +17,8 @@ export type ThemeId = "system" | "light" | "gray" | "dark" | "darker" | "black" 
 export const THEME_IDS: readonly ThemeId[] = ["system", "light", "gray", "dark", "darker", "black", "glass"];
 
 /** Design language: Windows 11 (fluent), macOS-like (aqua), Linux-rice (rice). */
-export type StyleId = "fluent" | "aqua" | "rice";
-export const STYLE_IDS: readonly StyleId[] = ["fluent", "aqua", "rice"];
+export type StyleId = "fluent" | "aqua" | "rice" | "pearl";
+export const STYLE_IDS: readonly StyleId[] = ["fluent", "aqua", "rice", "pearl"];
 
 /**
  * «Тонкая настройка» of the design: each part follows the chosen design ("auto") or is picked on its own, so
@@ -29,6 +29,8 @@ export const STYLE_IDS: readonly StyleId[] = ["fluent", "aqua", "rice"];
 export type LookFont = "segoe" | "inter" | "mono";
 export type LookNumbers = "text" | "mono";
 export type LookShape = "square" | "strict" | "medium" | "soft";
+/** «Углы виджетов»: the radius of the widgets themselves, CSS px (0 and 8 are Windows' own glass corners). */
+export type LookCorners = "0" | "4" | "8" | "12" | "16" | "20" | "24";
 export type LookDensity = "compact" | "normal" | "roomy";
 export type LookBorder = "normal" | "accent" | "none";
 /** Transparency of the settings window and the widgets: acrylic glass, Windows 11 Mica, or none. */
@@ -37,6 +39,7 @@ export interface Look {
   font: LookFont;
   numbers: LookNumbers;
   shape: LookShape;
+  corners: LookCorners;
   density: LookDensity;
   border: LookBorder;
   material: LookMaterial;
@@ -46,11 +49,12 @@ export const LOOK_CHOICES: { readonly [K in keyof Look]: readonly Look[K][] } = 
   font: ["segoe", "inter", "mono"],
   numbers: ["text", "mono"],
   shape: ["square", "strict", "medium", "soft"],
+  corners: ["0", "4", "8", "12", "16", "20", "24"],
   density: ["compact", "normal", "roomy"],
   border: ["normal", "accent", "none"],
   material: ["glass", "matte", "solid"],
 };
-export const LOOK_PARTS = ["font", "numbers", "shape", "density", "border", "material"] as const satisfies readonly (keyof Look)[];
+export const LOOK_PARTS = ["font", "numbers", "shape", "corners", "density", "border", "material"] as const satisfies readonly (keyof Look)[];
 
 export type AccentMode = "windows" | "preset" | "custom";
 export interface AccentSetting {
@@ -402,6 +406,11 @@ export interface Settings {
   customWidgets: CustomWidget[];
   /** "Закрепить расположение": tiles cannot enter edit mode. */
   lockLayout: boolean;
+  /**
+   * «Выравнивать по сетке»: widgets sit on the cells of the desktop icons (src-tauri/src/grid.rs); moved, they land
+   * in the nearest free cells, and resized by hand, they grow and shrink by whole cells.
+   */
+  gridSnap: boolean;
   /** The welcome page of the settings window has been seen («Начать»). Not part of any reset. */
   onboarded: boolean;
   clock: ClockSettings;
@@ -417,6 +426,28 @@ export interface Settings {
 // ---------------------------------------------------------------------------------------------
 // Defaults
 // ---------------------------------------------------------------------------------------------
+
+/** Smallest sizes of the built-in widgets, CSS px (the same ones edit mode keeps). */
+export const TILE_MIN: Record<TileId, { w: number; h: number }> = {
+  clock: { w: 160, h: 80 },
+  system: { w: 220, h: 144 },
+  // Four rings (4 x 48 px and their gaps) or four bars and the padding of every design.
+  perf: { w: 260, h: 120 },
+  launchers: { w: 120, h: 136 },
+  map: { w: 400, h: 220 },
+  // The day row and one whole lesson (time, subject, teacher).
+  schedule: { w: 200, h: 160 },
+  // One note with its countdown and deadline, in every design's padding.
+  notes: { w: 200, h: 140 },
+};
+/** An own widget is a picture: any size down to a small square. */
+export const CUSTOM_MIN = { w: 64, h: 64 };
+
+/** The smallest sizes as the native side takes them: [w, h] per label (own widgets fall back to CUSTOM_MIN). */
+export function minSizes(): Record<string, [number, number]> {
+  return Object.fromEntries(TILE_IDS.map((id) => [id, [TILE_MIN[id].w, TILE_MIN[id].h]]));
+}
+
 
 export const DEFAULT_CLOCK: ClockSettings = {
   preset: "classic",
@@ -468,6 +499,7 @@ export const DEFAULT_LOOK: LookSettings = {
   font: "auto",
   numbers: "auto",
   shape: "auto",
+  corners: "auto",
   density: "auto",
   border: "auto",
   material: "auto",
@@ -550,6 +582,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tileViews: {},
   customWidgets: [],
   lockLayout: false,
+  gridSnap: false,
   onboarded: false,
   clock: DEFAULT_CLOCK,
   system: DEFAULT_SYSTEM,
@@ -923,6 +956,7 @@ export function normalize(saved: unknown): Settings {
     tileViews,
     customWidgets,
     lockLayout: bool(s.lockLayout, d.lockLayout),
+    gridSnap: bool(s.gridSnap, d.gridSnap),
     onboarded: bool(s.onboarded, d.onboarded),
     clock,
     system,
@@ -1074,6 +1108,12 @@ class SettingsStore {
     if (zoomChanged) await invoke("apply_tile_scale").catch(() => undefined);
     if (customChanged) await invoke("sync_custom_widgets").catch(() => undefined);
     if (viewsChanged) await invoke("apply_tile_views").catch(() => undefined);
+    // «Выравнивать по сетке»: widgets that changed size or came new go back to the cells of the desktop icons, once
+    // the native side has given them their new size (a view and a new window are applied on its main thread).
+    if (next.gridSnap && (zoomChanged || customChanged || viewsChanged)) {
+      if (customChanged || viewsChanged) await new Promise((r) => window.setTimeout(r, 300));
+      await invoke("align_tiles", { mins: minSizes() }).catch(() => undefined);
+    }
   }
 
   /** «Размер» of one widget; "manual" is kept as no entry. */

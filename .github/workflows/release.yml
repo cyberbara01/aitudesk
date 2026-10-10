@@ -79,3 +79,32 @@ jobs:
           [IO.File]::WriteAllLines("$PWD\SHA256SUMS.txt", [string[]]$lines)
           Get-Content SHA256SUMS.txt
           gh release upload "$env:TAG" SHA256SUMS.txt --clobber --repo "$env:GITHUB_REPOSITORY"
+
+  # Every release goes to winget as well: a pull request to microsoft/winget-pkgs with this version's manifests, so
+  # `winget install cyberbara01.AITUDesk` and `winget upgrade` get it once Microsoft accepts it. It needs the owner's
+  # classic token with the public_repo scope in the secret WINGET_TOKEN; without one the job only says it skipped.
+  winget:
+    name: Submit to winget
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Skip without a token
+        if: env.WINGET_TOKEN == ''
+        shell: pwsh
+        run: Write-Output "The secret WINGET_TOKEN is not set: nothing is sent to winget."
+
+      - name: Send the new version
+        if: env.WINGET_TOKEN != ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: ./.github/winget/submit.ps1 -Tag $env:TAG

@@ -29,6 +29,8 @@ webview2-com = "0.39"
 # «Свои виджеты»: pictures in config files (custom.rs) and random names for the stored copies.
 base64 = "0.22"
 getrandom = "0.3"
+# Sizes of the composition visuals of the tiles' own glass (backdrop.rs).
+windows-numerics = "0.3"
 
 [dependencies.windows]
 version = "0.62"
@@ -50,12 +52,18 @@ features = [
   "Win32_System_Ole",
   "Win32_System_Variant",
   "Win32_System_Wmi",
+  "Win32_System_WinRT",
+  "Win32_System_WinRT_Composition",
   "Wdk_Graphics_Direct3D",
   "Devices_Bluetooth",
   "Devices_Enumeration",
   "Devices_Radios",
   "Networking_Connectivity",
   "UI_ViewManagement",
+  "UI",
+  "UI_Composition",
+  "UI_Composition_Desktop",
+  "System",
   "UI_Notifications",
   "Data_Xml_Dom",
   "Foundation",

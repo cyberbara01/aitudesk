@@ -101,10 +101,11 @@ a { color: var(--accent-text); text-decoration: none; }
 .reveal-row:hover > .row-edit,
 .row-edit:focus-within { opacity: 1; scale: 1; pointer-events: auto; }
 .row-edit-btn {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--r-sm);
   background: color-mix(in srgb, var(--surface-base) 90%, transparent);
   box-shadow: 0 0 0 1px var(--ctl-stroke), 0 2px 6px rgba(0, 0, 0, .2);
@@ -113,6 +114,7 @@ a { color: var(--accent-text); text-decoration: none; }
 }
 .row-edit-btn:hover { background: color-mix(in srgb, color-mix(in srgb, var(--surface-base) 88%, var(--text)) 94%, transparent); color: var(--text); }
 .row-edit-btn:active { background: color-mix(in srgb, var(--surface-base) 78%, transparent); color: var(--text-2); }
+.row-edit-btn::after { content: ""; position: absolute; inset: -4px; border-radius: var(--r-ctl); }
 .tile.editing .row-edit { display: none; }
 /* «+ Добавить …» after the last row: quiet like a placeholder, the hover fill reaches 4 px past the content. */
 .list-add-item { flex: none; }
@@ -122,6 +124,7 @@ a { color: var(--accent-text); text-decoration: none; }
   align-items: center;
   gap: var(--s2);
   width: calc(100% + 2 * var(--s1));
+  min-height: 34px;
   margin: 0 calc(-1 * var(--s1));
   padding: var(--s1);
   border-radius: var(--r-sm);
@@ -150,7 +153,9 @@ a { color: var(--accent-text); text-decoration: none; }
   gap: var(--s1);
   cursor: default;
 }
-.edit-pill .edit-undo { display: inline-flex; }
+.edit-pill :is(.edit-undo, .edit-grid) { display: inline-flex; }
+/* The small folded icon has room for «Отменить» and «Готово» only: the grid switch stays in its menu. */
+.tile.view-small .edit-pill .edit-grid { display: none; }
 
 .resize-grip {
   position: absolute;
@@ -250,6 +255,9 @@ a { color: var(--accent-text); text-decoration: none; }
 .btn.accent:hover { background: color-mix(in srgb, var(--accent) 90%, var(--on-accent) 10%); }
 .btn.accent:active { background: color-mix(in srgb, var(--accent) 80%, var(--on-accent) 20%); color: var(--on-accent); }
 .btn.subtle { background: transparent; border-color: transparent; }
+/* A toggle button that is on (the grid switch while arranging a widget). */
+.btn.pressed { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-text); }
+.btn.pressed:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
 .btn.subtle:hover { background: var(--ctl-fill-hover); }
 .btn.danger { color: var(--critical); }
 .btn.danger:hover { background: color-mix(in srgb, var(--critical) 14%, transparent); }
@@ -430,6 +438,7 @@ a { color: var(--accent-text); text-decoration: none; }
   white-space: nowrap;
   transition: color var(--t-base) var(--ease-in), background-color var(--t-fast) var(--ease-in);
 }
+.seg-item::after { content: ""; position: absolute; inset: calc(-2px - var(--ctl-border-w)) -1px; }
 .seg-item:hover { color: var(--text); background: var(--ctl-fill-hover); }
 .seg-item.selected { color: var(--text); }
 .seg-item .icon { color: inherit; }
@@ -485,8 +494,8 @@ a { color: var(--accent-text); text-decoration: none; }
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 20px;
-  margin: 0;
+  height: 32px;
+  margin: -6px 0;
   background: transparent;
 }
 .slider-input::-webkit-slider-runnable-track {
@@ -705,8 +714,8 @@ a { color: var(--accent-text); text-decoration: none; }
   align-items: center;
   gap: 2px;
   align-self: flex-start;
-  margin: 0 0 2px -6px;
-  padding: 2px 8px 2px 4px;
+  margin: -2px 0 0 -6px;
+  padding: 6px 10px 6px 4px;
   border-radius: var(--r-ctl);
   color: var(--text-2);
   font-size: var(--body-size);

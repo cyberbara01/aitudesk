@@ -15,7 +15,7 @@ export const MAX_ZOOM = 6;
 export const LABELS_ZOOM = 1.2;
 
 /** Width kept free beside the plan for the always-visible floor switch: the 36 px switch plus an 8 px gap (map.css). */
-export const SWITCH_COLUMN_PX = 44;
+export const SWITCH_COLUMN_PX = 48;
 
 /** Level of detail: lettering outside the rooms (atrium, hall names) is drawn once its glyphs are at least this
  * tall on screen (CSS px). */

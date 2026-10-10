@@ -16,6 +16,7 @@ import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
 import { CUSTOM_MAX, TILE_IDS, TILE_VIEWS, customLabel, settings, type CustomWidget, type TileId, type TileView } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
+import { realignIfOn, setGridSnap } from "../lib/grid";
 import { useWidgetImage } from "../lib/widgetImage";
 import { CustomWidgetEditor } from "./custom/CustomWidgetEditor";
 import { tilesVisible, useExternal } from "./shell/external";
@@ -155,6 +156,8 @@ export function WidgetsPage({ editId }: Props) {
   const toggleTile = (id: TileId, enabled: boolean) => {
     void settings.update((cur) => ({ tiles: { ...cur.tiles, [id]: enabled } }));
     invoke("set_tile_enabled", { label: id, enabled }).catch(() => undefined);
+    // A widget switched on with the grid on takes its cells once it has appeared.
+    if (enabled && settings.get().gridSnap) window.setTimeout(() => void realignIfOn(), 900);
   };
 
   const toggleVisible = (on: boolean) => {
@@ -199,6 +202,9 @@ export function WidgetsPage({ editId }: Props) {
       </Section>
 
       <Section title={x.desktop} description={g.arrangeHint}>
+        <IconRow icon="grid" label={extra.grid.label} hint={extra.grid.hint}>
+          <Switch checked={s.gridSnap} onChange={(on) => void setGridSnap(on)} ariaLabel={extra.grid.label} />
+        </IconRow>
         <Row label={g.lockLayout} hint={g.lockLayoutHint}>
           <Switch checked={s.lockLayout} onChange={(on) => void settings.update({ lockLayout: on })} ariaLabel={g.lockLayout} />
         </Row>

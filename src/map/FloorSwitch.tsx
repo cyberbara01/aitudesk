@@ -1,4 +1,4 @@
-// Vertical floor switch: three 36×32 items («3» on top), shared control fill, radius 6; the selected item
+// Vertical floor switch: three 40×38 items («3» on top), shared control fill, radius 6; the selected item
 // gets the hover fill and a 3×16 accent indicator at the left edge that slides between items (167 ms, --ease-move).
 // A radio group: one Tab stop, arrows move between floors. The wheel over the switch changes the floor. The floor
 // with the room of the next lesson (nextLesson.ts), when it is not the one shown, gets a small accent dot.
@@ -16,7 +16,8 @@ interface Props {
   className?: string;
 }
 
-const ITEM_H = 32;
+/** Height of one floor item, CSS px (map.css --floor-h). */
+const ITEM_H = 38;
 /** Wheel delta accumulated before one floor step (one mouse notch is ~100, a touchpad sends many small ones). */
 const WHEEL_STEP = 50;
 /** A pause this long (ms) starts a new gesture: a small leftover from an earlier scroll is forgotten. */

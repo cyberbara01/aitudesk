@@ -31,7 +31,11 @@
 // Level of detail (lod.ts): labels and pictograms too small to read are hidden; the check runs whenever the real
 // size is laid out and synchronously when a floor mounts, so a floor never shows a frame of unreadable text.
 // Search highlight, marked rooms, the lesson marker (lessonMarker.ts) and the paint hover are classes and
-// attributes on the room groups, written here. Floor changes keep the view and play the 250 ms slide (12 screen px).
+// attributes on the room groups, written here. Floor changes keep the view and play a 167 ms slide (12 screen px).
+//
+// Floors stay: a floor's drawing is made once and then only shown or hidden (display: none), so a change costs a
+// class, not a new drawing with its room codes shaped again. The floors not shown at start are prepared while the
+// map rests after it appears (laid out invisibly for one frame: codes placed, sizes measured, then hidden).
 //
 // Paint mode: a press that moves less than 4 px is a click and paints the room under it; more is a drag that pans.
 import {
@@ -60,7 +64,7 @@ import { IconsCommon } from "./parts/IconsCommon";
 import { Wallpaper } from "./parts/Wallpaper";
 import { checkRoomIndex } from "./roomIndex";
 import { roomAt, roomGroupAt } from "./rooms";
-import { MAX_ZOOM, MIN_ZOOM, SWITCH_COLUMN_PX, VIEWBOX, type Floor } from "./types";
+import { FLOORS, MAX_ZOOM, MIN_ZOOM, SWITCH_COLUMN_PX, VIEWBOX, type Floor } from "./types";
 import { highlightRooms } from "./useRoomSearch";
 
 export interface MapCanvasHandle {
@@ -268,6 +272,9 @@ export const MapCanvas = memo(
     const live = useRef({ floor, painting, onPaint, onMarkHover, onLimits });
     live.current = { floor, painting, onPaint, onMarkHover, onLimits };
     const limits = useRef("");
+    // Floors whose drawing exists (shown, leaving, or hidden), and the ones laid out invisibly to be prepared.
+    const [mounted, setMounted] = useState<ReadonlySet<Floor>>(() => new Set([floor]));
+    const [warming, setWarming] = useState<readonly Floor[]>([]);
 
     // ---- Marked rooms and the lesson marker. The first layout effects: their attributes are on the rooms before
     // anything below makes the browser compute styles, so a floor (and the tile at start) never fades them in. ----
@@ -290,7 +297,7 @@ export const MapCanvas = memo(
           g.style.removeProperty("--fav-on");
         }
       }
-    }, [favorites, floor]);
+    }, [favorites, floor, mounted]);
 
     // Lesson marker: on the shown floor only; a leaving floor keeps its ring and fades out with it.
     useLayoutEffect(() => {
@@ -661,7 +668,33 @@ export const MapCanvas = memo(
       setPrevFloor(floor);
       const ppu = (box.current.fitW / VIEWBOX.w) * onScreen.current.zoom;
       setLeaving({ floor: prevFloor, dir: floor > prevFloor ? 1 : -1, shift: ppu > 0 ? SLIDE_PX / ppu : 0 });
+      if (!mounted.has(floor)) setMounted(new Set([...mounted, floor]));
     }
+
+    // ---- The other floors, prepared once the map has appeared and rests: no change ever waits for a drawing ----
+    useEffect(() => {
+      const left = FLOORS.filter((f) => !mounted.has(f));
+      if (!left.length || warming.length) return;
+      const idle = window.requestIdleCallback ?? ((fn: () => void) => window.setTimeout(fn, 1500));
+      const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+      const id = idle(() => setWarming(left), { timeout: 4000 });
+      return () => cancel(id);
+    }, [mounted, warming]);
+
+    // Laid out but invisible: their room codes are placed and their sizes measured (both cached per floor, see
+    // codes.ts and lod.ts), then they are hidden before this frame is painted.
+    useLayoutEffect(() => {
+      if (!warming.length) return;
+      const svg = svgRef.current;
+      for (const f of warming) {
+        const layer = svg?.querySelector(`g.floor[data-floor="${f}"]`);
+        if (!layer) continue;
+        placeCodes(layer, `floor-${f}`);
+        lodItems(layer, `floor-${f}`);
+      }
+      setMounted((cur) => new Set([...cur, ...warming]));
+      setWarming([]);
+    }, [warming]);
 
     const onLeaveEnd = useCallback((e: AnimationEvent<SVGGElement>) => {
       if (e.target === e.currentTarget) setLeaving(null);
@@ -670,7 +703,7 @@ export const MapCanvas = memo(
     // Safety net: drop the leaving layer even if animationend never fires (reduced motion: 0 ms).
     useEffect(() => {
       if (!leaving) return;
-      const t = window.setTimeout(() => setLeaving(null), readMs("--t-slow") + 50);
+      const t = window.setTimeout(() => setLeaving(null), readMs("--t-base") + 50);
       return () => window.clearTimeout(t);
     }, [leaving]);
 
@@ -765,9 +798,15 @@ export const MapCanvas = memo(
       [zoomAt, fit],
     );
 
-    const layers: { floor: Floor; state: "in" | "out" | "idle"; offset: number }[] = [];
-    if (leaving) layers.push({ floor: leaving.floor, state: "out", offset: leaving.dir * leaving.shift });
-    layers.push({ floor, state: leaving ? "in" : "idle", offset: leaving ? -leaving.dir * leaving.shift : 0 });
+    // Every drawn floor, in one order so React keeps each drawing: the shown one, the one leaving, the hidden ones
+    // («off»: display none) and the ones being prepared («warm»: laid out, not painted).
+    const layers: { floor: Floor; state: "in" | "out" | "idle" | "off" | "warm"; offset: number }[] = FLOORS.filter(
+      (f) => mounted.has(f) || f === floor || warming.includes(f),
+    ).map((f) => {
+      if (f === floor) return { floor: f, state: leaving ? "in" : "idle", offset: leaving ? -leaving.dir * leaving.shift : 0 };
+      if (leaving && f === leaving.floor) return { floor: f, state: "out", offset: leaving.dir * leaving.shift };
+      return { floor: f, state: warming.includes(f) ? "warm" : "off", offset: 0 };
+    });
 
     return (
       <div

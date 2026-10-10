@@ -15,6 +15,7 @@ import "./styles/privacy.css";
 import "./styles/settings.css";
 import "./styles/reminders.css";
 import "./styles/transfer.css";
+import "./styles/pearl.css";
 
 // No browser context menu anywhere (tiles render their own).
 document.addEventListener("contextmenu", (e) => e.preventDefault());

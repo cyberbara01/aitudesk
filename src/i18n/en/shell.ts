@@ -10,7 +10,7 @@ export const en: ShellStrings = {
     help: "How to use",
   },
   general: {
-    desc: "Starting with Windows, the app's language and resets",
+    desc: "Starting with Windows, the language, the program's files and resets",
     widgetsDesc: "Which widgets are on the desktop, their size and settings, and your own picture widgets",
     languageSection: "Language",
     languageHint: "Russian, English or as in Windows. The app restarts",
@@ -33,6 +33,14 @@ export const en: ShellStrings = {
     desktop: "Desktop",
     startup: "Startup",
     autostartFailed: "Couldn't change autostart. Try again",
+    files: "Program files",
+    programFolder: "Program folder",
+    programFolderHint: "The program itself and its uninstaller",
+    dataFolder: "Settings folder",
+    dataFolderHint: "The settings.json file and the pictures of your own widgets",
+    folderAt: (what: string, path: string) => `${what}: ${path}`,
+    openFolder: "Open",
+    openFolderOf: (name: string) => `Open in File Explorer: ${name}`,
     reset: "Reset",
     layoutLabel: "Widget layout",
     layoutHint: "The widgets go back to their original places and sizes. On a usual screen that is the map at the top left, the clock and Performance in the middle, the rest on the right",
@@ -83,7 +91,7 @@ export const en: ShellStrings = {
     sampleDevice: "Headphones",
     fine: "Fine-tuning",
     fineHint:
-      "Take from a design only what you like: the font, numbers, corners, spacing, borders and transparency are chosen on their own. Switches and buttons stay as in the design",
+      "Take from a design only what you like: the font, numbers, corners, widget corners, spacing, borders and transparency are chosen on their own. Switches and buttons stay as in the design",
     fineAuto: (value: string) => `Design: ${value}`,
     fineChangedLabel: "Your own look",
     fineChanged: (parts: string) => `Chosen on their own: ${parts}`,
@@ -93,6 +101,7 @@ export const en: ShellStrings = {
       font: "Font",
       numbers: "Numbers",
       shape: "Corners",
+      corners: "Widget corners",
       density: "Spacing",
       border: "Borders",
       material: "Transparency",
@@ -101,6 +110,7 @@ export const en: ShellStrings = {
       font: "The text of the widgets and of this window",
       numbers: "Times, percents and other numbers",
       shape: "The corners of buttons, fields and cards",
+      corners: "How round the widgets themselves are on the desktop",
       density: "The padding inside the widgets",
       border: "The outline of the widgets and the dividers. Colored ones take the accent color",
       material: "Glass lets the wallpaper through, matte is like Windows 11. With none the background is solid and easier on the graphics card",
@@ -109,6 +119,7 @@ export const en: ShellStrings = {
       font: { segoe: "Segoe UI", inter: "Inter", mono: "JetBrains Mono" },
       numbers: { text: "Like the text", mono: "Monospaced" },
       shape: { square: "Square", strict: "Strict", medium: "Medium", soft: "Soft" },
+      corners: { "0": "Square", "4": "4 px", "8": "8 px", "12": "12 px", "16": "16 px", "20": "20 px", "24": "24 px" },
       density: { compact: "Compact", normal: "Normal", roomy: "Roomy" },
       border: { normal: "Normal", accent: "Colored", none: "None" },
       material: { glass: "Glass", matte: "Matte", solid: "None" },
@@ -141,8 +152,8 @@ export const en: ShellStrings = {
     tilesText: (widgets: string) =>
       `The clock, system info, computer load, shortcuts, the AITU map, the schedule and notes sit right on the wallpaper, under all windows: to see them, minimize your windows or press Win+D. Choose which of them to show in “${widgets}”, where you can also add widgets of your own with a picture or a GIF.`,
     menuTitle: "Right-click",
-    menuText: (move: string, open: string, done: string, size: string) =>
-      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and everything inside grows along with it. Ctrl+Z undoes a step, “${done}” saves. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
+    menuText: (move: string, open: string, done: string, size: string, grid: string) =>
+      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and everything inside grows along with it. Ctrl+Z undoes a step, “${done}” saves. The grid button or “${grid}” puts the widgets on the cells of the desktop icons, like shortcuts. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
     mapTitle: "AITU map",
     mapText:
       "The mouse wheel or a two-finger pinch on the touchpad zooms the plan, dragging moves it and a double-click fits it whole. Switch floors with the buttons on the side; on hover you also get room search (223 or C1.2.223) and a brush to paint your rooms. In the map's section you can make it see-through: under the pointer it comes forward smoothly.",
@@ -151,8 +162,8 @@ export const en: ShellStrings = {
     dataText:
       "Add your schedule, notes with deadlines and shortcuts to your sites in these sections; the widgets show them right away. A class or a note can also be added right on the widget with the “+” at the end of the list, and the pencil that appears on a class or a note under the pointer opens it for editing. Drag notes with the mouse, in the list or right on the widget, to put them in your own order. Click a room in the schedule to find it on the map.",
     lookTitle: "Design, theme and size",
-    lookText: (appearance: string, a: string, b: string, c: string) =>
-      `In “${appearance}” you choose the design (${a}, ${b} or ${c}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, numbers, corners, spacing, borders and transparency can be chosen on their own instead of being taken from the design. The widgets and this window change at once.`,
+    lookText: (appearance: string, a: string, b: string, c: string, d: string) =>
+      `In “${appearance}” you choose the design (${a}, ${b}, ${c} or ${d}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, numbers, corners, widget corners, spacing, borders and transparency can be chosen on their own instead of being taken from the design. The widgets and this window change at once.`,
     startTitle: "Startup and reminders",
     startText: (general: string, reminders: string) =>
       `Autostart is on: after a restart the widgets are in place. You can turn it off here or in “${general}”. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
@@ -200,6 +211,12 @@ export const en: ShellStrings = {
     summaryNone: "No widgets of your own",
     summary: (n: number, names: string, more: number) =>
       names ? `${widgets(n)}: ${names}${more > 0 ? ` and ${more} more` : ""}` : widgets(n),
+  },
+  grid: {
+    label: "Snap to the grid",
+    hint: "Widgets sit on the cells of the desktop icons and resize by whole cells. Switched off right away, they go back where they were",
+    pillOn: "Snapping to the grid is on: a widget you let go lands in the nearest free cells",
+    pillOff: "Snap to the grid of the desktop icons",
   },
   views: {
     size: "Size",

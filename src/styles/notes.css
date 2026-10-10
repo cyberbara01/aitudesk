@@ -20,6 +20,9 @@
   transition: color var(--t-fast) var(--ease-in);
 }
 .note-check > .icon { grid-area: 1 / 1; }
+/* The circle's target reaches 3 px past it (34 px across), still inside the row. */
+.note-check { position: relative; }
+.note-check::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; }
 .note-check-hint { opacity: 0; transition: opacity var(--t-fast) var(--ease-in); }
 .note-check-ring { transition: opacity var(--t-fast) var(--ease-in); }
 .note-check:hover { color: var(--text-2); }

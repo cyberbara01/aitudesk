@@ -165,7 +165,7 @@ export const en: MainStrings = {
       autostart: "Start with Windows",
       autostartHint: "The widgets appear right after you sign in",
       arrangeHint:
-        "To move a widget or change its size, right-click it and choose “Move and resize”. Drag the bottom-right corner to resize it, and everything inside grows along with it. The arrow button or Ctrl+Z undoes the last change, and “Done” finishes",
+        "To move a widget or change its size, right-click it and choose “Move and resize”. Drag the bottom-right corner to resize it, and everything inside grows along with it. The arrow button or Ctrl+Z undoes the last change, the grid button snaps the widgets to the cells of the desktop icons, and “Done” finishes",
       resetLayout: "Reset layout",
       resetLayoutDone: "Layout reset",
     },
@@ -179,6 +179,8 @@ export const en: MainStrings = {
         aquaHint: "Soft shapes, Inter, light glass",
         rice: "Rice",
         riceHint: "Monospaced digits, colored frames",
+        pearl: "Pearl",
+        pearlHint: "Large soft corners, light glass, no outlines",
       },
       theme: "Theme",
       themes: {

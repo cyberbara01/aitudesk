@@ -4,6 +4,7 @@ import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
 import { resolveLook } from "../lib/design";
 import { useEditMode } from "../lib/editMode";
+import { CUSTOM_MIN, setGridSnap, TILE_MIN } from "../lib/grid";
 import { popupMenu } from "../lib/nativeMenu";
 import { customIdOf, isCustomLabel, settings, TILE_VIEWS, type TileId, type TileView } from "../lib/settings";
 import { isFoldedView, openTile, usePopupOpen, useTileView } from "../lib/tileView";
@@ -16,6 +17,7 @@ import { Icon } from "./Icon";
 import { Tooltip } from "./Tooltip";
 
 const v = shell.views;
+const gr = shell.grid;
 
 interface TileProps {
   /** The widget: a built-in widget's id, or `custom-<id>` for an own widget. */
@@ -56,6 +58,24 @@ export interface Grow {
 
 /** No widget content grows past this. */
 const GROW_MAX = 4;
+
+/** The page's device pixel ratio, kept up to date (the display scale or «Масштаб виджетов» changed). */
+function useDevicePixelRatio(): number {
+  const [ratio, setRatio] = useState(() => window.devicePixelRatio || 1);
+  useEffect(() => {
+    let query: MediaQueryList | null = null;
+    const watch = () => {
+      const now = window.devicePixelRatio || 1;
+      setRatio(now);
+      query?.removeEventListener("change", watch);
+      query = window.matchMedia(`(resolution: ${now}dppx)`);
+      query.addEventListener("change", watch);
+    };
+    watch();
+    return () => query?.removeEventListener("change", watch);
+  }, []);
+  return ratio;
+}
 
 /**
  * The scale of `grow` content in `root` (the tile): the content box against the box the content was drawn for
@@ -98,20 +118,7 @@ function useGrow(root: React.RefObject<HTMLDivElement>, grow: Grow | undefined, 
   return box;
 }
 
-const DEFAULT_MIN: Record<TileId, { w: number; h: number }> = {
-  clock: { w: 160, h: 80 },
-  system: { w: 220, h: 144 },
-  // Four rings (4 x 48 px and their gaps) or four bars and the padding of every design.
-  perf: { w: 260, h: 120 },
-  launchers: { w: 120, h: 136 },
-  map: { w: 400, h: 220 },
-  // The day row and one whole lesson (time, subject, teacher).
-  schedule: { w: 200, h: 160 },
-  // One note with its countdown and deadline, in every design's padding.
-  notes: { w: 200, h: 140 },
-};
-/** An own widget is a picture: any size down to a small square. */
-const CUSTOM_MIN = { w: 64, h: 64 };
+const DEFAULT_MIN = TILE_MIN;
 
 const isBuiltIn = (label: string): label is TileId => label in DEFAULT_MIN;
 
@@ -174,12 +181,27 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
   // acrylic is under it unless the transparency is «Нет» (then the background is solid and the acrylic would be
   // work for nothing). The pop-up's card draws its own background.
   const hasBackground = background || foldable;
-  const solid = resolveLook(s.style, s.look, s.theme).material === "solid";
+  const look = resolveLook(s.style, s.look, s.theme);
+  const solid = look.material === "solid";
   const seeThrough = opacity !== undefined && !popup && !foldable;
   const glass = hasBackground && !solid && !seeThrough;
+  // «Углы виджетов»: the glass is asked for at the CSS radius in device px; if the native side has to fall back to
+  // Windows' own acrylic (8 px), the CSS follows it so no corner of bare glass shows.
+  const radius = Number(look.corners);
+  const ratio = useDevicePixelRatio();
+  const [glassRadius, setGlassRadius] = useState<number | null>(null);
   useEffect(() => {
-    if (!popup) invoke("set_tile_glass", { on: glass }).catch(() => undefined);
-  }, [glass, popup]);
+    if (popup) return;
+    let alive = true;
+    invoke<number>("set_tile_glass", { on: glass, radius, ratio }).then(
+      (r) => alive && setGlassRadius(r),
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [glass, popup, radius, ratio]);
+  const radiusOverride = glass && glassRadius !== null && glassRadius !== radius ? glassRadius : null;
 
   // Locking the layout ends an active edit session.
   useEffect(() => {
@@ -197,7 +219,8 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     if (editing) {
       // While moving or resizing, the menu offers a step back and the way out.
       const done: MenuItemSpec = { id: "done", label: ru.common.done, icon: "checkmark", onSelect: edit.stop };
-      show(edit.canUndo ? [{ id: "undo", label: ru.edit.undo, icon: "arrow_undo", onSelect: () => void edit.undo() }, done] : [done]);
+      const grid: MenuItemSpec = { id: "grid", label: gr.label, checked: s.gridSnap, onSelect: () => void setGridSnap(!s.gridSnap) };
+      show(edit.canUndo ? [{ id: "undo", label: ru.edit.undo, icon: "arrow_undo", onSelect: () => void edit.undo() }, grid, done] : [grid, done]);
       return;
     }
     // The widget's own items act on its content: only where it is shown.
@@ -209,7 +232,10 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
       // Moving belongs to the icon on the desktop, not to the pop-up. Locked: the item says why it does nothing.
       ...(popup
         ? []
-        : [{ id: "move", label: locked ? ru.edit.locked : ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked }]),
+        : [
+            { id: "move", label: locked ? ru.edit.locked : ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked },
+            { id: "grid", label: gr.label, checked: s.gridSnap, onSelect: () => void setGridSnap(!s.gridSnap), disabled: locked },
+          ]),
       {
         id: "size",
         label: v.size,
@@ -262,7 +288,14 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
       ref={rootRef}
       className={cls}
       // While it is moved or resized the widget is whole, so its edges can be seen.
-      style={seeThrough ? ({ "--tile-opacity": editing ? 1 : opacity } as CSSProperties) : undefined}
+      style={
+        seeThrough || radiusOverride !== null
+          ? ({
+              ...(seeThrough ? { "--tile-opacity": editing ? 1 : opacity } : null),
+              ...(radiusOverride !== null ? { "--r-tile": `${radiusOverride}px` } : null),
+            } as CSSProperties)
+          : undefined
+      }
       onContextMenu={onContextMenu}
       onPointerDownCapture={onPointerDownCapture}
       onPointerDown={editing ? edit.onDragStart : undefined}
@@ -285,6 +318,16 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
       )}
       {editing && (
         <div className="edit-pill" onPointerDown={(e) => e.stopPropagation()}>
+          <Tooltip text={s.gridSnap ? gr.pillOn : gr.pillOff} className="edit-grid">
+            <Button
+              size="sm"
+              icon="grid"
+              className={s.gridSnap ? "pressed" : undefined}
+              aria-pressed={s.gridSnap}
+              aria-label={gr.label}
+              onClick={() => void setGridSnap(!s.gridSnap)}
+            />
+          </Tooltip>
           {edit.canUndo && (
             <Tooltip text={ru.edit.undoHint} className="edit-undo">
               <Button size="sm" icon="arrow_undo" aria-label={ru.edit.undoHint} onClick={() => void edit.undo()} />

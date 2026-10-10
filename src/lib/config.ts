@@ -61,7 +61,7 @@ export interface Part {
 }
 
 const PART_LIST = [
-  { id: "tiles", label: ru.settings.general.tiles, keys: ["tiles", "tileViews", "lockLayout"], personal: false },
+  { id: "tiles", label: ru.settings.general.tiles, keys: ["tiles", "tileViews", "lockLayout", "gridSnap"], personal: false },
   { id: "layout", label: extra.parts.layout, keys: [], personal: false },
   { id: "appearance", label: ru.settings.nav.appearance, keys: ["style", "theme", "look", "accent"], personal: false },
   { id: "clock", label: ru.settings.nav.clock, keys: ["clock"], personal: false },
@@ -303,7 +303,7 @@ function readDefaults(v: unknown, tiles: Record<string, TileRect>): string[] {
 function usable(key: SettingsKey, v: unknown): boolean {
   if (key === "style") return (STYLE_IDS as readonly unknown[]).includes(v);
   if (key === "theme") return (THEME_IDS as readonly unknown[]).includes(v);
-  if (key === "lockLayout") return typeof v === "boolean";
+  if (key === "lockLayout" || key === "gridSnap") return typeof v === "boolean";
   if (key === "customWidgets") return Array.isArray(v);
   return isObj(v);
 }
@@ -555,7 +555,7 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       const total = TILE_IDS.length;
       const on = TILE_IDS.filter((t) => s.tiles[t]).length;
       const base = on === total ? x.tilesAll(total) : on === 0 ? x.tilesNone : x.tilesSome(on, total);
-      return s.lockLayout ? `${base}, ${x.locked}` : base;
+      return [base, ...(s.gridSnap ? [x.grid] : []), ...(s.lockLayout ? [x.locked] : [])].join(", ");
     }
     case "layout":
       if (layout === undefined) return x.layoutExport;

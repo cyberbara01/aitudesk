@@ -19,6 +19,7 @@ export const en: TransferStrings = {
     tilesSome: (on: number, total: number) => `${on} of ${total} on`,
     tilesNone: "All off",
     locked: "layout locked",
+    grid: "on the grid",
     layoutExport: "On a screen of another size the widgets adjust to it",
     layoutAdapts: "The widgets adjust to your screen",
     layoutNoScreen: "The config doesn't give a screen size, so the widgets stay within yours",

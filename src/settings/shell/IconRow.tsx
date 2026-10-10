@@ -19,7 +19,7 @@ export function IconRow({ icon, label, hint, error, children }: IconRowProps) {
   return (
     <div className="row">
       {icon && (
-        <span className="row-icon" aria-hidden="true">
+        <span className="row-icon" data-icon={icon} aria-hidden="true">
           <Icon name={icon} />
         </span>
       )}

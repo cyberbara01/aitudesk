@@ -370,7 +370,7 @@
 .ob-links { display: flex; flex-direction: column; gap: var(--s2); width: 100%; }
 .ob-links .btn { justify-content: flex-start; }
 /* The three design languages, as on the style cards */
-.ob-styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); width: 224px; max-width: 100%; }
+.ob-styles { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s2); width: 300px; max-width: 100%; }
 .ob-style { display: flex; flex-direction: column; align-items: center; gap: var(--s1); min-width: 0; }
 .ob-style .sp { width: 100%; height: 56px; border-radius: var(--r-sm); overflow: hidden; }
 .ob-style .sp-tile { zoom: .64; }

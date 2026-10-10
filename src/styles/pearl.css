@@ -1,0 +1,224 @@
+/* =====================================================================================
+   Pearl, the fourth design: large soft corners and frosted glass, like the widgets of a phone's home screen.
+   Controls have no outlines: they sit on quiet grey fills (rounded rectangles, never Fluent's lines), thumbs and
+   knobs are white and raised, a dropdown's arrow sits in an accent square, a list row's icon in a coloured square,
+   and every entry of the settings sidebar has its own colour. Its type, corners, spacing and material are parts of
+   the design (src/lib/design.ts STYLE_LOOK.pearl); this file is the look of its controls and widgets. Loaded last
+   (main.tsx), so it wins over the palettes at the same specificity.
+   ===================================================================================== */
+
+/* ---- Tokens: grey fills instead of strokes ---- */
+:root[data-style="pearl"] {
+  --ctl-h: 32px;
+  --pearl-fill: rgba(120, 120, 128, .26);
+  --pearl-fill-hover: rgba(120, 120, 128, .34);
+  --pearl-fill-pressed: rgba(120, 120, 128, .18);
+  --pearl-track: rgba(120, 120, 128, .38);
+  --pearl-selected: #636366;
+  --pearl-thumb: #FFFFFF;
+  --pearl-hairline: rgba(255, 255, 255, .10);
+  --pearl-raise: 0 3px 8px rgba(0, 0, 0, .22), 0 1px 1px rgba(0, 0, 0, .18);
+  --ctl-fill: var(--pearl-fill);
+  --ctl-fill-hover: var(--pearl-fill-hover);
+  --ctl-fill-pressed: var(--pearl-fill-pressed);
+  --ctl-stroke: transparent;
+  --ctl-stroke-strong: var(--pearl-track);
+}
+:root[data-style="pearl"][data-scheme="light"] {
+  --pearl-fill: rgba(120, 120, 128, .12);
+  --pearl-fill-hover: rgba(120, 120, 128, .19);
+  --pearl-fill-pressed: rgba(120, 120, 128, .08);
+  --pearl-track: rgba(120, 120, 128, .24);
+  --pearl-selected: #FFFFFF;
+  --pearl-hairline: rgba(0, 0, 0, .06);
+  --pearl-raise: 0 3px 8px rgba(0, 0, 0, .14), 0 1px 1px rgba(0, 0, 0, .10);
+  --ctl-fill: var(--pearl-fill);
+  --ctl-fill-hover: var(--pearl-fill-hover);
+  --ctl-fill-pressed: var(--pearl-fill-pressed);
+  --ctl-stroke: transparent;
+  --ctl-stroke-strong: var(--pearl-track);
+}
+
+/* ---- Type: Inter set a little tighter, like a phone's system font at large sizes ---- */
+:root[data-style="pearl"] :is(.title, .subtitle, .page-title) { letter-spacing: -0.02em; }
+:root[data-style="pearl"] .section-title { letter-spacing: -0.01em; }
+
+/* =====================================================================================
+   Widgets
+   ===================================================================================== */
+/* Borderless glass with a hairline of light round its edge (when the design's borders are kept: «Без рамок»), and
+   the pearl's sheen: a little more light at the top of every widget, fading out by its middle. */
+:root[data-style="pearl"][data-border="none"] .tile:not(.no-bg) { box-shadow: inset 0 0 0 1px var(--pearl-hairline); }
+:root[data-style="pearl"] .tile:not(.no-bg) { background-image: linear-gradient(180deg, var(--pearl-sheen), transparent 55%); }
+:root[data-style="pearl"] { --pearl-sheen: rgba(255, 255, 255, .06); }
+:root[data-style="pearl"][data-scheme="light"] { --pearl-sheen: rgba(255, 255, 255, .45); }
+
+/* The folded icon and its art: app-icon squircles. */
+:root[data-style="pearl"] .tile-face-art { border-radius: 26%; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22); }
+
+/* «Система»: round chips like a phone's control centre; a live connection is a filled accent chip. */
+:root[data-style="pearl"] .sys-rows { --sys-icon-w: 30px; --sys-row-min: 30px; }
+:root[data-style="pearl"] .sys-icon-wrap { background: var(--pearl-fill); }
+:root[data-style="pearl"] .sys-icon { width: 16px; height: 16px; flex-basis: 16px; }
+:root[data-style="pearl"] .sys-icon-wrap.tone-on { background: var(--accent); color: var(--on-accent); }
+:root[data-style="pearl"] .sys-icon-wrap.tone-off { background: var(--pearl-fill-pressed); }
+:root[data-style="pearl"] .sys-icon-wrap.tone-caution { background: color-mix(in srgb, var(--caution) 22%, transparent); }
+:root[data-style="pearl"] .sys-icon-wrap.tone-critical { background: color-mix(in srgb, var(--critical) 22%, transparent); }
+
+/* «Ярлыки»: app icons: squircles with a soft light from above and a small shadow under them. */
+:root[data-style="pearl"] .ln-square {
+  border-radius: 26%;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, 0) 60%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .20), 0 2px 6px rgba(0, 0, 0, .16);
+}
+:root[data-style="pearl"] .ln-add .ln-square { background-image: none; box-shadow: inset 0 0 0 1.5px var(--pearl-track); }
+
+/* Segmented controls (the schedule's days, settings): a grey track with a raised white or grey thumb. */
+:root[data-style="pearl"] .segmented { border-radius: 9px; background: var(--pearl-fill); border-color: transparent; }
+:root[data-style="pearl"] .seg-item { border-radius: 7px; }
+:root[data-style="pearl"] .seg-item:hover { background: transparent; color: var(--text); }
+:root[data-style="pearl"] .seg-indicator { border-radius: 7px; background: var(--pearl-selected); box-shadow: var(--pearl-raise); }
+:root[data-style="pearl"] .seg-item.selected { color: var(--text); }
+:root[data-style="pearl"][data-scheme="light"] .seg-item.selected { color: #000000; }
+
+/* The map's floor switch: the same track standing up, its thumb raised. Over the plan the track is nearly solid,
+   so it reads on light floors as well as on dark ones. */
+:root[data-style="pearl"] .floor-switch { border-radius: 11px; border-color: transparent; }
+:root[data-style="pearl"] .map-root > .floor-switch { background: rgba(58, 58, 62, .92); }
+:root[data-style="pearl"][data-scheme="light"] .map-root > .floor-switch { background: rgba(226, 226, 231, .94); }
+:root[data-style="pearl"] .floor-item.selected { background: transparent; }
+:root[data-style="pearl"] .floor-item:hover { background: transparent; }
+:root[data-style="pearl"] .floor-indicator {
+  top: 2px;
+  left: 2px;
+  z-index: 0;
+  width: calc(100% - 4px);
+  height: calc(var(--floor-h) - 4px);
+  border-radius: 9px;
+  background: var(--pearl-selected);
+  box-shadow: var(--pearl-raise);
+}
+:root[data-style="pearl"] :is(.map-zoom, .map-paint-dock) > .icon-btn { border-radius: 11px; }
+:root[data-style="pearl"] .map-search-input { border-radius: 11px; border-color: transparent; }
+:root[data-style="pearl"] .map-search-input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); border-color: transparent; }
+
+/* =====================================================================================
+   Controls
+   ===================================================================================== */
+:root[data-style="pearl"] :is(.btn, .icon-btn) { border-color: transparent; }
+:root[data-style="pearl"] .btn.accent:hover { background: color-mix(in srgb, var(--accent) 88%, #FFFFFF 12%); }
+:root[data-style="pearl"] .icon-btn.selected { border-color: transparent; background: var(--accent); color: var(--on-accent); }
+:root[data-style="pearl"] .btn.pressed { border-color: transparent; background: var(--accent); color: var(--on-accent); }
+
+/* Switch: 44×26, a white knob with a soft shadow that stretches while it is pressed. */
+:root[data-style="pearl"] .switch-track { width: 44px; height: 26px; border-color: transparent; background: var(--pearl-track); }
+:root[data-style="pearl"] .switch-track::after { top: 2px; left: 2px; width: 22px; height: 22px; background: var(--pearl-thumb); box-shadow: var(--pearl-raise); }
+:root[data-style="pearl"] .switch:hover .switch-input:not(:disabled) + .switch-track::after { width: 22px; }
+:root[data-style="pearl"] .switch:active .switch-input:not(:disabled) + .switch-track::after { width: 27px; }
+:root[data-style="pearl"] .switch-input:checked + .switch-track { background: var(--accent); border-color: transparent; }
+:root[data-style="pearl"] .switch-input:checked + .switch-track::after { transform: translateX(18px); background: var(--pearl-thumb); }
+:root[data-style="pearl"] .switch:hover .switch-input:checked:not(:disabled) + .switch-track::after { transform: translateX(18px); }
+:root[data-style="pearl"] .switch:active .switch-input:checked:not(:disabled) + .switch-track::after { transform: translateX(13px); }
+:root[data-style="pearl"] .switch-input:disabled + .switch-track { border-color: transparent; opacity: .45; }
+:root[data-style="pearl"] .switch-input:disabled + .switch-track::after { background: var(--pearl-thumb); }
+:root[data-style="pearl"] .switch-input:checked:disabled + .switch-track { background: var(--pearl-track); }
+
+/* Checkbox: a soft grey square, filled with the accent when checked. */
+:root[data-style="pearl"] .checkbox-box { border-radius: 6px; border-color: transparent; background: var(--pearl-fill-hover); }
+:root[data-style="pearl"] .checkbox-input:checked + .checkbox-box { background: var(--accent); }
+
+/* Text fields: filled, no lines; focus is a soft accent ring. */
+:root[data-style="pearl"] .textfield-input { border-color: transparent; border-radius: 10px; background: var(--pearl-fill); }
+:root[data-style="pearl"] .textfield-input:hover { background: var(--pearl-fill-hover); }
+:root[data-style="pearl"] .textfield-input:focus { border-color: transparent; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+/* Slider: a thin grey track, the passed part in the accent, a white raised thumb. */
+:root[data-style="pearl"] .slider-input::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, var(--accent) 0 var(--slider-pct, 0%), var(--pearl-track) var(--slider-pct, 0%) 100%);
+}
+:root[data-style="pearl"] .slider-input::-webkit-slider-thumb {
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;
+  border: none;
+  background: var(--pearl-thumb);
+  box-shadow: var(--pearl-raise), 0 0 0 .5px rgba(0, 0, 0, .08);
+}
+:root[data-style="pearl"] .slider-input:is(:hover, :active)::-webkit-slider-thumb { box-shadow: var(--pearl-raise), 0 0 0 .5px rgba(0, 0, 0, .08); }
+:root[data-style="pearl"] .slider-input:disabled::-webkit-slider-thumb { background: var(--pearl-track); box-shadow: none; }
+
+/* Dropdown: its arrow in a small accent square at the right end; the open list floats, rounded, with a deep
+   shadow, and the item under the pointer is filled with the accent. */
+:root[data-style="pearl"] .select-btn { border-color: transparent; border-radius: 9px; padding-right: 5px; }
+:root[data-style="pearl"] .select-btn .icon {
+  width: 20px;
+  height: 20px;
+  flex-basis: 20px;
+  padding: 3px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+:root[data-style="pearl"] .popover {
+  border-radius: 12px;
+  border-color: var(--pearl-hairline);
+  background: var(--surface-raised);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .30), 0 0 0 .5px rgba(0, 0, 0, .12);
+}
+:root[data-style="pearl"] .popover-item { border-radius: 7px; }
+:root[data-style="pearl"] .popover-item.active { background: var(--accent); color: var(--on-accent); }
+:root[data-style="pearl"] .popover-item.active :is(.icon, .faint, .muted) { color: var(--on-accent); }
+
+/* =====================================================================================
+   Settings window
+   ===================================================================================== */
+/* Grouped cards without outlines. */
+:root[data-style="pearl"] .section { border-color: transparent; }
+:root[data-style="pearl"] .option-card { border-color: transparent; }
+
+/* A list row's icon: white on a square of its own colour, like a phone's settings. */
+:root[data-style="pearl"] .row-icon { border-radius: 7px; background: var(--row-tint, var(--accent)); color: #FFFFFF; box-shadow: none; }
+:root[data-style="pearl"] .row-icon .icon { color: var(--row-ink, #FFFFFF); }
+:root[data-style="pearl"] .row-icon[data-icon="clock"] { --row-tint: #FF9500; }
+:root[data-style="pearl"] .row-icon[data-icon="desktop"] { --row-tint: #8E8E93; }
+:root[data-style="pearl"] .row-icon[data-icon="top_speed"] { --row-tint: #FF3B30; }
+:root[data-style="pearl"] .row-icon[data-icon="link"] { --row-tint: #0A84FF; }
+:root[data-style="pearl"] .row-icon[data-icon="map"] { --row-tint: #34C759; }
+:root[data-style="pearl"] .row-icon[data-icon="calendar_ltr"] { --row-tint: #FF3B30; }
+:root[data-style="pearl"] .row-icon[data-icon="note"] { --row-tint: #FFCC00; --row-ink: rgba(0, 0, 0, .82); }
+:root[data-style="pearl"] .row-icon[data-icon="power"] { --row-tint: #34C759; }
+:root[data-style="pearl"] .row-icon[data-icon="globe"] { --row-tint: #0A84FF; }
+:root[data-style="pearl"] .row-icon[data-icon="folder"] { --row-tint: #5AC8FA; --row-ink: rgba(0, 0, 0, .78); }
+:root[data-style="pearl"] .row-icon[data-icon="document"] { --row-tint: #8E8E93; }
+:root[data-style="pearl"] .row-icon[data-icon="grid"] { --row-tint: #5E5CE6; }
+:root[data-style="pearl"] .row-icon[data-icon="alert"] { --row-tint: #FF2D55; }
+:root[data-style="pearl"] .row-icon[data-icon="book_open"] { --row-tint: #FF9500; }
+
+/* Sidebar: each entry with a squircle of its own colour, the selected one filled with the accent. */
+:root[data-style="pearl"] .nav-item > .icon {
+  width: 24px;
+  height: 24px;
+  flex-basis: 24px;
+  padding: 3px;
+  border-radius: 7px;
+  background: var(--nav-tint, #8E8E93);
+  color: var(--nav-ink, #FFFFFF);
+}
+:root[data-style="pearl"] .nav-item.selected { background: var(--accent); color: var(--on-accent); }
+:root[data-style="pearl"] .nav-item.selected > .icon { color: var(--nav-ink, #FFFFFF); }
+:root[data-style="pearl"] .nav-item[data-tab="general"] { --nav-tint: #8E8E93; }
+:root[data-style="pearl"] .nav-item[data-tab="widgets"] { --nav-tint: #0A84FF; }
+:root[data-style="pearl"] .nav-item[data-tab="appearance"] { --nav-tint: #AF52DE; }
+:root[data-style="pearl"] .nav-item[data-tab="schedule"] { --nav-tint: #FF3B30; }
+:root[data-style="pearl"] .nav-item[data-tab="notes"] { --nav-tint: #FFCC00; --nav-ink: rgba(0, 0, 0, .82); }
+:root[data-style="pearl"] .nav-item[data-tab="reminders"] { --nav-tint: #FF2D55; }
+:root[data-style="pearl"] .nav-item[data-tab="transfer"] { --nav-tint: #34C759; }
+:root[data-style="pearl"] .nav-item[data-tab="about"] { --nav-tint: #5AC8FA; --nav-ink: rgba(0, 0, 0, .78); }
+:root[data-style="pearl"] .sidebar-brand .brand-mark { border-radius: 26%; }
+
+/* The design's own card in «Оформление» and the guide: the same soft square and raised switch. */
+.sp[data-sp="pearl"] .sp-tile { border-radius: 18px; border-color: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent); }
+.sp[data-sp="pearl"] .sp-time { font-family: var(--font-inter); font-weight: 600; letter-spacing: -0.03em; }
+.sp[data-sp="pearl"] .sp-bar { border-radius: 999px; }
+.sp[data-sp="pearl"] .sp-switch { width: 26px; height: 16px; }
+.sp[data-sp="pearl"] .sp-switch::after { width: 12px; height: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }

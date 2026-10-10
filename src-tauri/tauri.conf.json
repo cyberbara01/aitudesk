@@ -187,6 +187,8 @@
       "nsis": {
         "installerIcon": "icons/icon.ico",
         "installMode": "currentUser",
+        "installerHooks": "nsis/hooks.nsh",
+        "sidebarImage": "nsis/sidebar.bmp",
         "languages": [
           "English",
           "Russian"

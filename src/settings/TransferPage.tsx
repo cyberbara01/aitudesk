@@ -39,6 +39,7 @@ import {
   type PartId,
 } from "../lib/config";
 import { CUSTOM_MAX, TILE_IDS, newCustomId, settings, type Settings, type SettingsPatch } from "../lib/settings";
+import { realignIfOn } from "../lib/grid";
 import { useSettings } from "../lib/useSettings";
 import { useTransient } from "./shell/hooks";
 
@@ -440,6 +441,8 @@ function ImportSection({ s }: { s: Settings }) {
       }
     }
     syncTiles(current.tiles, settings.get().tiles);
+    // With «Выравнивать по сетке» on (here or in the file), the widgets go to this screen's cells.
+    if (ids.includes("layout") || ids.includes("tiles")) void realignIfOn();
     if (!changed && !layout) {
       // Only the layout was picked and it could not be applied: nothing changed, the list stays.
       setApplyError(x.layoutFailed);

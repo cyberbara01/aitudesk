@@ -31,8 +31,8 @@
   /* ---- Grid ---- */
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
   --r2: 2px; --r4: 4px; --r6: 6px; --r8: 8px;
-  /* Style-dependent radii. --r-tile stays 8px in every style: the acrylic is clipped by the window's own
-     Windows 11 corner (8px), and a larger CSS radius would leave a wedge of bare glass in each corner. */
+  /* Style-dependent radii. --r-tile is «Углы виджетов» ([data-corners] below): at 8 and 0 px the glass is Windows'
+     own acrylic, clipped by the window's corner; any other radius draws the tile's own glass (backdrop.rs). */
   --r-tile: 8px;
   --r-ctl: 6px;
   --r-sm: 4px;
@@ -294,11 +294,19 @@
 /* Numbers (times, percents, counters): in the text face, or monospaced (that face then serves code-like text). */
 :root[data-numfont="text"] { --font-num: var(--font-text); }
 :root[data-numfont="mono"] { --font-num: var(--font-jetbrains); --font-mono: var(--font-jetbrains); }
-/* Corners of controls, cards and small items (a tile keeps 8px: the window's own Windows 11 corner). */
+/* Corners of controls, cards and small items. */
 :root[data-shape="square"] { --r-ctl: 2px; --r-sm: 2px; --r-card: 4px; }
 :root[data-shape="strict"] { --r-ctl: 6px; --r-sm: 4px; --r-card: 8px; }
 :root[data-shape="medium"] { --r-ctl: 8px; --r-sm: 6px; --r-card: 12px; }
 :root[data-shape="soft"] { --r-ctl: 9px; --r-sm: 6px; --r-card: 14px; }
+/* Corners of the widgets themselves («Углы виджетов»; Tile.tsx asks the native side for glass of that radius). */
+:root[data-corners="0"] { --r-tile: 0px; }
+:root[data-corners="4"] { --r-tile: 4px; }
+:root[data-corners="8"] { --r-tile: 8px; }
+:root[data-corners="12"] { --r-tile: 12px; }
+:root[data-corners="16"] { --r-tile: 16px; }
+:root[data-corners="20"] { --r-tile: 20px; }
+:root[data-corners="24"] { --r-tile: 24px; }
 /* Padding inside a widget (src/lib/design.ts DENSITY_PAD). */
 :root[data-density="compact"] { --tile-pad: 12px; }
 :root[data-density="normal"] { --tile-pad: 16px; }

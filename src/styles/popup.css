@@ -22,8 +22,9 @@
 }
 
 .popup-card {
-  /* The card's corners: a little rounder than the design's cards, never under 12 px (PopupHost reads the same). */
-  --popup-r: max(12px, calc(var(--r-card) + 6px));
+  /* The card's corners: a little rounder than the design's cards, never under 12 px nor under the widgets' own
+     corners («Углы виджетов»; PopupHost reads the same). */
+  --popup-r: max(12px, calc(var(--r-card) + 6px), var(--r-tile));
   position: absolute;
   transform-origin: 0 0;
 }
