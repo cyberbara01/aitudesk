@@ -1,6 +1,6 @@
 [package]
 name = "aitudesk"
-version = "1.0.1"
+version = "1.0.0"
 description = "AITU Desk: виджеты рабочего стола для Windows 11"
 authors = ["cyberbara01"]
 license = "MIT"
