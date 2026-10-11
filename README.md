@@ -23,7 +23,7 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
   <img src="docs/screenshots/en/desk-1.webp" alt="A laptop with AITU Desk: the map, the clock and the load at the top, notes, system and shortcuts on the right, the schedule on the left" width="100%">
-  <br><sub>A real laptop: the map, the clock and the load at the top, the schedule, notes, system and shortcuts around them.</sub>
+  <br><sub>The map, the clock and the load at the top, the schedule, notes, system and shortcuts around them.</sub>
 </p>
 
 ## What's on the desktop
@@ -61,53 +61,6 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 Everything is set up in one window, in English or Russian. Not at AITU? Everything but the map is useful to anyone, and the map and the university's shortcuts turn off.
 
-## Make it yours
-
-Four designs, five themes and glass, an accent of your own and any color for the icons and the text. Each part of a design (the font, the numbers, the corners, the spacing, the borders, the transparency) can be taken on its own.
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-designs-dark.webp"><img src="docs/screenshots/en/board-designs.webp" alt="Four designs, the same widgets: Windows 11, Aqua, Rice and Pearl" width="100%"></picture>
-</p>
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-colors-dark.webp"><img src="docs/screenshots/en/board-colors.webp" alt="The same widgets with the colors of the design, icons in the accent, colors of your own, and colors of their own for one widget" width="100%"></picture>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/en/desk-3.webp" alt="AITU Desk in a pink accent: the clock, the rings and the marked rooms on the map" width="100%">
-  <br><sub>Your accent color runs through every widget: here pink and green.</sub>
-</p>
-
-## Your desk, your layout
-
-Move the widgets with the mouse, resize them, line them up on the grid of the desktop icons and pick how round their corners are, right from a widget's menu. A widget you need now and then folds into an icon and grows into a card on a click.
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-grid-dark.webp"><img src="docs/screenshots/en/board-grid.webp" alt="Widgets on the grid of the desktop icons, and one clock with square, 12 px and 24 px corners" width="100%"></picture>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/en/desk-2.webp" alt="The same widgets arranged another way: the map at the bottom, the schedule on the right" width="100%">
-  <br><sub>Any layout you like: drag the widgets anywhere and resize them, and what is inside grows with them.</sub>
-</p>
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-desktop-dark.webp"><img src="docs/screenshots/en/board-desktop.webp" alt="A laptop: widgets folded into icons, the map opened from its icon as a card in the middle of the screen" width="100%"></picture>
-</p>
-
-## The AITU map
-
-The university's floors right on the desktop: find a room by its number (223 or C1.2.223), switch floors, paint your rooms with a brush. The room of your next class gets a ring, and a click on a room in the schedule leads here.
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-map-dark.webp"><img src="docs/screenshots/en/board-map.webp" alt="The AITU map widget on the second floor with marked rooms, and what the map can do" width="100%"></picture>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/en/desk-4.webp" alt="The map zoomed in on a laptop, with a marked room" width="100%">
-  <br><sub>The map as a whole floor or zoomed in, with your rooms marked in your colors.</sub>
-</p>
-
 ## How it works
 
 <table>
@@ -127,7 +80,7 @@ The university's floors right on the desktop: find a room by its number (223 or 
 
 <table>
 <tr>
-<td width="50%" valign="top"><b>Win+D proof</b><br>“Show desktop” never hides the widgets, and they never cover your windows.</td>
+<td width="50%" valign="top"><b>A tray icon</b><br>A click on it opens the settings, and a right-click offers “Settings” and “Quit”.</td>
 <td width="50%" valign="top"><b>A live countdown</b><br>In the last hour before a deadline the note counts the seconds.</td>
 </tr>
 <tr>
@@ -143,11 +96,6 @@ The university's floors right on the desktop: find a room by its number (223 or 
 <td width="50%" valign="top"><b>Light</b><br>About 3 MB, no admin rights, installed for your account only.</td>
 </tr>
 </table>
-
-<p align="center">
-  <img src="docs/screenshots/en/desk-5.webp" alt="A desk with the load as bars and the schedule hidden behind dots" width="100%">
-  <br><sub>Every desk is different: put the widgets together or apart and show only what you need.</sub>
-</p>
 
 ## Settings
 
