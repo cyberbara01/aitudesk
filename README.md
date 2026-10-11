@@ -13,7 +13,7 @@
 
 **Widgets for the Windows 11 desktop, made for students of Astana IT University.** A clock, battery and network,
 computer load, shortcuts, notes with deadlines, the class schedule, the AITU map and your own pictures lie right on
-the wallpaper: under your windows, out of the way, and still there after Win+D.
+the wallpaper
 
 Everything is set up in one window, in English or Russian. The app sends nothing anywhere and, when idle, barely
 touches the processor.
@@ -199,21 +199,6 @@ right after installing.
 - **Built on GitHub**: GitHub Actions builds the installer of every release from the source, with checksums next
   to it.
 - **Light**: the installer is about 3 MB, and when idle the app barely touches the processor.
-
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://signpath.io), certificate by
-[SignPath Foundation](https://signpath.org).
-
-| Role | Members |
-| --- | --- |
-| Committers and reviewers | [@cyberbara01](https://github.com/cyberbara01) |
-| Approvers | [@cyberbara01](https://github.com/cyberbara01) |
-
-Only `aitudesk.exe` and its installer are signed, built by
-[`.github/workflows/release.yml`](.github/workflows/release.yml) from the source of this repository, and every
-signing request is approved by hand. The project has applied to SignPath Foundation: releases published before the
-approval, 1.0.0 included, are not signed.
 
 **Privacy.** This program will not transfer any information to other networked systems unless specifically requested
 by the user or the person installing or operating it. What it asks the network for, and when, is listed under
