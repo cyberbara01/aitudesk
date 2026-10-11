@@ -45,7 +45,16 @@ Next to the installer, the release has `SHA256SUMS.txt`. Compare it with the has
 PowerShell:
 
 ```powershell
-Get-FileHash ".\AITU-Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
+Get-FileHash ".\AITU-Desk_1.0.1_x64-setup.exe" -Algorithm SHA256
+```
+
+GitHub also confirms that it built the file itself from this repository: the same hash is on the
+[build attestations](https://github.com/cyberbara01/aitudesk/attestations) page. GitHub Actions makes that record
+during the build and signs it, so a file uploaded by hand has none. With [GitHub CLI](https://cli.github.com) it is
+one command:
+
+```powershell
+gh attestation verify ".\AITU-Desk_1.0.1_x64-setup.exe" --repo cyberbara01/aitudesk
 ```
 
 The build is made by [`.github/workflows/release.yml`](.github/workflows/release.yml) from the source of this
@@ -106,7 +115,7 @@ right after installing.
 - **Sends nothing**: no telemetry, ads, accounts or auto-updates.
 - **Needs no admin rights** and installs for your account only.
 - **Built on GitHub**: GitHub Actions builds the installer of every release from the source, with checksums next
-  to it.
+  to it and GitHub's signed build attestation.
 - **Light**: the installer is about 3 MB, and when idle the app barely touches the processor.
 
 **Privacy.** AITU Desk goes online only when you ask it to: to open a shortcut or to fetch a site's icon. Your

@@ -1,6 +1,7 @@
 name: Release
 
-# A tag like v1.0.0 builds the installer and publishes the release with it and its checksums.
+# A tag like v1.0.0 builds the installer and publishes the release with it, its checksums and GitHub's build
+# attestation (proof that this workflow built the file from this repository).
 # Actions are pinned to exact commits (the version is in the comment), and nothing is restored from a cache:
 # the published installer is built from this tag's sources alone.
 on:
@@ -17,6 +18,10 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+      # The build attestation: a signing certificate for this workflow run, and the record itself.
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -47,6 +52,8 @@ jobs:
 
             To check the file, compare it with `SHA256SUMS.txt`. In PowerShell: `Get-FileHash ".\AITU-Desk_<version>_x64-setup.exe" -Algorithm SHA256`, the value must match.
 
+            GitHub also confirms that it built the file itself from this repository: the same hash is on the [build attestations](${{ github.server_url }}/${{ github.repository }}/attestations) page. GitHub Actions makes that record during the build and signs it, so a file uploaded by hand has none. With GitHub CLI: `gh attestation verify ".\AITU-Desk_<version>_x64-setup.exe" --repo ${{ github.repository }}`.
+
             What the installer does, where the settings are kept and how to uninstall: "What the installer does" in the README.
 
             **Русский.** Скачайте `AITU-Desk_*_x64-setup.exe` и запустите. Права администратора не нужны, приложение ставится только для вашей учётной записи.
@@ -54,6 +61,8 @@ jobs:
             SmartScreen может предупредить о неизвестном издателе: приложение не подписано платным сертификатом. Нажмите «Подробнее», затем «Выполнить в любом случае». Установщик собран GitHub Actions из исходников этого тега, код открыт в этом репозитории.
 
             Проверка файла: контрольные суммы лежат в `SHA256SUMS.txt`. В PowerShell: `Get-FileHash ".\AITU-Desk_<версия>_x64-setup.exe" -Algorithm SHA256`, значение должно совпасть.
+
+            GitHub ещё и подтверждает, что сам собрал файл из этого репозитория: тот же хеш есть на странице [подтверждений сборки](${{ github.server_url }}/${{ github.repository }}/attestations). Эту запись делает GitHub Actions во время сборки и подписывает её, у файла, загруженного вручную, её нет. Через GitHub CLI: `gh attestation verify ".\AITU-Desk_<версия>_x64-setup.exe" --repo ${{ github.repository }}`.
 
             Что делает установщик, где хранятся настройки и как удалить приложение: раздел «Что делает установщик» в README.ru.md.
           releaseDraft: false
@@ -79,6 +88,14 @@ jobs:
           [IO.File]::WriteAllLines("$PWD\SHA256SUMS.txt", [string[]]$lines)
           Get-Content SHA256SUMS.txt
           gh release upload "$env:TAG" SHA256SUMS.txt --clobber --repo "$env:GITHUB_REPOSITORY"
+
+      # GitHub's signed record that this run built these files from this tag, for every file in SHA256SUMS.txt under
+      # its release name. Anyone can check a download on the repository's Attestations page or with
+      # `gh attestation verify <file> --repo <owner>/<repo>`.
+      - name: Attest the build
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: SHA256SUMS.txt
 
   # Every release goes to winget as well: a pull request to microsoft/winget-pkgs with this version's manifests, so
   # `winget install aitudesk` and `winget upgrade aitudesk` get it once Microsoft accepts it. It needs the owner's
