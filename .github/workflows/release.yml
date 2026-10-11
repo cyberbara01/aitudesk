@@ -99,7 +99,7 @@ jobs:
       - name: Skip without a token
         if: env.WINGET_TOKEN == ''
         shell: pwsh
-        run: Write-Output "The secret WINGET_TOKEN is not set: nothing is sent to winget."
+        run: Write-Output 'The secret WINGET_TOKEN is not set, so nothing is sent to winget.'
 
       # wingetcreate runs on .NET 9, which the runner images no longer have to carry.
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
