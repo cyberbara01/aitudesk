@@ -14,7 +14,7 @@ export function plural(n: number, one: string, few: string, many: string): strin
 const RU = {
   app: {
     name: "AITU Desk",
-    version: "1.0",
+    version: __APP_VERSION__,
     tagline: "Виджеты рабочего стола для студентов Astana IT University",
   },
   tiles: {

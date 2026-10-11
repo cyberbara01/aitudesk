@@ -4,7 +4,7 @@ import type { MainStrings } from "../ru";
 export const en: MainStrings = {
   app: {
     name: "AITU Desk",
-    version: "1.0",
+    version: __APP_VERSION__,
     tagline: "Desktop widgets for Astana IT University students",
   },
   tiles: {
