@@ -45,7 +45,7 @@ Next to the installer, the release has `SHA256SUMS.txt`. Compare it with the has
 PowerShell:
 
 ```powershell
-Get-FileHash ".\AITU-Desk_1.0.1_x64-setup.exe" -Algorithm SHA256
+Get-FileHash ".\AITU-Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 ```
 
 GitHub also confirms that it built the file itself from this repository: the same hash is on the
@@ -54,7 +54,7 @@ during the build and signs it, so a file uploaded by hand has none. With [GitHub
 one command:
 
 ```powershell
-gh attestation verify ".\AITU-Desk_1.0.1_x64-setup.exe" --repo cyberbara01/aitudesk
+gh attestation verify ".\AITU-Desk_1.0.0_x64-setup.exe" --repo cyberbara01/aitudesk
 ```
 
 The build is made by [`.github/workflows/release.yml`](.github/workflows/release.yml) from the source of this

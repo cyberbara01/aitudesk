@@ -5,7 +5,7 @@
 //   {
 //     "aitudesk": "settings",           marks the file as ours
 //     "format": 1,                      FORMAT; a higher number comes from a newer app and is refused
-//     "app": "1.0.1",                   ru.app.version of the app that saved it (shown when it differs)
+//     "app": "1.0.0",                   ru.app.version of the app that saved it (shown when it differs)
 //     "saved": "2026-10-07T15:42",      local time of saving (shown)
 //     "parts": ["tiles", "layout", …],  the parts inside, in PARTS order (for people: loading reads the keys)
 //     "personal": ["notes"],            the personal parts inside

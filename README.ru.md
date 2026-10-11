@@ -79,7 +79,7 @@
 Рядом с установщиком в релизе лежит `SHA256SUMS.txt`. Сравните его с хешем скачанного файла в PowerShell:
 
 ```powershell
-Get-FileHash ".\AITU-Desk_1.0.1_x64-setup.exe" -Algorithm SHA256
+Get-FileHash ".\AITU-Desk_1.0.0_x64-setup.exe" -Algorithm SHA256
 ```
 
 GitHub ещё и подтверждает, что сам собрал файл из этого репозитория: тот же хеш есть на странице
@@ -88,7 +88,7 @@ GitHub ещё и подтверждает, что сам собрал файл �
 одна команда:
 
 ```powershell
-gh attestation verify ".\AITU-Desk_1.0.1_x64-setup.exe" --repo cyberbara01/aitudesk
+gh attestation verify ".\AITU-Desk_1.0.0_x64-setup.exe" --repo cyberbara01/aitudesk
 ```
 
 Сборку делает [`.github/workflows/release.yml`](.github/workflows/release.yml) из исходников этого репозитория.
