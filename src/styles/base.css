@@ -23,6 +23,10 @@ body {
   line-height: var(--body-lh);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
+  /* No ligatures anywhere: JetBrains Mono (Rice's numbers, the «Моноширинный» font) would join «://» and «//» of an
+     address, «->» or «!=» of a note into one glyph, so the characters as typed would no longer show. Form fields
+     take it with `font: inherit`. */
+  font-variant-ligatures: none;
   user-select: none;
   -webkit-user-select: none;
   cursor: default;

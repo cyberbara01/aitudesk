@@ -7,10 +7,12 @@ import { Switch } from "../components/Switch";
 import { TextField } from "../components/TextField";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.system";
+import { widgetInk } from "../lib/ink";
 import { settings, type SystemSettings } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { useSystemInfo, useUserName } from "../lib/useSystemInfo";
 import { SystemRows, deviceName } from "../tiles/System";
+import { InkWidgetSection } from "./InkSection";
 
 type LabelMode = SystemSettings["labelMode"];
 
@@ -117,6 +119,7 @@ export function SystemPage() {
         <div ref={deskRef} className="sys-desk">
           <div
             className={sys.background ? "tile tile-system" : "tile tile-system no-bg"}
+            {...widgetInk(s, "system")}
             onPointerEnter={onPreviewEnter}
             onPointerLeave={onPreviewLeave}
           >
@@ -185,6 +188,8 @@ export function SystemPage() {
           <Switch checked={sys.background} onChange={(v) => update({ background: v })} ariaLabel={T.background} />
         </Row>
       </Section>
+
+      <InkWidgetSection widget="system" />
 
       <ResetSection section="system" />
     </Page>

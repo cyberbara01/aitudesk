@@ -19,9 +19,11 @@ import {
   type PerfSettings,
   type PerfThickness,
 } from "../lib/settings";
+import { widgetInk } from "../lib/ink";
 import { usePerf, type PerfInfo } from "../lib/usePerf";
 import { useSettings } from "../lib/useSettings";
 import { PERF_MODES, PerfView } from "../tiles/Perf";
+import { InkWidgetSection } from "./InkSection";
 
 const x = extra;
 const MODE_OPTIONS: readonly SegmentedOption<PerfMode>[] = PERF_MODES.map((m) => ({ value: m, label: x.modes[m] }));
@@ -86,7 +88,8 @@ function cpuTempText(info: PerfInfo | null): string {
 }
 
 export function PerfPage() {
-  const s = useSettings().perf;
+  const all = useSettings();
+  const s = all.perf;
   const deskRef = useRef<HTMLDivElement>(null);
   const [onScreen, setOnScreen] = useState(true);
   useLayoutEffect(() => {
@@ -107,7 +110,7 @@ export function PerfPage() {
           <span className="body-strong">{ru.common.preview}</span>
         </div>
         <div ref={deskRef} className="sys-desk">
-          <div className={s.background ? "tile tile-perf" : "tile tile-perf no-bg"}>
+          <div className={s.background ? "tile tile-perf" : "tile tile-perf no-bg"} {...widgetInk(all, "perf")}>
             <PerfView info={info} settings={s} mode={s.mode} />
           </div>
         </div>
@@ -171,6 +174,8 @@ export function PerfPage() {
           <IntervalField value={s.interval} onChange={(interval) => update({ interval })} />
         </Row>
       </Section>
+
+      <InkWidgetSection widget="perf" />
 
       <ResetSection section="perf" />
     </Page>

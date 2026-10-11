@@ -22,6 +22,7 @@ import { recolorRoom, setRoomNote, unmarkRoom } from "../map/favorites";
 import { onRadioGroupKeyDown } from "../lib/radioGroup";
 import { floorOfRoom, isRoomCode, roomDisplayName } from "../map/rooms";
 import { LOCALE } from "../i18n/lang";
+import { InkWidgetSection } from "./InkSection";
 
 const T = ru.settings.map;
 
@@ -198,6 +199,8 @@ export function MapPage() {
           marked.map((f) => <MarkedRow key={f.room} fav={f} />)
         )}
       </Section>
+
+      <InkWidgetSection widget="map" />
 
       <ResetSection section="map" />
     </Page>

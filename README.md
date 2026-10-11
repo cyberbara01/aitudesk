@@ -1,8 +1,12 @@
+<div align="center">
+
+<img src="src-tauri/icons/128x128@2x.png" width="128" height="128" alt="AITU Desk">
+
 # AITU Desk
 
-**English** · [Русский](README.ru.md)
+**Widgets for the Windows 11 desktop, made for students of Astana IT University.**
 
-<img align="left" src="src-tauri/icons/128x128@2x.png" width="132" height="132" alt="AITU Desk">
+A clock, battery and network, computer load, shortcuts, notes with deadlines, the class schedule, the AITU map<br>and your own pictures lie right on the wallpaper.
 
 [![Version](https://img.shields.io/github/v/release/cyberbara01/aitudesk?label=version&color=0078D4)](https://github.com/cyberbara01/aitudesk/releases/latest)
 [![Windows 11](https://img.shields.io/badge/Windows-11%2C_64--bit-0078D4)](#installation)
@@ -11,97 +15,146 @@
 [![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043)](#why-you-can-trust-it)
 [![No admin rights](https://img.shields.io/badge/admin_rights-not_needed-2EA043)](#installation)
 
-**Widgets for the Windows 11 desktop, made for students of Astana IT University.** A clock, battery and network,
-computer load, shortcuts, notes with deadlines, the class schedule, the AITU map and your own pictures lie right on
-the wallpaper
+<a href="https://github.com/cyberbara01/aitudesk/releases/latest"><img src="https://img.shields.io/badge/Download%20for%20Windows%2011-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B" alt="Download for Windows 11"></a>
 
-Everything is set up in one window, in English or Russian. The app sends nothing anywhere and, when idle, barely
-touches the processor.
+**English** · [Русский](README.ru.md)
 
-<br clear="left">
+</div>
 
 <p align="center">
-  <a href="https://github.com/cyberbara01/aitudesk/releases/latest"><img src="https://img.shields.io/badge/Download_for_Windows_11-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B" alt="Download for Windows 11"></a>
+  <img src="docs/screenshots/en/desk-1.webp" alt="A laptop with AITU Desk: the map, the clock and the load at the top, notes, system and shortcuts on the right, the schedule on the left" width="100%">
+  <br><sub>A real laptop: the map, the clock and the load at the top, the schedule, notes, system and shortcuts around them.</sub>
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/desktop-laptop-en.png" alt="AITU Desk on a laptop: the map, the clock and the load at the top, notes, system, shortcuts and the schedule around them" width="100%">
-</p>
-
-## What's inside
+## What's on the desktop
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/clock.svg" width="22" height="22" alt=""><br><b>Clock</b><br>Ready-made styles and fine tuning: font, size, seconds, date format, background</td>
-<td width="50%" valign="top"><img src="docs/readme/system.svg" width="22" height="22" alt=""><br><b>System</b><br>Battery charge, Wi-Fi and Bluetooth. Network and device names can be hidden</td>
+<td width="50%" valign="top"><img src="docs/readme/clock.svg" width="22" height="22" alt=""><br><b>Clock</b><br>Ready-made looks and fine-tuning: font, weight, size, seconds, the date and its place, any color</td>
+<td width="50%" valign="top"><img src="docs/readme/system.svg" width="22" height="22" alt=""><br><b>System</b><br>Battery charge, Wi-Fi and Bluetooth; network and device names can hide behind dots</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/perf.svg" width="22" height="22" alt=""><br><b>Performance</b><br>Processor, graphics, memory and disk with their temperature; four views and your own colors</td>
-<td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Shortcuts</b><br>AITU sites with their real icons, plus your own: the site's icon, one from the set or a letter, your own color</td>
+<td width="50%" valign="top"><img src="docs/readme/perf.svg" width="22" height="22" alt=""><br><b>Performance</b><br>Processor, graphics, memory and disk with their temperatures: rings, bars, numbers or a line</td>
+<td width="50%" valign="top"><img src="docs/readme/launchers.svg" width="22" height="22" alt=""><br><b>Shortcuts</b><br>DU, LMS and Learn with their real icons, and any site of yours: just type youtube.com</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Notes</b><br>Tasks with a deadline and a countdown, added and edited right on the widget, put in your own order with the mouse</td>
-<td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Schedule</b><br>Classes by day of the week, the current and the next one highlighted; add and edit them right on the widget</td>
+<td width="50%" valign="top"><img src="docs/readme/notes.svg" width="22" height="22" alt=""><br><b>Notes</b><br>Deadlines with a live countdown, added and edited right on the widget, dragged into your own order</td>
+<td width="50%" valign="top"><img src="docs/readme/schedule.svg" width="22" height="22" alt=""><br><b>Schedule</b><br>Classes by weekday, the current and the next one lit; a click on a room shows it on the map</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Reminders</b><br>Windows notifications before a class and a deadline, quiet hours</td>
-<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>AITU map</b><br>The university's floors, room search, six color schemes or your own color, number color and weight, transparency that clears under the pointer, marks, zoom with the wheel or two fingers</td>
+<td width="50%" valign="top"><img src="docs/readme/reminders.svg" width="22" height="22" alt=""><br><b>Reminders</b><br>Windows notifications before a class and a deadline, with quiet hours</td>
+<td width="50%" valign="top"><img src="docs/readme/map.svg" width="22" height="22" alt=""><br><b>AITU map</b><br>Every floor, room search, your marked rooms, six schemes, see-through until you point at it, zoom with the wheel or two fingers</td>
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="docs/readme/custom.svg" width="22" height="22" alt=""><br><b>Your widgets</b><br>Your own picture or GIF on the desktop, up to 20 of them</td>
-<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Appearance</b><br>Four designs and fine-tuning: font, shapes, widget corners, borders, transparency. Themes, your accent, scale</td>
+<td width="50%" valign="top"><img src="docs/readme/design.svg" width="22" height="22" alt=""><br><b>Designs</b><br>Windows 11, Aqua, Rice and Pearl, five themes and glass, every part of a design chosen on its own</td>
 </tr>
 <tr>
-<td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Privacy</b><br>Text on the desktop can be hidden behind dots, like a password</td>
+<td width="50%" valign="top"><img src="docs/readme/colors.svg" width="22" height="22" alt=""><br><b>Colors</b><br>Your accent, and any color for the icons and the text: for all widgets or just one</td>
+<td width="50%" valign="top"><img src="docs/readme/layout.svg" width="22" height="22" alt=""><br><b>Layout</b><br>Drag, resize, snap to the grid of the desktop icons, round the corners, fold a widget into an icon</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><img src="docs/readme/privacy.svg" width="22" height="22" alt=""><br><b>Privacy</b><br>Text on the desktop can hide behind dots, like a password; the app sends nothing anywhere</td>
 <td width="50%" valign="top"><img src="docs/readme/configs.svg" width="22" height="22" alt=""><br><b>Configs</b><br>All your settings in one file: for another computer or a friend</td>
 </tr>
 </table>
 
-Not at AITU? Everything except the map is useful to you too, and the map and the university's shortcuts can be
-turned off.
+Everything is set up in one window, in English or Russian. Not at AITU? Everything but the map is useful to anyone, and the map and the university's shortcuts turn off.
+
+## Make it yours
+
+Four designs, five themes and glass, an accent of your own and any color for the icons and the text. Each part of a design (the font, the numbers, the corners, the spacing, the borders, the transparency) can be taken on its own.
+
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-designs-dark.webp"><img src="docs/screenshots/en/board-designs.webp" alt="Four designs, the same widgets: Windows 11, Aqua, Rice and Pearl" width="100%"></picture>
+</p>
+
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-colors-dark.webp"><img src="docs/screenshots/en/board-colors.webp" alt="The same widgets with the colors of the design, icons in the accent, colors of your own, and colors of their own for one widget" width="100%"></picture>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/en/desk-3.webp" alt="AITU Desk in a pink accent: the clock, the rings and the marked rooms on the map" width="100%">
+  <br><sub>Your accent color runs through every widget: here pink and green.</sub>
+</p>
+
+## Your desk, your layout
+
+Move the widgets with the mouse, resize them, line them up on the grid of the desktop icons and pick how round their corners are, right from a widget's menu. A widget you need now and then folds into an icon and grows into a card on a click.
+
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-grid-dark.webp"><img src="docs/screenshots/en/board-grid.webp" alt="Widgets on the grid of the desktop icons, and one clock with square, 12 px and 24 px corners" width="100%"></picture>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/en/desk-2.webp" alt="The same widgets arranged another way: the map at the bottom, the schedule on the right" width="100%">
+  <br><sub>Any layout you like: drag the widgets anywhere and resize them, and what is inside grows with them.</sub>
+</p>
+
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-desktop-dark.webp"><img src="docs/screenshots/en/board-desktop.webp" alt="A laptop: widgets folded into icons, the map opened from its icon as a card in the middle of the screen" width="100%"></picture>
+</p>
+
+## The AITU map
+
+The university's floors right on the desktop: find a room by its number (223 or C1.2.223), switch floors, paint your rooms with a brush. The room of your next class gets a ring, and a click on a room in the schedule leads here.
+
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-map-dark.webp"><img src="docs/screenshots/en/board-map.webp" alt="The AITU map widget on the second floor with marked rooms, and what the map can do" width="100%"></picture>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/en/desk-4.webp" alt="The map zoomed in on a laptop, with a marked room" width="100%">
+  <br><sub>The map as a whole floor or zoomed in, with your rooms marked in your colors.</sub>
+</p>
 
 ## How it works
 
 <table>
 <tr>
-<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-desk.png" width="100%" alt=""><br><b>Right on the wallpaper</b><br><sub>The map at the top left, the clock and the load in the middle, the rest on the right. Move and resize them as you like, or snap them to the grid of the desktop icons</sub></td>
-<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-menu.png" width="100%" alt=""><br><b>Right-click a widget</b><br><sub>Move it, resize it (everything inside grows with it), fold it into an icon, open its settings</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-desk.png" width="100%" alt=""><br><b>Right on the wallpaper</b><br><sub>The map at the top left, the clock and the load in the middle, the rest on the right. Move and resize them as you like</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-menu.png" width="100%" alt=""><br><b>Right-click a widget</b><br><sub>Move it, resize it (everything inside grows with it), round its corners, fold it into an icon, open its settings</sub></td>
 <td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-popup.png" width="100%" alt=""><br><b>An icon that grows</b><br><sub>A small or medium widget is an icon; a click grows it into a card in the middle of the screen</sub></td>
 </tr>
 <tr>
 <td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-list.png" width="100%" alt=""><br><b>Add and edit on the spot</b><br><sub>A “+” at the end of the schedule and the notes, a pencil on the row under the pointer</sub></td>
 <td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-map.png" width="100%" alt=""><br><b>The AITU map</b><br><sub>Find a room (223 or C1.2.223), switch floors, paint your rooms; it can stay see-through until you point at it</sub></td>
-<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-styles.png" width="100%" alt=""><br><b>Four designs</b><br><sub>Windows 11, Aqua, Rice and Pearl, with five themes, your accent color and fine-tuning of every part, the widgets' corners too</sub></td>
+<td width="33%" valign="top" align="center"><img src="docs/screenshots/en/guide-styles.png" width="100%" alt=""><br><b>Four designs</b><br><sub>Windows 11, Aqua, Rice and Pearl, with five themes, your accent and any color for the icons and the text</sub></td>
 </tr>
 </table>
 
-## Screenshots
+## The little things
+
+<table>
+<tr>
+<td width="50%" valign="top"><b>Win+D proof</b><br>“Show desktop” never hides the widgets, and they never cover your windows.</td>
+<td width="50%" valign="top"><b>A live countdown</b><br>In the last hour before a deadline the note counts the seconds.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>From schedule to map</b><br>A click on the room of a class finds it on the map.</td>
+<td width="50%" valign="top"><b>Rests when unseen</b><br>While a program fills the screen, or a widget is an icon, nothing is read or redrawn.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Easy on the battery</b><br>In Windows battery saver the clock hides its seconds and readings come less often.</td>
+<td width="50%" valign="top"><b>Safe with your data</b><br>A settings file that stops being readable is set aside, never overwritten.</td>
+</tr>
+<tr>
+<td width="50%" valign="top"><b>Touchpad ready</b><br>Pinch with two fingers to zoom the map, drag to move it.</td>
+<td width="50%" valign="top"><b>Light</b><br>About 3 MB, no admin rights, installed for your account only.</td>
+</tr>
+</table>
 
 <p align="center">
-  <img src="docs/screenshots/en/board-designs.webp" alt="Four designs, the same widgets: Windows 11, Aqua, Rice and Pearl" width="100%">
+  <img src="docs/screenshots/en/desk-5.webp" alt="A desk with the load as bars and the schedule hidden behind dots" width="100%">
+  <br><sub>Every desk is different: put the widgets together or apart and show only what you need.</sub>
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/en/board-grid.webp" alt="Widgets on the grid of the desktop icons, and one clock with square, 12 px and 24 px corners" width="100%">
-</p>
+## Settings
+
+One window for everything: every option has a hint, and the widgets change the moment you change it.
 
 <p align="center">
-  <img src="docs/screenshots/en/board-desktop.webp" alt="A laptop: widgets folded into icons, the map opened from its icon as a card in the middle of the screen" width="100%">
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/en/board-map.webp" alt="The AITU map widget on the second floor with marked rooms, and what the map can do" width="100%">
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/en/board-settings.webp" alt="Three settings windows in three designs: widgets, appearance and the schedule" width="100%">
-</p>
-
-The same laptop in Russian: the map zoomed in on the second floor with marked rooms and the search field, the load
-as bars, the notes and the schedule still empty, each with its button to add the first one.
-
-<p align="center">
-  <img src="docs/screenshots/desktop-laptop-ru.png" alt="The same laptop with the interface in Russian" width="100%">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/board-settings-dark.webp"><img src="docs/screenshots/en/board-settings.webp" alt="Three settings windows in three designs: widgets, appearance and the schedule" width="100%"></picture>
 </p>
 
 <details>
@@ -110,20 +163,20 @@ as bars, the notes and the schedule still empty, each with its button to add the
 
 <table>
 <tr>
-<td width="50%" valign="top" align="center"><img src="docs/screenshots/en/settings-widgets.webp" alt="Widgets: which ones are on the desktop, their size, and your own picture widgets" width="100%"><br><sub>Widgets: which ones are on the desktop, their size, and your own picture widgets</sub></td>
-<td width="50%" valign="top" align="center"><img src="docs/screenshots/en/settings-general.webp" alt="General: start with Windows, language, the program's files, resets" width="100%"><br><sub>General: start with Windows, language, the program's files, resets</sub></td>
+<td width="50%" valign="top" align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/settings-widgets-dark.webp"><img src="docs/screenshots/en/settings-widgets.webp" alt="Widgets: which ones are on the desktop, their size, and your own picture widgets" width="100%"></picture><br><sub>Widgets: which ones are on the desktop, their size, and your own picture widgets</sub></td>
+<td width="50%" valign="top" align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/settings-general-dark.webp"><img src="docs/screenshots/en/settings-general.webp" alt="General: start with Windows, language, the program's files, resets" width="100%"></picture><br><sub>General: start with Windows, language, the program's files, resets</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top" align="center"><img src="docs/screenshots/en/settings-appearance.webp" alt="Appearance: a design, with its parts chosen separately" width="100%"><br><sub>Appearance: a design, with its parts chosen separately</sub></td>
-<td width="50%" valign="top" align="center"><img src="docs/screenshots/en/settings-perf.webp" alt="Performance: processor, graphics, memory and disk" width="100%"><br><sub>Performance: processor, graphics, memory and disk</sub></td>
+<td width="50%" valign="top" align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/settings-appearance-dark.webp"><img src="docs/screenshots/en/settings-appearance.webp" alt="Appearance: a design, with its parts chosen separately" width="100%"></picture><br><sub>Appearance: a design, with its parts chosen separately</sub></td>
+<td width="50%" valign="top" align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/settings-perf-dark.webp"><img src="docs/screenshots/en/settings-perf.webp" alt="Performance: processor, graphics, memory and disk" width="100%"></picture><br><sub>Performance: processor, graphics, memory and disk</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top" align="center"><img src="docs/screenshots/en/settings-notes.webp" alt="Notes with deadlines, in your own order" width="100%"><br><sub>Notes with deadlines, in your own order</sub></td>
-<td width="50%" valign="top" align="center"><img src="docs/screenshots/en/settings-own-widget.webp" alt="Your own widget with a live preview" width="100%"><br><sub>Your own widget with a live preview</sub></td>
+<td width="50%" valign="top" align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/settings-notes-dark.webp"><img src="docs/screenshots/en/settings-notes.webp" alt="Notes with deadlines, in your own order" width="100%"></picture><br><sub>Notes with deadlines, in your own order</sub></td>
+<td width="50%" valign="top" align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/settings-own-widget-dark.webp"><img src="docs/screenshots/en/settings-own-widget.webp" alt="Your own widget with a live preview" width="100%"></picture><br><sub>Your own widget with a live preview</sub></td>
 </tr>
 <tr>
-<td width="50%" valign="top" align="center"><img src="docs/screenshots/en/settings-reminders.webp" alt="Reminders about classes and deadlines" width="100%"><br><sub>Reminders about classes and deadlines</sub></td>
-<td width="50%" valign="top" align="center"><img src="docs/screenshots/en/settings-configs.webp" alt="Configs: settings in a file" width="100%"><br><sub>Configs: settings in a file</sub></td>
+<td width="50%" valign="top" align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/settings-reminders-dark.webp"><img src="docs/screenshots/en/settings-reminders.webp" alt="Reminders about classes and deadlines" width="100%"></picture><br><sub>Reminders about classes and deadlines</sub></td>
+<td width="50%" valign="top" align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/settings-configs-dark.webp"><img src="docs/screenshots/en/settings-configs.webp" alt="Configs: settings in a file" width="100%"></picture><br><sub>Configs: settings in a file</sub></td>
 </tr>
 </table>
 </details>
@@ -211,9 +264,9 @@ right after installing.
   to it.
 - **Light**: the installer is about 3 MB, and when idle the app barely touches the processor.
 
-**Privacy.** This program will not transfer any information to other networked systems unless specifically requested
-by the user or the person installing or operating it. What it asks the network for, and when, is listed under
-“Network and privacy” in [Installation](#installation).
+**Privacy.** AITU Desk goes online only when you ask it to: to open a shortcut or to fetch a site's icon. Your
+classes, notes and settings stay on your computer. The details are under “Network and privacy” in
+[Installation](#installation).
 
 ## Links
 
@@ -221,7 +274,7 @@ by the user or the person installing or operating it. What it asks the network f
 | --- | --- |
 | Download | [The latest release](https://github.com/cyberbara01/aitudesk/releases/latest) |
 | A bug or an idea | [Issues](https://github.com/cyberbara01/aitudesk/issues), Telegram [@capybara205](https://t.me/capybara205) or the [anonymous form](https://forms.gle/LV7BYCqeveRyRm9YA) |
-| Rate the app | [The same form](https://forms.gle/LV7BYCqeveRyRm9YA): a single rating from 0 to 10 is enough |
+| Rate the app | [The same form](https://forms.gle/LV7BYCqeveRyRm9YA): we don't need your data, and without your feedback the app can't grow |
 | Author | [@cyberbara01](https://github.com/cyberbara01) |
 | The AITU map | [aitumap](https://github.com/Yuujiso/aitumap) by [Yuujiso](https://github.com/Yuujiso) |
 | Third-party components | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) |

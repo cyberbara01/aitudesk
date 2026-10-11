@@ -3,8 +3,8 @@
    Controls have no outlines: they sit on quiet grey fills (rounded rectangles, never Fluent's lines), thumbs and
    knobs are white and raised, a dropdown's arrow sits in an accent square, a list row's icon in a coloured square,
    and every entry of the settings sidebar has its own colour. Its type, corners, spacing and material are parts of
-   the design (src/lib/design.ts STYLE_LOOK.pearl); this file is the look of its controls and widgets. Loaded last
-   (main.tsx), so it wins over the palettes at the same specificity.
+   the design (src/lib/design.ts STYLE_LOOK.pearl); this file is the look of its controls and widgets. Loaded after
+   the other styles but ink.css (main.tsx), so it wins over the palettes at the same specificity.
    ===================================================================================== */
 
 /* ---- Tokens: grey fills instead of strokes ---- */

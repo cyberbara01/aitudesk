@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { LOCALE } from "../i18n/lang";
 import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
-import { resolveLook } from "../lib/design";
+import { resolveLook, STYLE_LOOK } from "../lib/design";
 import { useEditMode } from "../lib/editMode";
 import { CUSTOM_MIN, setGridSnap, TILE_MIN } from "../lib/grid";
+import { widgetInk } from "../lib/ink";
 import { popupMenu } from "../lib/nativeMenu";
-import { customIdOf, isCustomLabel, settings, TILE_VIEWS, type TileId, type TileView } from "../lib/settings";
+import { customIdOf, isCustomLabel, LOOK_CHOICES, settings, TILE_VIEWS, type LookCorners, type TileId, type TileView } from "../lib/settings";
 import { isFoldedView, openTile, usePopupOpen, useTileView } from "../lib/tileView";
 import { useSettings } from "../lib/useSettings";
 import { usePopup } from "../popup/context";
@@ -18,6 +20,23 @@ import { Tooltip } from "./Tooltip";
 
 const v = shell.views;
 const gr = shell.grid;
+const ap = shell.appearance;
+
+/** «Углы виджетов» of every widget (Оформление → Тонкая настройка), right in a widget's menu: as in the design, or a
+ * radius of its own. */
+function cornersMenu(corners: LookCorners | "auto", design: LookCorners): MenuItemSpec {
+  const set = (value: LookCorners | "auto") => void settings.update((cur) => ({ look: { ...cur.look, corners: value } }));
+  return {
+    id: "corners",
+    label: ap.parts.corners,
+    icon: "square",
+    onSelect: () => undefined,
+    children: [
+      { id: "corners-auto", label: ap.fineAuto(ap.values.corners[design].toLocaleLowerCase(LOCALE)), checked: corners === "auto", onSelect: () => set("auto") },
+      ...LOOK_CHOICES.corners.map((value) => ({ id: `corners-${value}`, label: ap.values.corners[value], checked: corners === value, onSelect: () => set(value) })),
+    ],
+  };
+}
 
 interface TileProps {
   /** The widget: a built-in widget's id, or `custom-<id>` for an own widget. */
@@ -202,6 +221,8 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     };
   }, [glass, popup, radius, ratio]);
   const radiusOverride = glass && glassRadius !== null && glassRadius !== radius ? glassRadius : null;
+  // «Цвет значков» and «Цвет текста»: its own, or those of all widgets (src/lib/ink.ts).
+  const { style: inkStyle, ...inkData } = widgetInk(s, label);
 
   // Locking the layout ends an active edit session.
   useEffect(() => {
@@ -248,6 +269,8 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
           onSelect: () => void settings.setTileView(label, tv),
         })),
       },
+      // «Углы виджетов» of every widget, after the size: how the widgets look (not in the pop-up, a card of its own).
+      ...(popup ? [] : [cornersMenu(s.look.corners, STYLE_LOOK[s.style].corners)]),
       {
         id: "settings",
         label: ru.menu.settings,
@@ -289,13 +312,13 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
       className={cls}
       // While it is moved or resized the widget is whole, so its edges can be seen.
       style={
-        seeThrough || radiusOverride !== null
-          ? ({
-              ...(seeThrough ? { "--tile-opacity": editing ? 1 : opacity } : null),
-              ...(radiusOverride !== null ? { "--r-tile": `${radiusOverride}px` } : null),
-            } as CSSProperties)
-          : undefined
+        {
+          ...inkStyle,
+          ...(seeThrough ? { "--tile-opacity": editing ? 1 : opacity } : null),
+          ...(radiusOverride !== null ? { "--r-tile": `${radiusOverride}px` } : null),
+        } as CSSProperties
       }
+      {...inkData}
       onContextMenu={onContextMenu}
       onPointerDownCapture={onPointerDownCapture}
       onPointerDown={editing ? edit.onDragStart : undefined}

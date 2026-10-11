@@ -111,6 +111,11 @@ function MenuPicture() {
         <span>{extra.views.size}</span>
         <Icon name="chevron_right" size={16} />
       </div>
+      <div className="ctx-item ob-sub">
+        <Icon name="square" />
+        <span>{extra.appearance.parts.corners}</span>
+        <Icon name="chevron_right" size={16} />
+      </div>
       <div className="ctx-item">
         <Icon name="settings" />
         <span>{ru.menu.settings}</span>
@@ -199,7 +204,7 @@ export function WelcomePage() {
         <Step
           n={2}
           title={w.menuTitle}
-          text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done, extra.views.size, extra.grid.label)}
+          text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done, extra.views.size, extra.grid.label, extra.appearance.parts.corners)}
           picture={<MenuPicture />}
         />
         <Step n={3} title={w.mapTitle} text={w.mapText} picture={<MapPicture desk={desk} />} />

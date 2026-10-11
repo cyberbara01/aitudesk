@@ -81,7 +81,7 @@ jobs:
           gh release upload "$env:TAG" SHA256SUMS.txt --clobber --repo "$env:GITHUB_REPOSITORY"
 
   # Every release goes to winget as well: a pull request to microsoft/winget-pkgs with this version's manifests, so
-  # `winget install cyberbara01.AITUDesk` and `winget upgrade` get it once Microsoft accepts it. It needs the owner's
+  # `winget install aitudesk` and `winget upgrade aitudesk` get it once Microsoft accepts it. It needs the owner's
   # classic token with the public_repo scope in the secret WINGET_TOKEN; without one the job only says it skipped.
   winget:
     name: Submit to winget
@@ -100,6 +100,12 @@ jobs:
         if: env.WINGET_TOKEN == ''
         shell: pwsh
         run: Write-Output "The secret WINGET_TOKEN is not set: nothing is sent to winget."
+
+      # wingetcreate runs on .NET 9, which the runner images no longer have to carry.
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        if: env.WINGET_TOKEN != ''
+        with:
+          dotnet-version: 9.0.x
 
       - name: Send the new version
         if: env.WINGET_TOKEN != ''

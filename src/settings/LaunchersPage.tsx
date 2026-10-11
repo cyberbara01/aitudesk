@@ -23,12 +23,14 @@ import {
   visibleLaunchers,
   type LauncherItem,
 } from "../lib/launchers";
+import { widgetInk } from "../lib/ink";
 import { settings } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { iconSvgFor, trustedIconSvg } from "./launchers/iconCache";
 import { LauncherEditor } from "./launchers/LauncherEditor";
 import { LauncherIcon } from "./launchers/LauncherIcon";
 import { LaunchersGrid } from "./launchers/LaunchersGrid";
+import { InkWidgetSection } from "./InkSection";
 
 interface Props {
   /** From ?edit= / settings-navigate: a custom launcher id or a built-in key opens its editor. */
@@ -101,7 +103,12 @@ export function LaunchersPage({ editId }: Props) {
           size 280 x 184, so the cells and «Добавить» sit exactly as on a desktop tile of that size at rest. */}
       <div className="ln-preview-wrap">
         <div className="ln-stage">
-          <div className={ln.background ? "tile tile-launchers ln-preview" : "tile tile-launchers no-bg ln-preview"} role="img" aria-label={ru.common.preview}>
+          <div
+            className={ln.background ? "tile tile-launchers ln-preview" : "tile tile-launchers no-bg ln-preview"}
+            role="img"
+            aria-label={ru.common.preview}
+            {...widgetInk(s, "launchers")}
+          >
             <LaunchersGrid items={items} showLabels={ln.showLabels} onHiddenChange={setPreviewHidden} />
           </div>
         </div>
@@ -192,6 +199,8 @@ export function LaunchersPage({ editId }: Props) {
       </Section>
 
       {editor && <LauncherEditor item={editor.item} showLabels={ln.showLabels} onClose={closeEditor} />}
+
+      <InkWidgetSection widget="launchers" />
 
       <ResetSection section="launchers" />
     </Page>

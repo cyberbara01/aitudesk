@@ -30,6 +30,7 @@ import {
 import { settings, type Lesson, type ScheduleSettings, type Weekday } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { LessonEditor } from "./schedule/LessonEditor";
+import { InkWidgetSection } from "./InkSection";
 
 type DayKey = `${Weekday}`;
 
@@ -258,6 +259,8 @@ export function SchedulePage({ editId }: { editId?: string | null }) {
           <span className="hint">{extra.inSchedule(lessons.length)}</span>
         </div>
       </Dialog>
+
+      <InkWidgetSection widget="schedule" />
 
       <ResetSection section="schedule" />
     </Page>

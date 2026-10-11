@@ -1,0 +1,38 @@
+/* =====================================================================================
+   «Цвет значков» and «Цвет текста» (src/lib/ink.ts). Chosen for all widgets or for one, they arrive as variables
+   on the widget's root, on the pop-up and on the previews of the settings window. The text tokens are replaced
+   there outright, so every word follows by itself; the glyphs take --ink-icon below. Kept as they are: the glyph of
+   a warning (a low battery), colours that are data (a note's or a shortcut's own colour), glyphs on a filled
+   control (the buttons of edit mode, a selected tool) and disabled ones. Loaded last (main.tsx): these rules win
+   over the designs' own.
+   ===================================================================================== */
+[data-ink-icons] .icon { color: var(--ink-icon); }
+
+/* Words that only inherit their colour (the pop-up's header, a few captions) take the chosen text colour too: the
+   colour of the page was worked out before the widget's own --text. */
+[data-ink-text] { color: var(--text); }
+
+/* Kept: filled controls, disabled ones, warnings, and a shortcut's own colour. */
+[data-ink-icons] :is(.edit-pill, .btn.accent, .btn.pressed, .icon-btn.selected, :disabled, .tone-caution, .tone-critical, .ln-square) .icon {
+  color: inherit;
+}
+
+/* «Система»: a connection that is off is quieter. In Aqua and Pearl a live connection is a filled chip: the chip in
+   the chosen colour, the glyph readable on it. */
+[data-ink-icons] .sys-icon-wrap.tone-off .icon { color: var(--ink-icon-dim); }
+:root:is([data-style="aqua"], [data-style="pearl"]) [data-ink-icons] .sys-icon-wrap.tone-on { background: var(--ink-icon-fill); }
+:root:is([data-style="aqua"], [data-style="pearl"]) [data-ink-icons] .sys-icon-wrap.tone-on .icon { color: var(--ink-on-icon); }
+
+/* A note's circle: quieter until it is done or under the pointer; a note of its own colour keeps that colour. */
+[data-ink-icons] .note-check:not(.colored) { color: var(--ink-icon-dim); }
+[data-ink-icons] .note-check:not(.colored):is(:hover, .done) { color: var(--ink-icon); }
+[data-ink-icons] .note-check .icon { color: inherit; }
+
+/* «Добавить» among the shortcuts. */
+[data-ink-icons] .ln-add .ln-square { color: var(--ink-icon); }
+
+/* The folded icon and its pop-up's header: the glyph in the colour, on a soft square of it (Pearl: a filled one). */
+[data-ink-icons] :is(.tile-face-art, .popup-art) { background: var(--ink-icon-soft); color: var(--ink-icon); }
+[data-ink-icons] :is(.tile-face-art, .popup-art) .icon { color: inherit; }
+:root[data-style="pearl"] [data-ink-icons] .tile-face-art { background: var(--ink-icon-fill); color: var(--ink-on-icon); }
+.tile.popup-open[data-ink-icons] .tile-face-art { box-shadow: 0 0 0 1.5px var(--ink-icon); }

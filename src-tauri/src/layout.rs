@@ -54,8 +54,8 @@ pub struct Visibility {
 }
 
 /// «Размер» of a tile (settings `tileViews`): its size set by hand, or a preset. «Маленький» shows the tile's
-/// icon, «Средний» its icon and name; a click opens the full widget as a pop-up (`expand_tile`) that folds back
-/// when the tile loses focus. «Большой» is the full widget at its standard size.
+/// icon, «Средний» its icon and name; a click opens the whole widget in the pop-up window (popup.rs) while the icon
+/// stays. «Большой» is the full widget at its standard size.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum View {
     Manual,
@@ -566,20 +566,28 @@ pub fn reveal_all_pending(app: &AppHandle) {
 
 /// Persist a tile rect (physical px). A parked position is never saved; only the size is updated then.
 pub fn save_rect(app: &AppHandle, label: &str, rect: Rect) -> Result<(), String> {
-    // A folded tile keeps its own place apart from its full rect.
-    let key = match view_of(app, label) {
-        View::Small | View::Medium => compact_key(label),
-        _ => label.to_string(),
-    };
+    save_rects(app, &[(label.to_string(), rect)])
+}
+
+/// Persist several tile rects in one read and one write of the layout (widgets that moved together, grid.rs): saved
+/// one by one from their own threads, one write could drop another's rect.
+pub fn save_rects(app: &AppHandle, rects: &[(String, Rect)]) -> Result<(), String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     let mut layout = load_layout(app);
-    let next = if is_parked(PhysicalPosition::new(rect.x, rect.y)) {
-        let Some(prev) = layout.get(&key).copied() else { return Ok(()) };
-        Rect { w: rect.w, h: rect.h, ..prev }
-    } else {
-        rect
-    };
-    layout.insert(key, next);
+    for (label, rect) in rects {
+        // A folded tile keeps its own place apart from its full rect.
+        let key = match view_of(app, label) {
+            View::Small | View::Medium => compact_key(label),
+            _ => label.clone(),
+        };
+        let next = if is_parked(PhysicalPosition::new(rect.x, rect.y)) {
+            let Some(prev) = layout.get(&key).copied() else { continue };
+            Rect { w: rect.w, h: rect.h, ..prev }
+        } else {
+            *rect
+        };
+        layout.insert(key, next);
+    }
     store.set(LAYOUT_KEY, json!(layout));
     store.save().map_err(|e| e.to_string())
 }
@@ -662,18 +670,16 @@ pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
     }
     let vis = app.state::<Visibility>();
     let hidden = *vis.hidden.lock().unwrap();
-    let mut disabled = vis.disabled.lock().unwrap();
     let Some(win) = app.get_webview_window(label) else { return };
+    // No lock is held while the window moves (the desktop watch reads the same state from window callbacks).
     if enabled {
-        disabled.remove(label);
+        vis.disabled.lock().unwrap().remove(label);
         if !hidden {
             unpark(app, &win, label);
         }
-        drop(disabled);
         crate::desktop_watch::wake(app);
     } else {
-        disabled.insert(label.to_string());
-        drop(disabled);
+        vis.disabled.lock().unwrap().insert(label.to_string());
         crate::popup::close_if(app, label);
         park_hidden(&win);
     }
@@ -694,22 +700,34 @@ pub fn reset(app: &AppHandle) -> Result<(), String> {
 /// new rect when they are shown (`unpark`).
 pub fn replace_shown(app: &AppHandle) {
     let vis = app.state::<Visibility>();
-    let hidden = *vis.hidden.lock().unwrap();
-    let disabled = vis.disabled.lock().unwrap();
-    let mut pending = vis.pending.lock().unwrap();
+    if *vis.hidden.lock().unwrap() {
+        return;
+    }
+    let disabled = vis.disabled.lock().unwrap().clone();
+    // The rects are worked out first and the windows moved after, with no lock held (the desktop watch reads the
+    // same state from window callbacks).
+    let mut moves = Vec::new();
     for label in crate::tile_labels(app) {
-        let label = label.as_str();
-        let Some(win) = app.get_webview_window(label) else { continue };
-        if hidden || disabled.contains(label) {
+        let Some(win) = app.get_webview_window(&label) else { continue };
+        if disabled.contains(&label) {
             continue;
         }
-        let rect = resolve_rect(app, &win, label);
-        if let Some(queued) = pending.get_mut(label) {
-            *queued = rect;
+        let rect = resolve_rect(app, &win, &label);
+        let queued = match vis.pending.lock().unwrap().get_mut(&label) {
+            Some(queued) => {
+                *queued = rect;
+                true
+            }
+            None => false,
+        };
+        moves.push((win, label, rect, queued));
+    }
+    for (win, label, rect, queued) in moves {
+        if queued {
             let _ = win.set_size(Size::Physical(PhysicalSize::new(rect.w, rect.h)));
-            continue;
+        } else {
+            place(&win, &label, rect);
         }
-        place(&win, label, rect);
     }
 }
 

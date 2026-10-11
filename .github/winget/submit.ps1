@@ -41,5 +41,7 @@ $sig = Get-AuthenticodeSignature -LiteralPath $exe
 if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') {
   throw "wingetcreate.exe is not signed by Microsoft ($($sig.Status))"
 }
-& $exe submit --prtitle "New version: cyberbara01.AITUDesk version $version" --token $env:WINGET_TOKEN $dir
+# The token goes in through the variable wingetcreate reads, never on its command line; no browser on a runner.
+$env:WINGET_CREATE_GITHUB_TOKEN = $env:WINGET_TOKEN
+& $exe submit --prtitle "New version: cyberbara01.AITUDesk version $version" --no-open $dir
 if ($LASTEXITCODE -ne 0) { throw "wingetcreate exited with $LASTEXITCODE" }

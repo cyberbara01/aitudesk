@@ -135,7 +135,7 @@ export const en: ShellStrings = {
     appLicenceText:
       "AITU Desk is distributed under the MIT license: you can use, change and share the app freely, as long as the author's name and the license text are kept.",
     feedback: "Rate AITU Desk",
-    feedbackHint: "Anonymous. A single rating from 0 to 10 is enough, ideas are optional",
+    feedbackHint: "We don't need your data. Without your feedback, the app can't grow",
     feedbackButton: "Form",
     mapRepoLabel: "Map repository",
     show: "Show",
@@ -152,8 +152,8 @@ export const en: ShellStrings = {
     tilesText: (widgets: string) =>
       `The clock, system info, computer load, shortcuts, the AITU map, the schedule and notes sit right on the wallpaper, under all windows: to see them, minimize your windows or press Win+D. Choose which of them to show in “${widgets}”, where you can also add widgets of your own with a picture or a GIF.`,
     menuTitle: "Right-click",
-    menuText: (move: string, open: string, done: string, size: string, grid: string) =>
-      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and everything inside grows along with it. Ctrl+Z undoes a step, “${done}” saves. The grid button or “${grid}” puts the widgets on the cells of the desktop icons, like shortcuts. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
+    menuText: (move: string, open: string, done: string, size: string, grid: string, corners: string) =>
+      `Right-click a widget and choose “${move}”: now you can drag it with the mouse and pull its bottom-right corner, and everything inside grows along with it. Ctrl+Z undoes a step, “${done}” saves. The grid button or “${grid}” puts the widgets on the cells of the desktop icons, like shortcuts, and “${corners}” sets how round all widgets are. In “${size}” you can turn a widget into an icon: a click grows it into a pop-up in the middle of the screen, and the cross, Esc or a click beside it closes it. “${open}” opens its section in this window.`,
     mapTitle: "AITU map",
     mapText:
       "The mouse wheel or a two-finger pinch on the touchpad zooms the plan, dragging moves it and a double-click fits it whole. Switch floors with the buttons on the side; on hover you also get room search (223 or C1.2.223) and a brush to paint your rooms. In the map's section you can make it see-through: under the pointer it comes forward smoothly.",
@@ -163,7 +163,7 @@ export const en: ShellStrings = {
       "Add your schedule, notes with deadlines and shortcuts to your sites in these sections; the widgets show them right away. A class or a note can also be added right on the widget with the “+” at the end of the list, and the pencil that appears on a class or a note under the pointer opens it for editing. Drag notes with the mouse, in the list or right on the widget, to put them in your own order. Click a room in the schedule to find it on the map.",
     lookTitle: "Design, theme and size",
     lookText: (appearance: string, a: string, b: string, c: string, d: string) =>
-      `In “${appearance}” you choose the design (${a}, ${b}, ${c} or ${d}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, numbers, corners, widget corners, spacing, borders and transparency can be chosen on their own instead of being taken from the design. The widgets and this window change at once.`,
+      `In “${appearance}” you choose the design (${a}, ${b}, ${c} or ${d}), the theme, the accent color and the widget scale: on a small screen you can make them smaller. In “Fine-tuning” the font, numbers, corners, widget corners, spacing, borders and transparency can be chosen on their own instead of being taken from the design. The color of icons and text is set there for all widgets, and for one widget on its page. The widgets and this window change at once.`,
     startTitle: "Startup and reminders",
     startText: (general: string, reminders: string) =>
       `Autostart is on: after a restart the widgets are in place. You can turn it off here or in “${general}”. The app reminds you about classes and deadlines with a Windows notification; choose when and how often in “${reminders}”.`,
@@ -172,6 +172,28 @@ export const en: ShellStrings = {
     footer: (help: string) =>
       `You can close this window: the widgets stay. Open the settings again from the AITU Desk shortcut or its icon next to the clock on the taskbar, these tips from “${help}” at the bottom of the sidebar, and switch the app language with the “RU | EN” button under it.`,
     start: "Get started",
+  },
+  ink: {
+    title: "Widget colors",
+    titleHint: "Icons and text on all widgets. Each widget can have colors of its own on its page",
+    section: "Colors",
+    sectionHint: "Colors of this widget alone. “Like all” takes the colors from “Appearance”",
+    parts: { icons: "Icon color", text: "Text color" },
+    rows: { icons: "Icons", text: "Text" },
+    allHints: {
+      icons: "Battery, Wi-Fi, the map buttons, the note circles and every other icon",
+      text: "Every label and number: the time, percents, classes, notes",
+    },
+    modes: { auto: "As in the design", accent: "Accent", custom: "Custom" },
+    widgetAuto: "Like all",
+    hints: {
+      system: { icons: "Battery, Wi-Fi and Bluetooth", text: "Labels and values" },
+      perf: { icons: "", text: "Labels and numbers. The color of the readings is chosen above" },
+      launchers: { icons: "", text: "The captions under the shortcuts. Each shortcut's color is chosen in the shortcut itself" },
+      map: { icons: "The zoom buttons, the search and the brush", text: "Floors and the search. The colors of the plan are chosen above" },
+      schedule: { icons: "The plus, the pencil and the eye", text: "Times, subjects, teachers and days" },
+      notes: { icons: "The note circles, the plus, the pencil and the eye", text: "Notes and the countdown" },
+    },
   },
   custom: {
     title: "Your widgets",

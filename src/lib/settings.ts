@@ -56,6 +56,23 @@ export const LOOK_CHOICES: { readonly [K in keyof Look]: readonly Look[K][] } = 
 };
 export const LOOK_PARTS = ["font", "numbers", "shape", "corners", "density", "border", "material"] as const satisfies readonly (keyof Look)[];
 
+/**
+ * «Цвет значков» and «Цвет текста» of the widgets (src/lib/ink.ts): for all widgets the design's own colours
+ * ("auto"), the accent or a colour of one's own; for one widget ("auto") the colours all widgets have, or its own.
+ * `color` is the colour of «Свой цвет», kept while another choice is made.
+ */
+export type InkMode = "auto" | "accent" | "custom";
+export const INK_MODES: readonly InkMode[] = ["auto", "accent", "custom"];
+export interface InkPart {
+  mode: InkMode;
+  color: string;
+}
+export interface Ink {
+  icons: InkPart;
+  text: InkPart;
+}
+export const INK_PARTS = ["icons", "text"] as const satisfies readonly (keyof Ink)[];
+
 export type AccentMode = "windows" | "preset" | "custom";
 export interface AccentSetting {
   mode: AccentMode;
@@ -126,6 +143,8 @@ export interface SystemSettings {
   labelMode: "default" | "device" | "custom" | "user";
   customLabel: string;
   background: boolean;
+  /** «Цвета» of this widget (src/lib/ink.ts). */
+  ink: Ink;
 }
 
 /**
@@ -192,6 +211,8 @@ export interface PerfSettings {
   alert: PerfAlert;
   fahrenheit: boolean;
   interval: number;
+  /** «Цвет текста» of this widget (src/lib/ink.ts); its readings keep their own colours. */
+  ink: Ink;
 }
 
 export type BuiltInLauncher = "du" | "moodle" | "learn";
@@ -232,6 +253,8 @@ export interface LaunchersSettings {
   custom: CustomLauncher[];
   showLabels: boolean;
   background: boolean;
+  /** «Цвет текста» of this widget (src/lib/ink.ts); each shortcut keeps its own colour. */
+  ink: Ink;
 }
 
 export type MapScheme = "glass" | "pastel" | "vivid" | "outline" | "tint" | "blueprint";
@@ -283,6 +306,8 @@ export interface MapSettings {
   /** Mark the room of the lesson running now or starting within 30 minutes (from settings.schedule.lessons). */
   showNextLesson: boolean;
   favorites: MapFavorite[];
+  /** «Цвета» of the map's buttons, search and floor switch (src/lib/ink.ts); the plan keeps its scheme. */
+  ink: Ink;
 }
 
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -311,6 +336,8 @@ export interface ScheduleSettings {
   followToday: boolean;
   /** Mask lesson texts on the desktop with password dots (hover + eye reveals). */
   privacy: boolean;
+  /** «Цвета» of this widget (src/lib/ink.ts). */
+  ink: Ink;
 }
 
 export interface Note {
@@ -347,6 +374,8 @@ export interface NotesSettings {
   /** Mask note texts on the desktop with password dots (hover + eye reveals). */
   privacy: boolean;
   background: boolean;
+  /** «Цвета» of this widget (src/lib/ink.ts). */
+  ink: Ink;
 }
 
 /**
@@ -399,6 +428,8 @@ export interface Settings {
   style: StyleId;
   /** «Тонкая настройка»: parts of the design chosen on their own. */
   look: LookSettings;
+  /** «Цвет значков» and «Цвет текста» of all widgets («Тонкая настройка»). */
+  ink: Ink;
   accent: AccentSetting;
   tiles: Record<TileId, boolean>;
   /** «Размер» per tile label (built-in ids and `custom-<id>`); missing = "manual". */
@@ -470,6 +501,9 @@ export const DEFAULT_CLOCK: ClockSettings = {
   background: true,
 };
 
+/** Every colour as in the design (for one widget: as all widgets have it). */
+export const DEFAULT_INK: Ink = { icons: { mode: "auto", color: "#60CDFF" }, text: { mode: "auto", color: "#60CDFF" } };
+
 export const DEFAULT_SYSTEM: SystemSettings = {
   showWifi: true,
   showBluetooth: true,
@@ -477,6 +511,7 @@ export const DEFAULT_SYSTEM: SystemSettings = {
   labelMode: "default",
   customLabel: "",
   background: true,
+  ink: DEFAULT_INK,
 };
 
 export const DEFAULT_PERF: PerfSettings = {
@@ -493,6 +528,7 @@ export const DEFAULT_PERF: PerfSettings = {
   alert: 90,
   fahrenheit: false,
   interval: 2,
+  ink: DEFAULT_INK,
 };
 
 export const DEFAULT_LOOK: LookSettings = {
@@ -512,6 +548,7 @@ export const DEFAULT_LAUNCHERS: LaunchersSettings = {
   custom: [],
   showLabels: true,
   background: true,
+  ink: DEFAULT_INK,
 };
 
 export const DEFAULT_MAP: MapSettings = {
@@ -536,6 +573,7 @@ export const DEFAULT_MAP: MapSettings = {
   showIcons: true,
   showNextLesson: true,
   favorites: [],
+  ink: DEFAULT_INK,
 };
 
 export const DEFAULT_SCHEDULE: ScheduleSettings = {
@@ -545,6 +583,7 @@ export const DEFAULT_SCHEDULE: ScheduleSettings = {
   background: true,
   followToday: true,
   privacy: false,
+  ink: DEFAULT_INK,
 };
 
 export const DEFAULT_NOTES: NotesSettings = {
@@ -554,6 +593,7 @@ export const DEFAULT_NOTES: NotesSettings = {
   showDone: false,
   privacy: false,
   background: true,
+  ink: DEFAULT_INK,
 };
 
 export const DEFAULT_REMINDERS: ReminderSettings = {
@@ -577,6 +617,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: "system",
   style: "fluent",
   look: DEFAULT_LOOK,
+  ink: DEFAULT_INK,
   accent: { mode: "preset", preset: "graphite", custom: "#60CDFF" },
   tiles: { clock: true, system: true, perf: true, launchers: true, map: true, schedule: true, notes: true },
   tileViews: {},
@@ -728,6 +769,16 @@ function migrateNote(raw: unknown): Note | null {
   return note;
 }
 
+/** The colours of the widgets or of one widget as stored; anything else gets the design's own. */
+function migrateInk(raw: unknown): Ink {
+  const r = isObj(raw) ? raw : {};
+  const part = (v: unknown, d: InkPart): InkPart => {
+    const p = isObj(v) ? v : {};
+    return { mode: oneOf(p.mode, INK_MODES, d.mode), color: hex(p.color, d.color) };
+  };
+  return { icons: part(r.icons, DEFAULT_INK.icons), text: part(r.text, DEFAULT_INK.text) };
+}
+
 /** Accepts v1 or v2 JSON (or garbage) and returns a complete, validated v2 object. */
 export function normalize(saved: unknown): Settings {
   const s = isObj(saved) ? saved : {};
@@ -814,6 +865,7 @@ export function normalize(saved: unknown): Settings {
     labelMode: oneOf(sy.labelMode, ["default", "device", "custom", "user"] as const, d.system.labelMode),
     customLabel: str(sy.customLabel, d.system.customLabel).slice(0, 40),
     background: bool(sy.background, d.system.background),
+    ink: migrateInk(sy.ink),
   };
 
   const pf = isObj(s.perf) ? s.perf : {};
@@ -831,6 +883,7 @@ export function normalize(saved: unknown): Settings {
     alert: PERF_ALERTS.includes(pf.alert as PerfAlert) ? (pf.alert as PerfAlert) : d.perf.alert,
     fahrenheit: bool(pf.fahrenheit, d.perf.fahrenheit),
     interval: Math.round(num(pf.interval, d.perf.interval, PERF_INTERVAL_MIN, PERF_INTERVAL_MAX)),
+    ink: migrateInk(pf.ink),
   };
 
   // launchers (v1 kept builtIn/custom at the root)
@@ -859,6 +912,7 @@ export function normalize(saved: unknown): Settings {
     custom: customRaw.slice(0, LIMIT.launchers).map(migrateLauncher).filter((x): x is CustomLauncher => x !== null),
     showLabels: bool(l.showLabels, d.launchers.showLabels),
     background: bool(l.background, d.launchers.background),
+    ink: migrateInk(l.ink),
   };
 
   // map
@@ -899,6 +953,7 @@ export function normalize(saved: unknown): Settings {
           : null,
       )
       .filter((f): f is MapFavorite => f !== null),
+    ink: migrateInk(m.ink),
   };
 
   // schedule
@@ -911,6 +966,7 @@ export function normalize(saved: unknown): Settings {
     background: bool(sc.background, d.schedule.background),
     followToday: bool(sc.followToday, d.schedule.followToday),
     privacy: bool(sc.privacy, d.schedule.privacy),
+    ink: migrateInk(sc.ink),
   };
 
   // notes
@@ -923,6 +979,7 @@ export function normalize(saved: unknown): Settings {
     showDone: bool(n.showDone, d.notes.showDone),
     privacy: bool(n.privacy, d.notes.privacy),
     background: bool(n.background, d.notes.background),
+    ink: migrateInk(n.ink),
   };
 
   // reminders
@@ -951,6 +1008,7 @@ export function normalize(saved: unknown): Settings {
     theme,
     style,
     look,
+    ink: migrateInk(s.ink),
     accent,
     tiles,
     tileViews,
@@ -986,7 +1044,7 @@ function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
   const d = DEFAULT_SETTINGS;
   switch (section) {
     case "appearance":
-      return { theme: d.theme, style: d.style, look: d.look, accent: d.accent, tileScale: d.tileScale };
+      return { theme: d.theme, style: d.style, look: d.look, ink: d.ink, accent: d.accent, tileScale: d.tileScale };
     case "clock":
       return { clock: d.clock };
     case "system":

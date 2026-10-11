@@ -122,7 +122,7 @@ export function clampWeight(weight: number, font: ClockFontMeta): number {
 // Look
 // ---------------------------------------------------------------------------------------------
 
-/** Brief 3.1: 14 px up to size 40, then about size / 4 within 14..24. `size` is the size the time is drawn at. */
+/** The date: 14 px up to time size 40, then about size / 4 within 14..24. `size` is the size the time is drawn at. */
 export function dateFontSize(size: number): number {
   if (size <= 40) return 14;
   return Math.min(24, Math.max(14, Math.round(size / 4)));

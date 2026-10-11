@@ -37,7 +37,6 @@ pub fn is_tile(label: &str) -> bool {
     TILES.contains(&label) || custom::is_custom(label)
 }
 
-/// Labels of the tile windows that exist now: the built-in ones, then the custom widgets'.
 /// The last display-scale change seen (see on_window_event); only the newest one does the work.
 static SCALE_CHANGE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
@@ -63,6 +62,7 @@ fn scale_changed_later(app: &tauri::AppHandle, label: &str) {
     });
 }
 
+/// Labels of the tile windows that exist now: the built-in ones, then the custom widgets'.
 pub fn tile_labels(app: &tauri::AppHandle) -> Vec<String> {
     let mut labels: Vec<String> = TILES.iter().map(|l| l.to_string()).collect();
     let mut own: Vec<String> = app.webview_windows().into_keys().filter(|l| custom::is_custom(l)).collect();
@@ -102,13 +102,6 @@ fn tile_title(label: &str) -> String {
 /// Command-line flag of the login start (written into the Run key, autostart.rs).
 const AUTOSTART_ARG: &str = "--autostart";
 
-/// settings.json is plain JSON that people may edit by hand. The store plugin reads a file it cannot parse as
-/// empty, and the first save then writes defaults over it, losing lessons and notes. So before anything opens
-/// it: a reset asked for by the previous run is carried out (reset.rs), a UTF-8 BOM (added by some editors) is
-/// dropped, a file that still does not parse is moved aside as settings.broken-<unix time>.json, next to it,
-/// where the data can be recovered, and defaults changed since the file was saved are applied once.
-/// Returns whether the start with Windows is to be switched on now: the first start of a fresh install (no
-/// settings yet, also right after «Сбросить всё»), or settings from before it became the default.
 /// A second launch only hands its arguments to the running instance and exits; it must not touch the store file,
 /// which the running instance may be writing at that very moment. tauri-plugin-single-instance holds a mutex
 /// named «<identifier>-sim» for as long as the first instance runs.
@@ -128,7 +121,7 @@ fn another_instance_runs(identifier: &str) -> bool {
 }
 
 /// %APPDATA% as the store plugin resolves it (the Roaming known folder), not from the environment.
-fn roaming_app_data() -> Option<std::path::PathBuf> {
+pub(crate) fn roaming_app_data() -> Option<std::path::PathBuf> {
     use windows::Win32::UI::Shell::{FOLDERID_RoamingAppData, SHGetKnownFolderPath, KNOWN_FOLDER_FLAG};
     // SAFETY: the returned string is copied and then freed with CoTaskMemFree.
     unsafe {
@@ -139,6 +132,13 @@ fn roaming_app_data() -> Option<std::path::PathBuf> {
     }
 }
 
+/// settings.json is plain JSON that people may edit by hand. The store plugin reads a file it cannot parse as
+/// empty, and the first save then writes defaults over it, losing lessons and notes. So before anything opens
+/// it: a reset asked for by the previous run is carried out (reset.rs), a UTF-8 BOM (added by some editors) is
+/// dropped, a file that still does not parse is moved aside as settings.broken-<unix time>.json, next to it,
+/// where the data can be recovered, and defaults changed since the file was saved are applied once.
+/// Returns whether the start with Windows is to be switched on now: the first start of a fresh install (no
+/// settings yet, also right after «Сбросить всё»), or settings from before it became the default.
 fn protect_store_file(identifier: &str) -> bool {
     if another_instance_runs(identifier) {
         return false;

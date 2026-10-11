@@ -28,6 +28,7 @@ import {
 import { useSettings } from "../lib/useSettings";
 import { useDebounced, useNow, useRootAttribute } from "./shell/hooks";
 import { PreviewClock, PreviewSystem } from "./shell/Preview";
+import { InkAllSection } from "./InkSection";
 import { onRadioGroupKeyDown } from "../lib/radioGroup";
 
 const a = ru.settings.appearance;
@@ -305,6 +306,8 @@ export function AppearancePage() {
       </Section>
 
       <FineTuning s={s} />
+
+      <InkAllSection ink={s.ink} />
 
       <Section title={a.theme} description={x.themeHint} padded>
         <div className="grid-3" role="radiogroup" aria-label={a.theme} onKeyDown={onRadioGroupKeyDown}>

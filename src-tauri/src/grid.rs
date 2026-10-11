@@ -242,8 +242,8 @@ fn min_of(mins: &HashMap<String, (f64, f64)>, label: &str, wa: &WorkArea) -> (i3
     ((w * s).ceil() as i32, (h * s).ceil() as i32)
 }
 
-/// Moves a tile to `to` in a few steps (about 140 ms), then gives it its size and saves the place.
-fn glide(app: &AppHandle, win: &WebviewWindow, label: &str, from: Rect, to: Rect) {
+/// Moves a tile to `to` in a few steps (about 140 ms) with its new size. The caller saves the place.
+fn glide(win: &WebviewWindow, from: Rect, to: Rect) {
     const STEPS: i32 = 9;
     if let Ok(h) = win.hwnd() {
         let hwnd = HWND(h.0);
@@ -260,7 +260,6 @@ fn glide(app: &AppHandle, win: &WebviewWindow, label: &str, from: Rect, to: Rect
             std::thread::sleep(std::time::Duration::from_millis(15));
         }
     }
-    let _ = layout::save_rect(app, label, to);
 }
 
 /// Every widget on screen to the grid in reading order (top to bottom, then left to right), each in the free block
@@ -286,20 +285,25 @@ pub fn align_all(app: &AppHandle, mins: &HashMap<String, (f64, f64)>) -> Result<
         taken.push(rect);
         moves.push((t.label.clone(), t.rect, rect));
     }
-    // All of them at once, each on its own thread: they glide together.
+    // All of them at once, each on its own thread: they glide together. Their places are saved together afterwards.
     let handles: Vec<_> = moves
-        .into_iter()
+        .iter()
         .filter_map(|(label, from, to)| {
-            let win = app.get_webview_window(&label)?;
-            let app = app.clone();
-            Some(std::thread::spawn(move || glide(&app, &win, &label, from, to)))
+            let win = app.get_webview_window(label)?;
+            let (from, to) = (*from, *to);
+            Some(std::thread::spawn(move || glide(&win, from, to)))
         })
         .collect();
     for h in handles {
         let _ = h.join();
     }
+    let placed: Vec<(String, Rect)> = moves.into_iter().map(|(label, _, to)| (label, to)).collect();
+    layout::save_rects(app, &placed)?;
     let after = layout::saved(app);
     if let Ok(store) = app.store(STORE_FILE) {
+        // Aligned again while the option stays on (a widget folded or unfolded, the scale changed): the way back
+        // still leads to the places from before the option was switched on, not to a half-aligned layout.
+        let before = store.get(UNDO_KEY).and_then(|u| u.get("before").cloned()).unwrap_or_else(|| serde_json::json!(before));
         store.set(UNDO_KEY, serde_json::json!({ "before": before, "after": after }));
         let _ = store.save();
     }
@@ -350,7 +354,8 @@ pub fn snap_one(app: &AppHandle, win: &WebviewWindow, mins: &HashMap<String, (f6
     let want = grid.block_for(&from, shape, min_of(mins, &label, &wa));
     let shape = if fixed { shape } else { Shape { w: want.n * grid.cx - 2 * grid.gap, h: want.m * grid.cy - 2 * grid.gap, fixed: false } };
     let to = grid.rect_in(grid.nearest_free(want, shape, &taken), shape);
-    glide(app, win, &label, from, to);
+    glide(win, from, to);
+    let _ = layout::save_rect(app, &label, to);
     forget_undo(app);
     Some(to)
 }

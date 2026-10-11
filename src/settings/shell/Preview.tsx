@@ -6,6 +6,7 @@ import { DOTS } from "../../components/Masked";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.shell";
 import { clockFont } from "../../lib/design";
+import { widgetInk } from "../../lib/ink";
 import type { ClockSettings, Settings } from "../../lib/settings";
 import { LOCALE } from "../../i18n/lang";
 
@@ -48,7 +49,7 @@ export function PreviewClock({ s, now }: { s: Settings; now: Date }) {
     color,
   };
   return (
-    <div className={c.background ? "pv-tile" : "pv-tile no-bg"} aria-hidden="true">
+    <div className={c.background ? "pv-tile" : "pv-tile no-bg"} aria-hidden="true" {...widgetInk(s, "clock")}>
       <div className="pv-clock" style={{ justifyContent: VALIGN[c.valign], alignItems: ALIGN[c.align] }}>
         <div
           className={row ? "pv-clock-body row" : "pv-clock-body"}
@@ -83,7 +84,7 @@ export function PreviewSystem({ s }: { s: Settings }) {
   if (sy.showWifi) rows.push({ icon: "wifi_1", label: ru.system.wifi, ...name(extra.appearance.sampleWifi) });
   if (sy.showBluetooth) rows.push({ icon: "bluetooth_connected", label: ru.system.bluetooth, ...name(extra.appearance.sampleDevice) });
   return (
-    <div className={sy.background ? "pv-tile" : "pv-tile no-bg"} aria-hidden="true">
+    <div className={sy.background ? "pv-tile" : "pv-tile no-bg"} aria-hidden="true" {...widgetInk(s, "system")}>
       <div className="pv-sys">
         {rows.map((r) => (
           <div key={r.icon} className="pv-row">

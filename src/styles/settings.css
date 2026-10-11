@@ -430,3 +430,11 @@
 }
 .licence-box[hidden] { display: none; }
 .licence-box p { margin: 0; }
+
+/* «Цвета» (src/settings/InkSection.tsx): the three choices across the row, the colour picker under them. */
+.ink-control {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s3);
+}
+.ink-picker { padding: var(--s1) 0; }

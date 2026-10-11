@@ -306,11 +306,24 @@ export function contentBox(el: HTMLElement): { w: number; h: number } {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * A launcher URL must start with http:// or https:// and name a host: `http://localhost:8080` or
+ * The address a launcher gets from what was typed: «youtube.com» or «www.site.kz/page» become https:// addresses,
+ * one typed with its scheme stays as it is (the scheme in lower case, so every check and the browser read it
+ * the same way). Anything that is not a web address (`ftp://…`, `mailto:…`) stays invalid for isValidUrl.
+ */
+export function fullUrl(text: string): string {
+  const t = text.trim();
+  if (t === "") return "";
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t)) return t.replace(/^https?:/i, (m) => m.toLowerCase());
+  return `https://${t}`;
+}
+
+/**
+ * A launcher URL (after fullUrl) must start with http:// or https:// and name a host: `http://localhost:8080` or
  * `http://intranet/` are fine (the opener and the favicon fetch accept them), `https://` alone is not.
  * The prefix is checked on the text itself, because the URL parser would also accept `http:example.com`.
  * No spaces inside (hasSpaces): the URL parser would accept them in a path, the settings file does not and
- * would drop the launcher.
+ * would drop the launcher. No name or password before the host either: «mailto:a@b.kz» typed without a scheme
+ * would read as one, and so does a lookalike such as `https://du.astanait.edu.kz@other.site`.
  */
 export function isValidUrl(url: string): boolean {
   const text = url.trim();
@@ -318,7 +331,7 @@ export function isValidUrl(url: string): boolean {
   if (!/^https?:\/\//i.test(text) || hasSpaces(text) || text.length > 2048) return false;
   try {
     const u = new URL(text);
-    return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.length > 0;
+    return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.length > 0 && u.username === "" && u.password === "";
   } catch {
     return false;
   }

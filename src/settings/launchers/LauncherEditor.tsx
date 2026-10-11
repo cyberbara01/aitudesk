@@ -13,6 +13,7 @@ import {
   builtInDef,
   builtInOriginal,
   bundledSiteIcon,
+  fullUrl,
   hasSpaces,
   isBuiltInOriginal,
   isIconMarkup,
@@ -132,9 +133,10 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
   }, []);
 
   const trimmedName = name.trim();
-  // The scheme in lower case at once («Https://» as typed): the icon fetch, the bundled-icon check and the saved
-  // address then all read the same address.
-  const trimmedUrl = url.trim().replace(/^https?:/i, (m) => m.toLowerCase());
+  // «youtube.com» is enough: https:// goes in front of an address typed without it, and the scheme is in lower
+  // case at once («Https://» as typed), so the icon fetch, the bundled-icon check and the saved address all read
+  // the same address.
+  const trimmedUrl = fullUrl(url);
   /** The site image the launcher already has stays valid only while the URL is unchanged. */
   const ownData =
     keepOwnImage && item?.icon.kind === "site" && isImageDataUrl(item.icon.data) && item.url === trimmedUrl
@@ -164,8 +166,8 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
 
   const nameError = touched.name && !trimmedName ? ru.settings.launchers.nameRequired : undefined;
   let urlError: string | undefined;
-  if (touched.url && !isValidUrl(url)) urlError = hasSpaces(url) ? extra.urlSpaces : ru.settings.launchers.urlInvalid;
-  const valid = Boolean(trimmedName) && isValidUrl(url);
+  if (touched.url && !isValidUrl(trimmedUrl)) urlError = hasSpaces(url) ? extra.urlSpaces : ru.settings.launchers.urlInvalid;
+  const valid = Boolean(trimmedName) && isValidUrl(trimmedUrl);
   const failed = failedUrl !== null && failedUrl === trimmedUrl;
 
   /** The icon to store, or null when saving has to stop (the site icon could not be fetched). */

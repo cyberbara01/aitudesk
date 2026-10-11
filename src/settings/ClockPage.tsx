@@ -26,6 +26,7 @@ import {
 } from "../lib/clock";
 import type { LayoutFile } from "../lib/config";
 import { ACCENT_PRESETS, CLOCK_FONTS, CLOCK_PRESETS, clockFont, contrast, isHex, type ClockPreset } from "../lib/design";
+import { widgetInk } from "../lib/ink";
 import { DEFAULT_CLOCK, settings, type ClockFont, type ClockSettings } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { ClockFace } from "../tiles/Clock";
@@ -211,10 +212,12 @@ function LivePreview({ settings: s, box }: { settings: ClockSettings; box: { w: 
 
   const zoom = avail > 0 ? Math.min(1, avail / box.w) : 1;
   const deskStyle: CSSProperties = { minHeight: Math.ceil(box.h * zoom) + 2 * DESK_PAD };
-  const tileStyle = { width: box.w, height: box.h, "--clock-preview-zoom": zoom } as CSSProperties;
+  // The colours of all widgets (the clock's own are its digits' and date's, above).
+  const { style: inkStyle, ...inkData } = widgetInk(useSettings(), "clock");
+  const tileStyle = { ...inkStyle, width: box.w, height: box.h, "--clock-preview-zoom": zoom } as CSSProperties;
   return (
     <div ref={deskRef} className="clock-desk" style={deskStyle}>
-      <div className={s.background ? "tile clock-preview" : "tile clock-preview no-bg"} style={tileStyle}>
+      <div className={s.background ? "tile clock-preview" : "tile clock-preview no-bg"} style={tileStyle} {...inkData}>
         <ClockFace settings={s} now={now} colonDim={colonDim} />
       </div>
     </div>

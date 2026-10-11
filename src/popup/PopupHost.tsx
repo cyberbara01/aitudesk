@@ -15,6 +15,7 @@ import { extra as shell } from "../i18n/ru.extra.shell";
 import { EDIT_EVENT } from "../lib/editMode";
 import { isMenuOpen } from "../lib/nativeMenu";
 import { customIdOf, isCustomLabel, settings, TILE_IDS, type TileId, type TileView } from "../lib/settings";
+import { widgetInk } from "../lib/ink";
 import { isFoldedView } from "../lib/tileView";
 import { useSettings } from "../lib/useSettings";
 import { useWidgetImage } from "../lib/widgetImage";
@@ -387,7 +388,8 @@ export function PopupHost() {
   const head = { x: card.x + HEAD_PAD, y: card.y + (HEAD - HEAD_ART) / 2 };
 
   return (
-    <div ref={stageRef} key={show.seq} className="popup-stage">
+    // The header and the flying icon take the widget's colours too (src/lib/ink.ts).
+    <div ref={stageRef} key={show.seq} className="popup-stage" {...widgetInk(s, show.label)}>
       <div
         className="popup-backdrop"
         onPointerDown={(e) => {

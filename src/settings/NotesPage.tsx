@@ -36,6 +36,7 @@ import { useDragReorder } from "../lib/useDragReorder";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { NoteCheck } from "./notes/NoteCheck";
 import { NoteEditor } from "./notes/NoteEditor";
+import { InkWidgetSection } from "./InkSection";
 
 const P = extra.page;
 
@@ -217,6 +218,8 @@ export function NotesPage({ editId }: { editId?: string | null }) {
           <Switch checked={background} onChange={(v) => update({ background: v })} ariaLabel={P.background} />
         </Row>
       </Section>
+
+      <InkWidgetSection widget="notes" />
 
       <ResetSection section="notes" />
 

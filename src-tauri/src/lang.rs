@@ -50,8 +50,8 @@ pub fn init_script(lang: Lang) -> String {
 }
 
 fn read_setting(identifier: &str) -> Option<String> {
-    let appdata = std::env::var_os("APPDATA")?;
-    let path = std::path::PathBuf::from(appdata).join(identifier).join(crate::layout::STORE_FILE);
+    // The folder the store plugin uses (the Roaming known folder), as lib.rs reads it.
+    let path = crate::roaming_app_data()?.join(identifier).join(crate::layout::STORE_FILE);
     let bytes = std::fs::read(path).ok()?;
     let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF][..]).unwrap_or(&bytes);
     let value: serde_json::Value = serde_json::from_slice(body).ok()?;
