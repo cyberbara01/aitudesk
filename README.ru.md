@@ -23,7 +23,7 @@
 
 <p align="center">
   <img src="docs/screenshots/desk-1.webp" alt="Ноутбук с AITU Desk: карта, часы и нагрузка вверху, заметки, система и ярлыки справа, расписание слева" width="100%">
-  <br><sub>Настоящий ноутбук: карта, часы и нагрузка вверху, расписание, заметки, система и ярлыки вокруг них.</sub>
+  <br><sub>карта, часы и нагрузка вверху, расписание, заметки, система и ярлыки вокруг них.</sub>
 </p>
 
 ## Что на рабочем столе
@@ -61,52 +61,6 @@
 
 Всё настраивается в одном окне, на русском или английском. Учитесь не в AITU? Всё, кроме карты, пригодится любому, а карту и ярлыки университета можно выключить.
 
-## Под себя
-
-Четыре дизайна, пять тем и стекло, свой акцентный цвет и любой цвет значков и текста. Каждую часть дизайна (шрифт, цифры, скругления, отступы, рамки, прозрачность) можно выбрать отдельно.
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-designs-dark.webp"><img src="docs/screenshots/board-designs.webp" alt="Четыре дизайна, одни и те же виджеты: Windows 11, Aqua, Rice и Pearl" width="100%"></picture>
-</p>
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-colors-dark.webp"><img src="docs/screenshots/board-colors.webp" alt="Одни и те же виджеты: цвета дизайна, значки в акценте, свои цвета и свои цвета у одного виджета" width="100%"></picture>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/desk-3.webp" alt="AITU Desk в зелёном акценте: часы, кольца нагрузки и выбранный день" width="100%">
-  <br><sub>Ваш акцентный цвет проходит через все виджеты: здесь розовый и зелёный.</sub>
-</p>
-
-## Ваш стол, ваше расположение
-
-Двигайте виджеты мышью, меняйте их размер, выравнивайте по сетке значков рабочего стола и выбирайте скругление углов прямо в меню виджета. Виджет, который нужен время от времени, сворачивается в значок и по щелчку вырастает в окно.
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-grid-dark.webp"><img src="docs/screenshots/board-grid.webp" alt="Виджеты по сетке значков рабочего стола и одни и те же часы с прямыми углами, 12 px и 24 px" width="100%"></picture>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/desk-2.webp" alt="Те же виджеты в другом порядке: расписание посередине, заметки справа внизу" width="100%">
-  <br><sub>Любое расположение: виджеты перетаскиваются куда угодно и меняют размер, а всё внутри растёт вместе с ними.</sub>
-</p>
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-desktop-dark.webp"><img src="docs/screenshots/board-desktop.webp" alt="Ноутбук: виджеты свёрнуты в значки, карта открыта из значка окном посередине экрана" width="100%"></picture>
-</p>
-
-## Карта AITU
-
-Этажи университета прямо на рабочем столе: найдите кабинет по номеру (223 или C1.2.223), переключите этаж, покрасьте свои кабинеты кистью. Аудитория следующей пары отмечена кольцом, а щелчок по аудитории в расписании ведёт сюда.
-
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-map-dark.webp"><img src="docs/screenshots/board-map.webp" alt="Виджет карты AITU на втором этаже с отмеченными кабинетами и что умеет карта" width="100%"></picture>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/desk-4.webp" alt="Карта второго этажа с отмеченными кабинетами на ноутбуке" width="100%">
-  <br><sub>Карта целым этажом или крупно, с вашими кабинетами в ваших цветах.</sub>
-</p>
 
 ## Как это работает
 
@@ -127,7 +81,7 @@
 
 <table>
 <tr>
-<td width="50%" valign="top"><b>Не боится Win+D</b><br>«Свернуть все окна» не прячет виджеты, а сами они никогда не закрывают ваши окна.</td>
+<td width="50%" valign="top"><b>...</b><br>...</td>
 <td width="50%" valign="top"><b>Живой отсчёт</b><br>За час до дедлайна заметка считает секунды.</td>
 </tr>
 <tr>
@@ -144,10 +98,6 @@
 </tr>
 </table>
 
-<p align="center">
-  <img src="docs/screenshots/desk-5.webp" alt="Компактный рабочий стол: виджеты справа вверху и приближенная карта" width="100%">
-  <br><sub>Каждый рабочий стол свой: соберите виджеты вместе или разнесите и оставьте только нужные.</sub>
-</p>
 
 ## Настройки
 
