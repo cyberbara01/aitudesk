@@ -4,6 +4,8 @@
 // Schema v2. Older files (v1: theme/accentFromWindows/tiles/builtIn/custom) are migrated on load.
 import { load, type Store } from "@tauri-apps/plugin-store";
 import { invoke } from "@tauri-apps/api/core";
+import { FILL_PRESETS } from "./fill";
+import { describeSetting, journal } from "./journal";
 
 // ---------------------------------------------------------------------------------------------
 // Design
@@ -86,8 +88,8 @@ export interface AccentSetting {
 // Tiles
 // ---------------------------------------------------------------------------------------------
 
-export type TileId = "clock" | "system" | "perf" | "launchers" | "map" | "schedule" | "notes";
-export const TILE_IDS: readonly TileId[] = ["clock", "system", "perf", "launchers", "map", "schedule", "notes"];
+export type TileId = "clock" | "system" | "perf" | "launchers" | "map" | "schedule" | "notes" | "calendar";
+export const TILE_IDS: readonly TileId[] = ["clock", "system", "perf", "launchers", "map", "schedule", "notes", "calendar"];
 
 export type ClockFont =
   /** Follows the design language: Segoe UI Display (Windows 11), Inter (Aqua), JetBrains Mono (Rice). */
@@ -153,7 +155,9 @@ export interface SystemSettings {
  * (src-tauri/src/layout.rs View).
  */
 export type TileView = "manual" | "small" | "medium" | "large";
-export const TILE_VIEWS: readonly TileView[] = ["manual", "small", "medium", "large"];
+/** In the order they are offered: the widget's own size, the standard one, then folded to its icon with the name, or
+ * only the icon. */
+export const TILE_VIEWS: readonly TileView[] = ["manual", "large", "medium", "small"];
 
 /** «Свои виджеты»: a picture or animation of the user's own on the desktop (src-tauri/src/custom.rs). */
 export interface CustomWidget {
@@ -168,6 +172,66 @@ export interface CustomWidget {
   enabled: boolean;
 }
 /** More windows than this would weigh on the computer; nobody needs more pictures on one desktop. */
+/**
+ * «Стопки виджетов»: places on the desktop where several widgets take turns, paged by the wheel, a swipe, a drag or
+ * the arrows (src/stack/StackHost.tsx). Each stack is a window of its own (`stack-<id>`, src-tauri/src/stacks.rs);
+ * a widget is in one stack at most and has no window of its own on the desktop meanwhile.
+ */
+export interface StackDef {
+  id: string;
+  /** Its name in menus and the settings; empty: «Стопка виджетов» or «Стопка N». */
+  name: string;
+  /** Its widgets in order: built-in ids and `custom-<id>`. */
+  members: string[];
+  /** Which way the widgets slide and the dots run (the wheel and a swipe either way page it in both). */
+  axis: StackAxis;
+}
+export type StackAxis = "vertical" | "horizontal";
+export const STACK_AXES: readonly StackAxis[] = ["vertical", "horizontal"];
+export const STACK_MAX = 8;
+export const STACK_NAME_MAX = 32;
+const STACK_ID = /^[a-z0-9]{4,16}$/;
+export const stackLabel = (id: string) => `stack-${id}`;
+export const isStackLabel = (label: string) => label.startsWith("stack-") && STACK_ID.test(label.slice(6));
+export const stackIdOf = (label: string) => label.slice(6);
+
+/** «Прозрачность до наведения»: every widget is see-through at rest and whole under the pointer. */
+export interface FadeSettings {
+  enabled: boolean;
+  /** How opaque a widget is at rest, FADE_MIN..FADE_MAX (%). */
+  opacity: number;
+}
+export const FADE_MIN = 10;
+export const FADE_MAX = 90;
+
+/**
+ * «Фон виджетов»: the theme's own, one colour, or a gradient between two points placed in the widget (x and y from
+ * 0 to 1 of its width and height; the gradient runs from the first to the second). The text and icons of the widgets
+ * turn light or dark by themselves to read on it (src/lib/fill.ts).
+ */
+export type FillMode = "theme" | "color" | "gradient";
+export const FILL_MODES: readonly FillMode[] = ["theme", "color", "gradient"];
+export interface FillStop {
+  color: string;
+  x: number;
+  y: number;
+}
+export interface WidgetFill {
+  mode: FillMode;
+  color: string;
+  from: FillStop;
+  to: FillStop;
+}
+
+/**
+ * «Размер содержимого» of a widget: its text, icons and spacing made smaller or bigger whatever the window's size.
+ * Keyed by the widget's label on the desktop and in the pop-up, and by `stack-<id>:<label>` inside a stack (a
+ * widget looks right in a stack at its own scale). No entry: «Авто», the content grows with the widget.
+ */
+export const CONTENT_SCALES = [0.7, 0.8, 0.9, 1, 1.15, 1.3, 1.5] as const;
+export type ContentScale = (typeof CONTENT_SCALES)[number];
+export const contentScaleKey = (label: string, stackId?: string | null) => (stackId ? `stack-${stackId}:${label}` : label);
+
 export const CUSTOM_MAX = 20;
 export const CUSTOM_NAME_MAX = 40;
 const CUSTOM_ID = /^[a-z0-9]{4,16}$/;
@@ -194,6 +258,40 @@ export const PERF_ALERTS: readonly PerfAlert[] = [0, 70, 80, 90];
 /** Seconds between readings: any whole number in this range, typed in. */
 export const PERF_INTERVAL_MIN = 1;
 export const PERF_INTERVAL_MAX = 3600;
+
+/** «Календарь»: the month (or this week, when the widget is low) with today marked and the notes' deadlines. */
+export type CalendarToday = "circle" | "square" | "ring";
+export const CALENDAR_TODAY: readonly CalendarToday[] = ["circle", "square", "ring"];
+export type CalendarTint = "text" | "accent" | "custom";
+/** The month's title: «Октябрь 2026», «Октябрь» or «10.2026». */
+export type CalendarTitle = "monthYear" | "month" | "numeric";
+export const CALENDAR_TITLES: readonly CalendarTitle[] = ["monthYear", "month", "numeric"];
+/** The date of the day line: «ср, 14 октября», «среда, 14 октября», «14 октября» or «14.10.2026». */
+export type CalendarDay = "short" | "long" | "date" | "numeric";
+export const CALENDAR_DAYS: readonly CalendarDay[] = ["short", "long", "date", "numeric"];
+export type CalendarAlign = "left" | "center" | "right";
+export const CALENDAR_ALIGNS: readonly CalendarAlign[] = ["left", "center", "right"];
+export interface CalendarSettings {
+  weekNumbers: boolean;
+  /** The neighbouring months' days at the edges of the month, quieter. */
+  otherDays: boolean;
+  title: CalendarTitle;
+  titleAlign: CalendarAlign;
+  today: CalendarToday;
+  /** A dot under the days with a deadline of a note. */
+  deadlines: boolean;
+  /** Under the month, the line of the day picked: its classes and deadlines. */
+  dayLine: boolean;
+  dayFormat: CalendarDay;
+  dayAlign: CalendarAlign;
+  /** The colour of today: the accent, or one of one's own. */
+  todayColor: { mode: "accent" | "custom"; color: string };
+  weekendColor: { mode: CalendarTint; color: string };
+  /** The dots of the deadlines: the accent, or a colour of one's own. */
+  deadlineColor: { mode: "accent" | "custom"; color: string };
+  background: boolean;
+  ink: Ink;
+}
 
 export interface PerfSettings {
   mode: PerfMode;
@@ -229,7 +327,7 @@ export interface CustomLauncher {
   name: string;
   url: string;
   icon: LauncherIcon;
-  /** #RRGGBB tint. */
+  /** #RRGGBB tint, or "" for the accent. */
   color: string;
 }
 
@@ -247,6 +345,7 @@ export interface BuiltInEdit {
 
 export interface LaunchersSettings {
   builtIn: Record<BuiltInLauncher, boolean>;
+  /** #RRGGBB, or "" for the accent. */
   builtInColors: Record<BuiltInLauncher, string>;
   /** Name, address and icon changed by the user, per built-in launcher. */
   builtInEdits: Partial<Record<BuiltInLauncher, BuiltInEdit>>;
@@ -271,7 +370,7 @@ export interface MapFavorite {
 
 export interface MapSettings {
   scheme: MapScheme;
-  /** «Свой цвет»: the colour the whole plan is drawn in shades of (#RRGGBB). */
+  /** The «tint» scheme: the colour the whole plan is drawn in shades of (#RRGGBB), or "" for the accent. */
   color: string;
   /** «Толщина номеров» of the room codes. */
   codeWeight: MapCodeWeight;
@@ -404,7 +503,7 @@ export interface ReminderSettings {
 }
 
 /** Interface language: the display language of Windows ("auto"), Russian or English. */
-export type LanguageSetting = "auto" | "ru" | "en";
+export type LanguageSetting = "auto" | "ru" | "en" | "kk";
 
 /** «Масштаб виджетов»: the zoom of every tile ("auto": smaller on small screens, see src-tauri/src/zoom.rs). */
 export type TileScale = "auto" | 0.8 | 0.9 | 1 | 1.1;
@@ -442,11 +541,16 @@ export interface Settings {
    * in the nearest free cells, and resized by hand, they grow and shrink by whole cells.
    */
   gridSnap: boolean;
+  stacks: StackDef[];
+  fade: FadeSettings;
+  fill: WidgetFill;
+  contentScale: Record<string, ContentScale>;
   /** The welcome page of the settings window has been seen («Начать»). Not part of any reset. */
   onboarded: boolean;
   clock: ClockSettings;
   system: SystemSettings;
   perf: PerfSettings;
+  calendar: CalendarSettings;
   launchers: LaunchersSettings;
   map: MapSettings;
   schedule: ScheduleSettings;
@@ -470,6 +574,8 @@ export const TILE_MIN: Record<TileId, { w: number; h: number }> = {
   schedule: { w: 200, h: 160 },
   // One note with its countdown and deadline, in every design's padding.
   notes: { w: 200, h: 140 },
+  // The header and one week of days.
+  calendar: { w: 220, h: 104 },
 };
 /** An own widget is a picture: any size down to a small square. */
 export const CUSTOM_MIN = { w: 64, h: 64 };
@@ -494,15 +600,17 @@ export const DEFAULT_CLOCK: ClockSettings = {
   datePosition: "below",
   align: "left",
   valign: "top",
-  color: "text",
+  color: "accent",
   customColor: "#FFFFFF",
   dateColor: "secondary",
   tabular: true,
   background: true,
 };
 
-/** Every colour as in the design (for one widget: as all widgets have it). */
+/** One widget's colours: as all widgets have them. */
 export const DEFAULT_INK: Ink = { icons: { mode: "auto", color: "#60CDFF" }, text: { mode: "auto", color: "#60CDFF" } };
+/** The colours of all widgets: the glyphs and the words in the accent, so a new accent recolours them all. */
+export const DEFAULT_INK_ALL: Ink = { icons: { mode: "accent", color: "#60CDFF" }, text: { mode: "accent", color: "#60CDFF" } };
 
 export const DEFAULT_SYSTEM: SystemSettings = {
   showWifi: true,
@@ -531,6 +639,7 @@ export const DEFAULT_PERF: PerfSettings = {
   ink: DEFAULT_INK,
 };
 
+/** Every part of «Тонкая настройка» as the design has it («Сбросить» there). */
 export const DEFAULT_LOOK: LookSettings = {
   font: "auto",
   numbers: "auto",
@@ -540,10 +649,13 @@ export const DEFAULT_LOOK: LookSettings = {
   border: "auto",
   material: "auto",
 };
+/** The look the app starts with: Aqua with matte transparency (not glass) and 24 px corners. */
+const START_LOOK: LookSettings = { ...DEFAULT_LOOK, corners: "24", material: "matte" };
 
 export const DEFAULT_LAUNCHERS: LaunchersSettings = {
   builtIn: { du: true, moodle: true, learn: true },
-  builtInColors: { du: "#60CDFF", moodle: "#9BE3A6", learn: "#FFB6A8" },
+  // In the accent, so a new accent recolours them; a colour of one's own is chosen in each launcher.
+  builtInColors: { du: "", moodle: "", learn: "" },
   builtInEdits: {},
   custom: [],
   showLabels: true,
@@ -553,7 +665,7 @@ export const DEFAULT_LAUNCHERS: LaunchersSettings = {
 
 export const DEFAULT_MAP: MapSettings = {
   scheme: "glass",
-  color: "#3B82F6",
+  color: "",
   codeWeight: "regular",
   codeColor: "",
   background: true,
@@ -611,23 +723,46 @@ export const DEFAULT_REMINDERS: ReminderSettings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   version: 2,
-  defaults: 2,
+  defaults: 3,
   language: "auto",
   tileScale: "auto",
-  theme: "system",
-  style: "fluent",
-  look: DEFAULT_LOOK,
-  ink: DEFAULT_INK,
+  // The design the app starts with (and «Сбросить оформление» brings back): Aqua, very dark, matte, 24 px corners,
+  // the glyphs and the words in the accent «Графит», the theme's own background.
+  theme: "darker",
+  style: "aqua",
+  look: START_LOOK,
+  ink: DEFAULT_INK_ALL,
   accent: { mode: "preset", preset: "graphite", custom: "#60CDFF" },
-  tiles: { clock: true, system: true, perf: true, launchers: true, map: true, schedule: true, notes: true },
+  tiles: { clock: true, system: true, perf: true, launchers: true, map: true, schedule: true, notes: true, calendar: true },
   tileViews: {},
   customWidgets: [],
   lockLayout: false,
   gridSnap: false,
+  // One empty stack from the start: on the desktop it invites a widget in.
+  stacks: [{ id: "main", name: "", members: [], axis: "horizontal" }],
+  fade: { enabled: false, opacity: 50 },
+  fill: { mode: "theme", color: "#27466E", from: { color: "#3E6FD6", x: 0.12, y: 0.15 }, to: { color: "#C9567A", x: 0.88, y: 0.85 } },
+  contentScale: {},
   onboarded: false,
   clock: DEFAULT_CLOCK,
   system: DEFAULT_SYSTEM,
   perf: DEFAULT_PERF,
+  calendar: {
+    weekNumbers: false,
+    otherDays: true,
+    title: "monthYear",
+    titleAlign: "left",
+    today: "circle",
+    deadlines: true,
+    dayLine: true,
+    dayFormat: "short",
+    dayAlign: "left",
+    todayColor: { mode: "accent", color: "#60CDFF" },
+    weekendColor: { mode: "accent", color: "#FF8A80" },
+    deadlineColor: { mode: "accent", color: "#F0716A" },
+    background: true,
+    ink: DEFAULT_INK,
+  },
   launchers: DEFAULT_LAUNCHERS,
   map: DEFAULT_MAP,
   schedule: DEFAULT_SCHEDULE,
@@ -718,8 +853,8 @@ function migrateLauncher(raw: unknown): CustomLauncher | null {
   if (typeof raw.icon === "string" && raw.icon) {
     icon = { kind: "fluent", name: raw.icon }; // v1
   }
-  let color = hex(raw.color, "");
-  if (!color) color = typeof raw.tint === "number" ? (V1_TINTS[raw.tint] ?? V1_TINTS[0]) : V1_TINTS[0];
+  // "" is the accent; v1 kept an index into its tints instead.
+  const color = typeof raw.tint === "number" && raw.color === undefined ? (V1_TINTS[raw.tint] ?? V1_TINTS[0]) : tint(raw.color, "");
   return { id: raw.id, name: str(raw.name, "").slice(0, 40), url, icon, color };
 }
 
@@ -770,13 +905,43 @@ function migrateNote(raw: unknown): Note | null {
 }
 
 /** The colours of the widgets or of one widget as stored; anything else gets the design's own. */
-function migrateInk(raw: unknown): Ink {
+function migrateInk(raw: unknown, d: Ink = DEFAULT_INK): Ink {
   const r = isObj(raw) ? raw : {};
-  const part = (v: unknown, d: InkPart): InkPart => {
+  const part = (v: unknown, dp: InkPart): InkPart => {
     const p = isObj(v) ? v : {};
-    return { mode: oneOf(p.mode, INK_MODES, d.mode), color: hex(p.color, d.color) };
+    return { mode: oneOf(p.mode, INK_MODES, dp.mode), color: hex(p.color, dp.color) };
   };
-  return { icons: part(r.icons, DEFAULT_INK.icons), text: part(r.text, DEFAULT_INK.text) };
+  return { icons: part(r.icons, d.icons), text: part(r.text, d.text) };
+}
+
+/** The ready-made gradients of the first «Фон виджетов» (each widget had the whole gradient), by their two colours:
+ * the calmer ones made for the screen-wide gradient take their place (src/lib/fill.ts FILL_PRESETS). */
+const OLD_GRADIENTS: Record<string, string> = {
+  "#1E3C72 #5B4A9E": "dusk",
+  "#16324F #2E8C88": "sea",
+  "#3A1C3F #B5524A": "ember",
+  "#FBE3D3 #F2B8C6": "peach",
+  "#DCD3F5 #BFE0F5": "lilac",
+  "#D4F0E2 #F3F0C8": "mint",
+};
+function upgradeFill(fill: WidgetFill): WidgetFill {
+  const id = OLD_GRADIENTS[`${fill.from.color.toUpperCase()} ${fill.to.color.toUpperCase()}`];
+  const preset = id ? FILL_PRESETS.find((p) => p.id === id) : undefined;
+  return preset ? { ...fill, from: preset.fill.from, to: preset.fill.to } : fill;
+}
+
+/** A colour that may follow the accent: "" (the accent) or #RRGGBB. */
+const tint = (v: unknown, d: string): string => (v === "" ? "" : hex(v, d));
+
+/** The colour of the calendar's deadline dots; before it could follow the accent it was a bare #RRGGBB (the old
+ * default red now follows the accent like the rest). */
+function deadlineColorOf(v: unknown, d: CalendarSettings["deadlineColor"]): CalendarSettings["deadlineColor"] {
+  if (typeof v === "string") {
+    const color = hex(v, d.color);
+    return { mode: color.toUpperCase() === "#F0716A" ? "accent" : "custom", color };
+  }
+  const o = isObj(v) ? v : {};
+  return { mode: oneOf(o.mode, ["accent", "custom"] as const, d.mode), color: hex(o.color, d.color) };
 }
 
 /** Accepts v1 or v2 JSON (or garbage) and returns a complete, validated v2 object. */
@@ -826,7 +991,9 @@ export function normalize(saved: unknown): Settings {
   // Views of the tiles that exist (built-in, and the custom widgets above).
   const viewsRaw = isObj(s.tileViews) ? s.tileViews : {};
   const tileViews: Record<string, TileView> = {};
-  for (const label of [...TILE_IDS, ...customWidgets.map((c) => customLabel(c.id))]) {
+  // The stacks' windows fold too (their ids as `normalize` takes them below).
+  const stackIds = Array.isArray(s.stacks) ? s.stacks.flatMap((d) => (isObj(d) && typeof d.id === "string" && STACK_ID.test(d.id) ? [d.id] : [])) : [];
+  for (const label of [...TILE_IDS, ...customWidgets.map((c) => customLabel(c.id)), ...stackIds.map(stackLabel)]) {
     const v = viewsRaw[label];
     if (v !== "manual" && TILE_VIEWS.includes(v as TileView)) tileViews[label] = v as TileView;
   }
@@ -886,6 +1053,27 @@ export function normalize(saved: unknown): Settings {
     ink: migrateInk(pf.ink),
   };
 
+  const ca = isObj(s.calendar) ? s.calendar : {};
+  const tc = isObj(ca.todayColor) ? ca.todayColor : {};
+  const wc = isObj(ca.weekendColor) ? ca.weekendColor : {};
+  const dc = d.calendar;
+  const calendar: CalendarSettings = {
+    weekNumbers: bool(ca.weekNumbers, dc.weekNumbers),
+    otherDays: bool(ca.otherDays, dc.otherDays),
+    title: oneOf(ca.title, CALENDAR_TITLES, dc.title),
+    titleAlign: oneOf(ca.titleAlign, CALENDAR_ALIGNS, dc.titleAlign),
+    today: oneOf(ca.today, CALENDAR_TODAY, dc.today),
+    deadlines: bool(ca.deadlines, dc.deadlines),
+    dayLine: bool(ca.dayLine, dc.dayLine),
+    dayFormat: oneOf(ca.dayFormat, CALENDAR_DAYS, dc.dayFormat),
+    dayAlign: oneOf(ca.dayAlign, CALENDAR_ALIGNS, dc.dayAlign),
+    todayColor: { mode: oneOf(tc.mode, ["accent", "custom"] as const, dc.todayColor.mode), color: hex(tc.color, dc.todayColor.color) },
+    weekendColor: { mode: oneOf(wc.mode, ["text", "accent", "custom"] as const, dc.weekendColor.mode), color: hex(wc.color, dc.weekendColor.color) },
+    deadlineColor: deadlineColorOf(ca.deadlineColor, dc.deadlineColor),
+    background: bool(ca.background, dc.background),
+    ink: migrateInk(ca.ink),
+  };
+
   // launchers (v1 kept builtIn/custom at the root)
   const l = isObj(s.launchers) ? s.launchers : {};
   const builtInRaw = isObj(l.builtIn) ? l.builtIn : isObj(s.builtIn) ? s.builtIn : {};
@@ -904,9 +1092,9 @@ export function normalize(saved: unknown): Settings {
       learn: bool(builtInRaw.learn, true),
     },
     builtInColors: {
-      du: hex(colorsRaw.du, d.launchers.builtInColors.du),
-      moodle: hex(colorsRaw.moodle, d.launchers.builtInColors.moodle),
-      learn: hex(colorsRaw.learn, d.launchers.builtInColors.learn),
+      du: tint(colorsRaw.du, d.launchers.builtInColors.du),
+      moodle: tint(colorsRaw.moodle, d.launchers.builtInColors.moodle),
+      learn: tint(colorsRaw.learn, d.launchers.builtInColors.learn),
     },
     builtInEdits,
     custom: customRaw.slice(0, LIMIT.launchers).map(migrateLauncher).filter((x): x is CustomLauncher => x !== null),
@@ -921,7 +1109,7 @@ export function normalize(saved: unknown): Settings {
   const mapOpacity = Math.round(num(m.opacity, d.map.opacity, 0, 100));
   const map: MapSettings = {
     scheme: oneOf(m.scheme, ["glass", "pastel", "vivid", "outline", "tint", "blueprint"] as const, d.map.scheme),
-    color: hex(m.color, d.map.color),
+    color: tint(m.color, d.map.color),
     codeWeight: oneOf(m.codeWeight, ["light", "regular", "bold"] as const, d.map.codeWeight),
     codeColor: m.codeColor === "" ? "" : hex(m.codeColor, d.map.codeColor),
     background: bool(m.background, d.map.background),
@@ -982,6 +1170,59 @@ export function normalize(saved: unknown): Settings {
     ink: migrateInk(n.ink),
   };
 
+  // stacks: known widgets only (an own widget that was deleted leaves its stack), each in one stack once. Settings
+  // of the first version had one stack (`stack`): it carries over while it was on (src-tauri/src/stacks.rs reads the
+  // same way until these are saved).
+  const ownLabels = new Set(customWidgets.map((w) => customLabel(w.id)));
+  const known = (l: unknown): l is string => typeof l === "string" && ((TILE_IDS as readonly string[]).includes(l) || ownLabels.has(l));
+  const oldStack = isObj(s.stack) ? s.stack : null;
+  const rawStacks: unknown[] = Array.isArray(s.stacks)
+    ? s.stacks
+    : oldStack
+      ? bool(oldStack.enabled, true)
+        ? [{ id: "main", name: "", members: oldStack.members, axis: oldStack.axis }]
+        : []
+      : d.stacks;
+  const taken = new Set<string>();
+  const stacks: StackDef[] = [];
+  for (const v of rawStacks) {
+    if (!isObj(v) || typeof v.id !== "string" || !STACK_ID.test(v.id) || stacks.some((x) => x.id === v.id) || stacks.length >= STACK_MAX) continue;
+    const members: string[] = [];
+    for (const m of Array.isArray(v.members) ? v.members : []) {
+      if (known(m) && !taken.has(m)) {
+        taken.add(m);
+        members.push(m);
+      }
+    }
+    stacks.push({
+      id: v.id,
+      name: typeof v.name === "string" ? v.name.slice(0, STACK_NAME_MAX) : "",
+      members,
+      axis: oneOf(v.axis, STACK_AXES, "horizontal"),
+    });
+  }
+  const cs = isObj(s.contentScale) ? s.contentScale : {};
+  const contentScale: Record<string, ContentScale> = {};
+  for (const [k, v] of Object.entries(cs)) {
+    if (k.length <= 64 && (CONTENT_SCALES as readonly unknown[]).includes(v)) contentScale[k] = v as ContentScale;
+  }
+  const f = isObj(s.fade) ? s.fade : {};
+  const fade: FadeSettings = {
+    enabled: bool(f.enabled, d.fade.enabled),
+    opacity: Math.round(num(f.opacity, d.fade.opacity, FADE_MIN, FADE_MAX)),
+  };
+  const fl = isObj(s.fill) ? s.fill : {};
+  const stop = (v: unknown, dv: FillStop): FillStop => {
+    const o = isObj(v) ? v : {};
+    return { color: hex(o.color, dv.color), x: num(o.x, dv.x, 0, 1), y: num(o.y, dv.y, 0, 1) };
+  };
+  const fill: WidgetFill = upgradeFill({
+    mode: oneOf(fl.mode, FILL_MODES, d.fill.mode),
+    color: hex(fl.color, d.fill.color),
+    from: stop(fl.from, d.fill.from),
+    to: stop(fl.to, d.fill.to),
+  });
+
   // reminders
   const r = isObj(s.reminders) ? s.reminders : {};
   const dr = d.reminders;
@@ -1003,22 +1244,27 @@ export function normalize(saved: unknown): Settings {
   return {
     version: 2,
     defaults: Math.round(num(s.defaults, isObj(saved) ? 0 : d.defaults, 0, 1000)),
-    language: oneOf(s.language, ["auto", "ru", "en"] as const, d.language),
+    language: oneOf(s.language, ["auto", "ru", "en", "kk"] as const, d.language),
     tileScale: TILE_SCALES.includes(s.tileScale as TileScale) ? (s.tileScale as TileScale) : d.tileScale,
     theme,
     style,
     look,
-    ink: migrateInk(s.ink),
+    ink: migrateInk(s.ink, d.ink),
     accent,
     tiles,
     tileViews,
     customWidgets,
     lockLayout: bool(s.lockLayout, d.lockLayout),
     gridSnap: bool(s.gridSnap, d.gridSnap),
+    stacks,
+    fade,
+    fill,
+    contentScale,
     onboarded: bool(s.onboarded, d.onboarded),
     clock,
     system,
     perf,
+    calendar,
     launchers,
     map,
     schedule,
@@ -1030,9 +1276,9 @@ export function normalize(saved: unknown): Settings {
 export type SettingsPatch = Partial<Omit<Settings, "version">>;
 
 /** Pages that can be reset on their own. */
-export type ResetSection = "appearance" | "clock" | "system" | "perf" | "launchers" | "map" | "schedule" | "notes" | "reminders";
+export type ResetSection = "appearance" | "clock" | "system" | "perf" | "calendar" | "launchers" | "map" | "schedule" | "notes" | "reminders";
 /** The sections «Сбросить оформление» resets: the look of the app and the tiles (reminders are not looks). */
-export const RESET_SECTIONS: readonly ResetSection[] = ["appearance", "clock", "system", "perf", "launchers", "map", "schedule", "notes"];
+export const RESET_SECTIONS: readonly ResetSection[] = ["appearance", "clock", "system", "perf", "calendar", "launchers", "map", "schedule", "notes"];
 
 /**
  * Defaults for the customization of one section. User data stays: lessons, notes, custom launchers and
@@ -1044,13 +1290,15 @@ function resetPatch(s: Settings, section: ResetSection): SettingsPatch {
   const d = DEFAULT_SETTINGS;
   switch (section) {
     case "appearance":
-      return { theme: d.theme, style: d.style, look: d.look, ink: d.ink, accent: d.accent, tileScale: d.tileScale };
+      return { theme: d.theme, style: d.style, look: d.look, ink: d.ink, accent: d.accent, tileScale: d.tileScale, fade: d.fade, fill: d.fill };
     case "clock":
       return { clock: d.clock };
     case "system":
       return { system: { ...d.system, customLabel: s.system.customLabel, hideNames: s.system.hideNames } };
     case "perf":
       return { perf: d.perf };
+    case "calendar":
+      return { calendar: d.calendar };
     case "launchers":
       return {
         launchers: { ...d.launchers, builtIn: s.launchers.builtIn, builtInEdits: s.launchers.builtInEdits, custom: s.launchers.custom },
@@ -1157,6 +1405,11 @@ class SettingsStore {
     const zoomChanged = next.tileScale !== this.current.tileScale;
     const customChanged = next.customWidgets !== this.current.customWidgets;
     const viewsChanged = next.tileViews !== this.current.tileViews;
+    const stacksChanged = next.stacks !== this.current.stacks;
+    // «Журнал»: which settings changed (unchanged parts keep their objects, `share`), nothing personal in them.
+    for (const key of Object.keys(next) as (keyof Settings)[]) {
+      if (next[key] !== this.current[key] && key !== "version") journal(`setting ${key}: ${describeSetting(key, next[key])}`);
+    }
     this.current = next;
     this.emit();
     await store.set(KEY, next);
@@ -1166,6 +1419,9 @@ class SettingsStore {
     if (zoomChanged) await invoke("apply_tile_scale").catch(() => undefined);
     if (customChanged) await invoke("sync_custom_widgets").catch(() => undefined);
     if (viewsChanged) await invoke("apply_tile_views").catch(() => undefined);
+    // A stack made or deleted gets or loses its window; a widget that went into a stack leaves the desktop, one taken
+    // out comes back.
+    if (stacksChanged) await invoke("sync_stacks").catch(() => undefined);
     // «Выравнивать по сетке»: widgets that changed size or came new go back to the cells of the desktop icons, once
     // the native side has given them their new size (a view and a new window are applied on its main thread).
     if (next.gridSnap && (zoomChanged || customChanged || viewsChanged)) {

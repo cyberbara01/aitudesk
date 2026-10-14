@@ -12,12 +12,21 @@ import { useSettings } from "./useSettings";
 const label = getCurrentWindow().label;
 /** This page is the pop-up: it shows the widgets of other windows, always whole. */
 export const IN_POPUP = label === "popup";
+/** This page is a stack of widgets (src/stack/StackHost.tsx): other windows' widgets in turns, always whole. */
+export const IN_STACK = label.startsWith("stack-");
+/** The id of this page's stack (settings `stacks`), or null. */
+export const STACK_ID = IN_STACK ? label.slice(6) : null;
+/** This page shows other windows' widgets (the pop-up or the stack): they never fold, move or size their window. */
+export const IN_HOST = IN_POPUP || IN_STACK;
 
 export const isFoldedView = (v: TileView) => v === "small" || v === "medium";
 
-export function useTileView(): TileView {
+/** The view of `of` (by default this window's own): a widget drawn in the pop-up or inside a stack is always whole;
+ * the stack's own face (`of` is the stack's window) folds like any widget. */
+export function useTileView(of: string = label): TileView {
   const views = useSettings().tileViews;
-  return IN_POPUP ? "manual" : (views[label] ?? "manual");
+  if (IN_POPUP || (IN_STACK && of !== label)) return "manual";
+  return views[of] ?? "manual";
 }
 
 /** True while only the icon shows: a folded widget's content lives in the pop-up. */

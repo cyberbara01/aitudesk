@@ -144,7 +144,7 @@ fn create_sentinel() {
             SENTINEL.store(h.0 as isize, Ordering::Relaxed);
             pin_bottom(h);
         }
-        Err(e) => eprintln!("[desktop] cannot create the sentinel window: {e}"),
+        Err(e) => crate::note!("problem", "[desktop] cannot create the sentinel window: {e}"),
     }
 }
 
@@ -413,7 +413,7 @@ fn schedule_poll() {
     }
     let id = unsafe { SetTimer(None, TIMER_ID.load(Ordering::Relaxed), want, Some(on_timer)) };
     if id == 0 {
-        eprintln!("[desktop] SetTimer failed; Win+D protection limited to the hooks");
+        crate::note!("problem", "[desktop] SetTimer failed; Win+D protection limited to the hooks");
         return;
     }
     TIMER_ID.store(id, Ordering::Relaxed);
@@ -579,7 +579,7 @@ pub fn install(app: &AppHandle) {
     let foreground = hook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND);
     let minimize = hook(EVENT_SYSTEM_MINIMIZESTART, EVENT_SYSTEM_MINIMIZEEND);
     if foreground.0.is_null() || minimize.0.is_null() {
-        eprintln!("[desktop] SetWinEventHook failed; relying on a fast timer");
+        crate::note!("problem", "[desktop] SetWinEventHook failed; relying on a fast timer");
         // Without the hooks only the poll notices "Show desktop": keep it fast.
         FAST_UNTIL_MS.store(u64::MAX, Ordering::Relaxed);
     }

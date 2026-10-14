@@ -397,6 +397,103 @@
 .about-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .about-name { font-family: var(--font-display); font-size: var(--subtitle-size); line-height: var(--subtitle-lh); font-weight: 600; }
 .about-tagline { color: var(--text-2); }
+/* ---- «Фон виджетов» (src/settings/FillSection.tsx) ---- */
+.fill-row { gap: var(--s3); }
+.fill-presets { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.fill-preset {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12), inset 0 1px 0 rgba(255, 255, 255, .14);
+  cursor: pointer;
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+}
+.fill-preset:hover { transform: translateY(-1px); }
+.fill-preset.on { box-shadow: 0 0 0 2px var(--surface, #202128), 0 0 0 4px var(--accent); }
+.fill-preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fill-check { color: #FFFFFF; }
+.fill-check.dark { color: #1B1B1F; }
+.fill-own { display: flex; flex-direction: column; gap: var(--s2); }
+/* The picker's own swatches are the ready-made ones above: only its colour square stays. */
+.fill-own .cp-swatches,
+.fill-editor .cp-swatches { display: none; }
+.fill-editor { display: flex; flex-direction: column; gap: var(--s3); }
+.fill-preview {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), 0 1px 2px rgba(0, 0, 0, .2);
+  color: #FFFFFF;
+  /* A point at the very edge stays whole to grab. */
+  overflow: visible;
+  touch-action: none;
+  user-select: none;
+}
+.fill-preview.light { color: #1B1B1F; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .08); }
+/* The widgets on the miniature screen: frosted panes over the colour, as on the desktop. */
+.fill-mini {
+  position: absolute;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .10);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+  pointer-events: none;
+}
+.fill-preview.light .fill-mini { background: rgba(255, 255, 255, .42); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .05); }
+.fill-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.fill-line line { stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 4 5; opacity: .55; }
+.fill-point {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  padding: 0;
+  border: 2px solid #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35), 0 0 0 1px rgba(0, 0, 0, .18);
+  cursor: grab;
+  touch-action: none;
+}
+.fill-point:active { cursor: grabbing; }
+/* A bigger target than the dot. */
+.fill-point::after { content: ""; position: absolute; inset: -10px; border-radius: 50%; }
+.fill-point.on { box-shadow: 0 1px 3px rgba(0, 0, 0, .35), 0 0 0 3px var(--accent); }
+.fill-point:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent), 0 0 0 5px rgba(255, 255, 255, .8); }
+.fill-point span { font-size: 11px; font-weight: 700; color: #FFFFFF; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); }
+.fill-hint { margin: 0; color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); }
+.fill-stops { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.fill-stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px 0 8px;
+  border: 1px solid var(--ctl-border, rgba(255, 255, 255, .1));
+  border-radius: 999px;
+  background: var(--ctl-fill, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--caption-size);
+  cursor: pointer;
+}
+.fill-stop.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.fill-stop-dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .2); }
+
+/* «Неофициальный проект»: said plainly, under the version, without weight. */
+.about-unofficial { margin-top: 2px; color: var(--text-3, var(--text-2)); font-size: var(--caption-size); line-height: var(--caption-lh); }
+/* «Журнал»: how full it is, a thin bar under its line; amber near the limit, red at it. */
+.journal-fill .row-text { gap: 2px; }
+.journal-bar { display: block; height: 6px; margin-top: 8px; border-radius: 3px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
+.journal-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 300ms cubic-bezier(.32, .72, 0, 1), background-color 200ms ease-out; }
+.journal-bar.near > span { background: #E8A33D; }
+.journal-bar.full > span { background: #E5534B; }
 .about-meta {
   display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2);
   margin-top: var(--s1);
@@ -438,3 +535,17 @@
   gap: var(--s3);
 }
 .ink-picker { padding: var(--s1) 0; }
+
+/* Over Windows' own material (Mica, acrylic) the settings window is a neutral grey, a little tinted by the
+   wallpaper, while the palette's solid colours lean blue: a dialog, a menu, a list or a tooltip in them never looked
+   like the window. There they take Windows' own neutral greys for raised surfaces instead (the ones its own dialogs
+   and menus use over Mica). A solid window keeps the palette's (base.css). */
+:root[data-window="settings"][data-scheme="dark"]:not([data-glass="off"]):not([data-material="solid"]) {
+  --surface: #2C2C2C;
+  --surface-raised: #2C2C2C;
+  --tooltip-fill: #2C2C2C;
+}
+:root[data-window="settings"][data-scheme="light"]:not([data-glass="off"]):not([data-material="solid"]) {
+  --surface: #F9F9F9;
+  --surface-raised: #F9F9F9;
+}

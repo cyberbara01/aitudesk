@@ -28,6 +28,7 @@ import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
 import { extra } from "../i18n/ru.extra.transfer";
 import { extra as perfStrings } from "../i18n/ru.extra.perf";
+import { extra as calendarStrings } from "../i18n/ru.extra.calendar";
 import { hostOf } from "./launchers";
 import {
   INK_PARTS,
@@ -42,7 +43,7 @@ import {
   type Settings,
   type SettingsPatch,
 } from "./settings";
-import { LOCALE } from "../i18n/lang";
+import { LOCALE, NUMBER_LOCALE } from "../i18n/lang";
 
 /** Version of the file layout. Raise it only when an older app would misread a newer file. */
 export const FORMAT = 1;
@@ -50,7 +51,7 @@ export const FORMAT = 1;
 /** Settings keys a file can carry: all but `version`, `defaults`, `onboarded`, `language` and `tileScale`. */
 export type SettingsKey = Exclude<keyof Settings, "version" | "defaults" | "onboarded" | "language" | "tileScale">;
 
-export type PartId = "tiles" | "layout" | "appearance" | "clock" | "system" | "perf" | "launchers" | "map" | "schedule" | "reminders" | "custom" | "notes";
+export type PartId = "tiles" | "layout" | "appearance" | "clock" | "system" | "perf" | "calendar" | "launchers" | "map" | "schedule" | "reminders" | "custom" | "notes";
 
 export interface Part {
   id: PartId;
@@ -62,12 +63,13 @@ export interface Part {
 }
 
 const PART_LIST = [
-  { id: "tiles", label: ru.settings.general.tiles, keys: ["tiles", "tileViews", "lockLayout", "gridSnap"], personal: false },
+  { id: "tiles", label: ru.settings.general.tiles, keys: ["tiles", "tileViews", "lockLayout", "gridSnap", "stacks", "contentScale"], personal: false },
   { id: "layout", label: extra.parts.layout, keys: [], personal: false },
-  { id: "appearance", label: ru.settings.nav.appearance, keys: ["style", "theme", "look", "ink", "accent"], personal: false },
+  { id: "appearance", label: ru.settings.nav.appearance, keys: ["style", "theme", "look", "ink", "accent", "fade", "fill"], personal: false },
   { id: "clock", label: ru.settings.nav.clock, keys: ["clock"], personal: false },
   { id: "system", label: ru.settings.nav.system, keys: ["system"], personal: false },
   { id: "perf", label: ru.settings.nav.perf, keys: ["perf"], personal: false },
+  { id: "calendar", label: ru.settings.nav.calendar, keys: ["calendar"], personal: false },
   { id: "launchers", label: ru.settings.nav.launchers, keys: ["launchers"], personal: false },
   { id: "map", label: ru.settings.nav.map, keys: ["map"], personal: false },
   { id: "schedule", label: ru.settings.nav.schedule, keys: ["schedule"], personal: false },
@@ -205,11 +207,11 @@ export function buildConfigFile(
   if (layout && parts.some((p) => p.id === "layout")) {
     const { x, y, w, h, scale } = layout.screen;
     const tiles: Record<string, TileRect> = {};
-    for (const id of TILE_IDS) {
+    for (const id of LAYOUT_IDS) {
       const r = layout.tiles[id];
       if (r) tiles[id] = { x: r.x, y: r.y, w: r.w, h: r.h };
     }
-    const defaults = TILE_IDS.filter((id) => !tiles[id] && (layout.defaults ?? []).includes(id));
+    const defaults = LAYOUT_IDS.filter((id) => !tiles[id] && (layout.defaults ?? []).includes(id));
     file.layout = { screen: { x, y, w, h, scale }, zoom: layout.zoom, tiles, defaults };
   }
   if (pictures) file.images = pictures;
@@ -281,11 +283,14 @@ function readZoom(v: unknown): number {
   return typeof v === "number" && v >= 0.5 && v <= 2 ? v : 1;
 }
 
+/** The windows whose place a layout file carries: the built-in widgets (layout.rs TILES). */
+const LAYOUT_IDS: readonly string[] = TILE_IDS;
+
 /** Rects of the known tiles that layout.rs accepts (whole px, 40..20000 px in size). */
 function readRects(v: unknown): Record<string, TileRect> {
   const tiles: Record<string, TileRect> = {};
   if (!isObj(v)) return tiles;
-  for (const id of TILE_IDS) {
+  for (const id of LAYOUT_IDS) {
     const r = v[id];
     if (isObj(r) && isInt(r.x, -COORD, COORD) && isInt(r.y, -COORD, COORD) && isInt(r.w, 40, 20_000) && isInt(r.h, 40, 20_000)) {
       tiles[id] = { x: r.x, y: r.y, w: r.w, h: r.h };
@@ -297,7 +302,7 @@ function readRects(v: unknown): Record<string, TileRect> {
 /** Known tiles listed as never moved, without the ones that also have a rect. */
 function readDefaults(v: unknown, tiles: Record<string, TileRect>): string[] {
   if (!Array.isArray(v)) return [];
-  return TILE_IDS.filter((id) => v.includes(id) && !tiles[id]);
+  return LAYOUT_IDS.filter((id) => v.includes(id) && !tiles[id]);
 }
 
 /** Whether a file value can stand for its key at all. Others count as absent; normalize checks the rest. */
@@ -305,7 +310,7 @@ function usable(key: SettingsKey, v: unknown): boolean {
   if (key === "style") return (STYLE_IDS as readonly unknown[]).includes(v);
   if (key === "theme") return (THEME_IDS as readonly unknown[]).includes(v);
   if (key === "lockLayout" || key === "gridSnap") return typeof v === "boolean";
-  if (key === "customWidgets") return Array.isArray(v);
+  if (key === "customWidgets" || key === "stacks") return Array.isArray(v);
   return isObj(v);
 }
 
@@ -541,7 +546,7 @@ export function imagesBytes(images: Readonly<Record<string, string>>, files: Ite
 export function sizeText(bytes: number): string {
   const kb = bytes / 1024;
   if (kb < 1000) return extra.size.kb(String(Math.max(1, Math.ceil(kb))));
-  return extra.size.mb(new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 }).format(kb / 1024));
+  return extra.size.mb(new Intl.NumberFormat(NUMBER_LOCALE, { maximumFractionDigits: 1 }).format(kb / 1024));
 }
 
 /**
@@ -556,7 +561,8 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       const total = TILE_IDS.length;
       const on = TILE_IDS.filter((t) => s.tiles[t]).length;
       const base = on === total ? x.tilesAll(total) : on === 0 ? x.tilesNone : x.tilesSome(on, total);
-      return [base, ...(s.gridSnap ? [x.grid] : []), ...(s.lockLayout ? [x.locked] : [])].join(", ");
+      const stacked = s.stacks.reduce((n, d) => n + d.members.length, 0);
+      return [base, ...(stacked ? [x.inStack(stacked)] : []), ...(s.gridSnap ? [x.grid] : []), ...(s.lockLayout ? [x.locked] : [])].join(", ");
     }
     case "layout":
       if (layout === undefined) return x.layoutExport;
@@ -570,6 +576,7 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       const accent = a.mode === "windows" ? x.accentWindows : a.mode === "custom" ? x.accentCustom(a.custom) : x.accentPreset(accentName);
       const own = LOOK_PARTS.filter((part) => s.look[part] !== "auto").map((part) => shell.appearance.parts[part].toLocaleLowerCase(LOCALE));
       for (const part of INK_PARTS) if (s.ink[part].mode !== "auto") own.push(shell.ink.parts[part].toLocaleLowerCase(LOCALE));
+      if (s.fade.enabled) own.push(shell.fade.title.toLocaleLowerCase(LOCALE));
       const base = `${look.styles[s.style]}, ${theme}, ${accent}`;
       return own.length > 0 ? `${base}, ${shell.appearance.fineSummary(own.join(", "))}` : base;
     }
@@ -593,6 +600,11 @@ export function partSummary(id: PartId, s: Settings, layout?: FileLayout | null)
       const names = (["cpu", "gpu", "ram", "disk"] as const).filter((k) => p[k]).map((k) => perfStrings.full[k].toLocaleLowerCase(LOCALE));
       if (p.temp) names.push(perfStrings.temp.toLocaleLowerCase(LOCALE));
       return perfStrings.summary(perfStrings.modes[p.mode], names.join(", "));
+    }
+    case "calendar": {
+      const c = s.calendar;
+      const marks = [c.deadlines ? calendarStrings.summaryDeadlines : "", c.weekNumbers ? calendarStrings.summaryWeeks : ""].filter(Boolean);
+      return calendarStrings.summary(calendarStrings.todayStyles[c.today], marks.join(", "));
     }
     case "launchers": {
       const builtIn = Object.values(s.launchers.builtIn).filter(Boolean).length;

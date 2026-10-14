@@ -62,7 +62,7 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
    (lib/launchers.ts launcherInk) and are picked by palette through --ln-ink, so «Добавить» below can still
    set its own colour. */
 .ln-square {
-  --ln-ink: var(--ln-ink-dark, var(--ln-color, var(--accent)));
+  --ln-ink: var(--ln-ink-dark, var(--ln-color, var(--accent-text)));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -75,7 +75,7 @@ button.ln-cell:focus-visible { outline: 2px solid var(--focus-ring); outline-off
   overflow: hidden;
   transition: opacity var(--t-base) var(--ease-in);
 }
-:root[data-scheme="light"] .ln-square { --ln-ink: var(--ln-ink-light, var(--ln-color, var(--accent))); }
+:root[data-scheme="light"] .ln-square { --ln-ink: var(--ln-ink-light, var(--ln-color, var(--accent-text))); }
 .ln-square .icon { color: inherit; }
 .ln-img {
   display: block;

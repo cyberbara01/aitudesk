@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { accentPreset, isDarkTheme, isHex, onColor, readableOn, resolveLook, resolveTheme, withAlpha } from "./design";
+import { fillIsLight } from "./fill";
 import { markAppearanceApplied } from "./ready";
 import { settings, type Look, type Settings, type StyleId, type ThemeId } from "./settings";
 
@@ -22,6 +23,8 @@ export interface Appearance {
 const MATERIAL = { glass: "acrylic", matte: "mica", solid: "none" } as const;
 
 const root = document.documentElement;
+/** The widgets' windows (and the pop-up that shows them) take «Фон виджетов»; the settings window keeps the theme. */
+const WIDGET_PAGE = getCurrentWindow().label !== "settings";
 
 /**
  * The surface an accent has to stand out from in each palette: the lightest card on dark palettes, the
@@ -130,7 +133,9 @@ export function useTheme(): Appearance {
     };
   }, []);
 
-  const theme = resolveTheme(s.theme, windowsDark ?? true);
+  // On a background of one's own the widgets take the light or the dark palette that reads on it.
+  const ownFill = WIDGET_PAGE && s.fill.mode !== "theme";
+  const theme = ownFill ? (fillIsLight(s.fill) ? "light" : "dark") : resolveTheme(s.theme, windowsDark ?? true);
   // Glass keeps its own tokens in both schemes and takes light or dark from Windows, as "system" does.
   const dark = theme === "glass" ? (windowsDark ?? true) : isDarkTheme(theme);
   const accentKey = `${s.accent.mode}|${s.accent.preset}|${s.accent.custom}`;

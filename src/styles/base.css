@@ -79,6 +79,21 @@ a { color: var(--accent-text); text-decoration: none; }
 .tile.see-through:not(.no-bg) { background: color-mix(in srgb, var(--tile-fallback) 84%, transparent); }
 :root[data-material="solid"] .tile.see-through:not(.no-bg) { background: var(--tile-fallback); }
 .tile.see-through.lit { transition-duration: 200ms; transition-timing-function: cubic-bezier(0, 0, .2, 1); }
+/* «Фон виджетов» of one's own (Tile.tsx, src/lib/fill.ts): one colour, or the part of one screen-wide gradient
+   under the widget. Over the glass it is a tint and the frosted wallpaper still shows; denser on a widget that fades;
+   whole without the glass. The theme's light outline would cut the colour into boxes, so it becomes a hairline of
+   the text's own tone (a border chosen in «Тонкая настройка» stays). */
+:root:not([data-border="accent"], [data-border="none"]) .tile.own-fill {
+  --tile-border: color-mix(in srgb, var(--text) 7%, transparent);
+  --tile-edge: rgba(255, 255, 255, .07);
+}
+:root[data-scheme="light"]:not([data-border="accent"], [data-border="none"]) .tile.own-fill { --tile-edge: rgba(255, 255, 255, .45); }
+.tile.own-fill:not(.no-bg) { background: var(--fill-glass) var(--fill-at) / var(--fill-size) no-repeat; }
+.tile.own-fill.see-through:not(.no-bg) { background: var(--fill-dense) var(--fill-at) / var(--fill-size) no-repeat; }
+:root:is([data-glass="off"], [data-material="solid"]) .tile.own-fill:not(.no-bg),
+:root:is([data-glass="off"], [data-material="solid"]) .tile.own-fill.see-through:not(.no-bg) {
+  background: var(--fill-solid) var(--fill-at) / var(--fill-size) no-repeat;
+}
 @media (prefers-reduced-motion: reduce) {
   .tile.see-through { transition: none; }
 }

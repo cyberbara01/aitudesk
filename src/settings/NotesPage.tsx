@@ -47,6 +47,8 @@ interface EditorState {
   /** Changes on every open so the editor remounts with fresh form state. */
   key: number;
   note: Note | null;
+  /** A new note for a day picked in the calendar («new@YYYY-MM-DD», «remind@YYYY-MM-DD»). */
+  preset?: { date: string; remind: boolean } | null;
 }
 
 export function NotesPage({ editId }: { editId?: string | null }) {
@@ -86,6 +88,12 @@ export function NotesPage({ editId }: { editId?: string | null }) {
     handledEdit.current = editId;
     if (editId === NEW_NOTE) {
       setEditor({ key: Date.now(), note: null });
+      return;
+    }
+    // From the calendar: a note (or a reminder) with its deadline on that day.
+    const day = /^(new|remind)@(\d{4}-\d{2}-\d{2})$/.exec(editId);
+    if (day) {
+      setEditor({ key: Date.now(), note: null, preset: { date: day[2], remind: day[1] === "remind" } });
       return;
     }
     const note = settings.get().notes.notes.find((n) => n.id === editId);
@@ -223,7 +231,7 @@ export function NotesPage({ editId }: { editId?: string | null }) {
 
       <ResetSection section="notes" />
 
-      {editor && <NoteEditor key={editor.key} note={editor.note} onClose={closeEditor} />}
+      {editor && <NoteEditor key={editor.key} note={editor.note} preset={editor.preset} onClose={closeEditor} />}
     </Page>
   );
 }

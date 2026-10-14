@@ -1,6 +1,7 @@
 // Строки виджета «Расписание» и его страницы настроек, которых нет в ru.ts. Без длинных тире.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/schedule";
+import { kk } from "./kk/schedule";
 import { plural } from "./ru";
 /** Non-breaking space: keeps «в» with its word and «в 08:00» on one line. */
 const NBSP = String.fromCharCode(0xa0);
@@ -60,4 +61,4 @@ const RU = {
 } as const;
 
 export type ScheduleStrings = Widen<typeof RU>;
-export const extra: ScheduleStrings = LANG === "en" ? en : RU;
+export const extra: ScheduleStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

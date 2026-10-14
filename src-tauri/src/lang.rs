@@ -1,6 +1,6 @@
-//! The interface language, fixed for the life of the process: `settings.language` ("ru", "en" or "auto"), and
-//! for "auto" the display language of Windows: Russian for Russian, Kazakh, Belarusian and Kyrgyz, English for
-//! the rest (the same rule as src/i18n/lang.ts). Every page gets it before its scripts run (`init_script`);
+//! The interface language, fixed for the life of the process: `settings.language` ("ru", "kk", "en" or "auto"),
+//! and for "auto" the display language of Windows: Kazakh for Kazakh, Russian for Russian, Belarusian and Kyrgyz,
+//! English for the rest (the same rule as src/i18n/lang.ts). Every page gets it before its scripts run (`init_script`);
 //! the native texts (tray menu, notifications, window titles, file dialogs) pick their words with `pick`.
 //! Changing the language in the settings restarts the app (`commands::restart_app`).
 
@@ -10,6 +10,7 @@ use std::sync::OnceLock;
 pub enum Lang {
     Ru,
     En,
+    Kk,
 }
 
 static LANG: OnceLock<Lang> = OnceLock::new();
@@ -19,6 +20,7 @@ impl Lang {
         match self {
             Lang::Ru => "ru",
             Lang::En => "en",
+            Lang::Kk => "kk",
         }
     }
 }
@@ -28,6 +30,7 @@ pub fn init(identifier: &str) -> Lang {
     *LANG.get_or_init(|| match read_setting(identifier).as_deref() {
         Some("ru") => Lang::Ru,
         Some("en") => Lang::En,
+        Some("kk") => Lang::Kk,
         _ => windows_language(),
     })
 }
@@ -36,11 +39,12 @@ pub fn current() -> Lang {
     LANG.get().copied().unwrap_or_else(windows_language)
 }
 
-/// The Russian or the English text, for the current language.
-pub fn pick<'a>(ru: &'a str, en: &'a str) -> &'a str {
+/// The Russian, the English or the Kazakh text, for the current language.
+pub fn pick<'a>(ru: &'a str, en: &'a str, kk: &'a str) -> &'a str {
     match current() {
         Lang::Ru => ru,
         Lang::En => en,
+        Lang::Kk => kk,
     }
 }
 
@@ -62,8 +66,10 @@ fn read_setting(identifier: &str) -> Option<String> {
 fn windows_language() -> Lang {
     let primary = unsafe { windows::Win32::Globalization::GetUserDefaultUILanguage() } & 0x3ff;
     match primary {
-        // LANG_RUSSIAN, LANG_KAZAK, LANG_BELARUSIAN, LANG_KYRGYZ
-        0x19 | 0x3f | 0x23 | 0x40 => Lang::Ru,
+        // LANG_KAZAK
+        0x3f => Lang::Kk,
+        // LANG_RUSSIAN, LANG_BELARUSIAN, LANG_KYRGYZ
+        0x19 | 0x23 | 0x40 => Lang::Ru,
         _ => Lang::En,
     }
 }

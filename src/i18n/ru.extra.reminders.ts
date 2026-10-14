@@ -2,6 +2,7 @@
 // правило автора. Сроки в винительном падеже («за 2 часа», «раз в 5 минут»), числа через plural() из ru.ts.
 import { LANG, type Widen } from "./lang";
 import { deadlinePlanEn, en } from "./en/reminders";
+import { deadlinePlanKk, kk } from "./kk/reminders";
 import { plural } from "./ru";
 
 const DAY = 24 * 60;
@@ -100,6 +101,8 @@ const RU = {
     repeatPreset: (m: number) => (m === 0 ? "Не повторять" : cap(every(m))),
     /** «Раз в [3] [часа]». */
     repeatLead: "Раз в",
+    /** После единицы, где язык его просит (казахское «сайын»). */
+    repeatTail: "",
     repeatLabel: "Интервал повтора",
     repeatRange: "Можно от 1 минуты до 7 дней",
     unit: "Единица времени",
@@ -176,7 +179,7 @@ const RU = {
 } as const;
 
 export type RemindersStrings = Widen<typeof RU>;
-export const extra: RemindersStrings = LANG === "en" ? en : RU;
+export const extra: RemindersStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;
 
 /** The plan text in the interface language (see deadlinePlanRu). */
-export const deadlinePlan = LANG === "en" ? deadlinePlanEn : deadlinePlanRu;
+export const deadlinePlan = LANG === "en" ? deadlinePlanEn : LANG === "kk" ? deadlinePlanKk : deadlinePlanRu;

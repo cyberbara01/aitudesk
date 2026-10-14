@@ -10,6 +10,7 @@ export type TabId =
   | "clock"
   | "system"
   | "perf"
+  | "calendar"
   | "launchers"
   | "map"
   | "schedule"
@@ -60,7 +61,7 @@ export const NAV_GROUPS: readonly { caption?: "study"; tabs: readonly TabSpec[] 
 export const SIDEBAR_TABS: readonly TabSpec[] = NAV_GROUPS.flatMap((g) => g.tabs);
 
 /** A widget's own settings: pages inside «Виджеты» (the sidebar keeps «Виджеты» lit, the title has a way back). */
-export const WIDGET_PAGES: readonly TabId[] = ["clock", "system", "perf", "launchers", "map"];
+export const WIDGET_PAGES: readonly TabId[] = ["clock", "system", "perf", "launchers", "map", "calendar"];
 
 /** The sidebar entry a page belongs to: itself, or «Виджеты» for a widget's own settings. */
 export function sidebarTabOf(tab: PageId): PageId {
@@ -79,6 +80,7 @@ export const TILE_ICONS: Record<TileId, string> = {
   map: "map",
   schedule: "calendar_ltr",
   notes: "note",
+  calendar: "calendar_month",
 };
 
 /** Tabs whose page opens an editor for `edit` («Виджеты»: an own widget). */

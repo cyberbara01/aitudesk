@@ -7,6 +7,7 @@ import { CheckMenuItem, IconMenuItem, Menu, MenuItem, PredefinedMenuItem, Submen
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { MenuItemSpec } from "../components/ContextMenu";
 import { loadIcon } from "../components/Icon";
+import { journal } from "./journal";
 
 /** Logical size of a menu icon. Windows draws menu bitmaps pixel for pixel, so they are made at the screen's scale. */
 const ICON = 16;
@@ -23,6 +24,14 @@ let serial = 0;
  * nothing.
  */
 let shown: { close(): Promise<void> }[] = [];
+/**
+ * The menu calls of this page, one after another. Tauri's `popup` holds the page's resource table until its menu is
+ * on screen and closed, while making an item, a picture or releasing the last menu takes that table on the main
+ * thread, which the menu needs: run at the same time, both wait for ever, the app hangs and the desktop with it (the
+ * widgets' windows share its input). So a menu is built only after the last one is released, and shown only after it
+ * is built; a new menu waits for the one on screen to close.
+ */
+let queue: Promise<void> = Promise.resolve();
 /** A menu is on screen now (the pop-up stays open while its widget's menu takes the focus). */
 let menuOpen = false;
 export const isMenuOpen = () => menuOpen;
@@ -90,7 +99,15 @@ async function build(items: readonly MenuItemSpec[], prefix: string, dark: boole
         const children = await build(it.children, id, dark, made);
         return Submenu.new({ id, text: it.label, enabled: !it.disabled, items: children, ...(icon ? { icon } : {}) });
       }
-      const item = { id, text: it.label, enabled: !it.disabled, action: () => it.onSelect() };
+      const item = {
+        id,
+        text: it.label,
+        enabled: !it.disabled,
+        action: () => {
+          journal(`menu: ${it.id}`);
+          it.onSelect();
+        },
+      };
       // A choice among neighbours: Windows draws its tick in place of an icon.
       if (it.checked !== undefined) return CheckMenuItem.new({ ...item, checked: it.checked });
       return icon ? IconMenuItem.new({ ...item, icon }) : MenuItem.new(item);
@@ -104,15 +121,25 @@ async function build(items: readonly MenuItemSpec[], prefix: string, dark: boole
  * Shows `items` as a Windows menu at the pointer. Rejects when the native menu is not available, so the caller can
  * fall back to the menu drawn inside the widget.
  */
-export async function popupMenu(items: readonly MenuItemSpec[]): Promise<void> {
+export function popupMenu(items: readonly MenuItemSpec[]): Promise<void> {
+  const run = queue.then(() => show(items));
+  queue = run.catch(() => undefined);
+  return run;
+}
+
+async function show(items: readonly MenuItemSpec[]): Promise<void> {
   const dark = (await getCurrentWindow().theme()) !== "light";
+  // The last menu is released wholly before anything of the new one is made.
+  const previous = shown;
+  shown = [];
+  await Promise.all(previous.map((r) => r.close().catch(() => undefined)));
   serial += 1;
+  // Whatever gets made is released with the next menu, even if this one fails half way.
   const made: Part[] = [];
+  shown = made;
   const parts = await build(items, `${label}:${serial}`, dark, made);
   const menu = await Menu.new({ items: parts });
-  const previous = shown;
   shown = [menu, ...made];
-  for (const r of previous) void r.close().catch(() => undefined);
   // Windows keeps the menu open until a choice or a click elsewhere; the call returns then.
   menuOpen = true;
   try {

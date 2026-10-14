@@ -9,8 +9,8 @@ const ID_SETTINGS: &str = "settings";
 const ID_QUIT: &str = "quit";
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
-    let settings = MenuItem::with_id(app, ID_SETTINGS, crate::lang::pick("Настройки", "Settings"), true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, ID_QUIT, crate::lang::pick("Выход", "Quit"), true, None::<&str>)?;
+    let settings = MenuItem::with_id(app, ID_SETTINGS, crate::lang::pick("Настройки", "Settings", "Баптаулар"), true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, ID_QUIT, crate::lang::pick("Выход", "Quit", "Шығу"), true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&settings, &PredefinedMenuItem::separator(app)?, &quit])?;
 
     let mut builder = TrayIconBuilder::with_id("main")

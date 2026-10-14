@@ -9,6 +9,7 @@ mod favicon;
 mod files;
 mod glass;
 mod grid;
+mod journal;
 mod lang;
 mod layout;
 mod notify;
@@ -17,6 +18,7 @@ mod popup;
 mod reminders;
 mod reset;
 mod settings_window;
+mod stacks;
 mod sysinfo;
 mod tray;
 mod zoom;
@@ -24,7 +26,7 @@ mod zoom;
 use tauri::{Emitter, Manager};
 
 /// Labels of the tile windows declared in tauri.conf.json.
-pub const TILES: &[&str] = &["clock", "system", "perf", "launchers", "map", "schedule", "notes"];
+pub const TILES: &[&str] = &["clock", "system", "perf", "launchers", "map", "schedule", "notes", "calendar"];
 
 /// WebView2 arguments of every window, taken from the tile windows in tauri.conf.json by build.rs (windows
 /// with different arguments cannot share one WebView2 environment). The first part is wry's default;
@@ -32,9 +34,9 @@ pub const TILES: &[&str] = &["clock", "system", "perf", "launchers", "map", "sch
 /// window, which saves about a quarter of the app's memory.
 pub const BROWSER_ARGS: &str = env!("AITUDESK_BROWSER_ARGS");
 
-/// A tile window: a built-in one or a custom widget (`custom-<id>`).
+/// A tile window: a built-in one, a custom widget (`custom-<id>`) or a stack of widgets (`stack-<id>`).
 pub fn is_tile(label: &str) -> bool {
-    TILES.contains(&label) || custom::is_custom(label)
+    TILES.contains(&label) || custom::is_custom(label) || stacks::is_stack(label)
 }
 
 /// The last display-scale change seen (see on_window_event); only the newest one does the work.
@@ -43,6 +45,7 @@ static SCALE_CHANGE: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64
 /// A display-scale change, handled 300 ms after the last tile reported it, on the main thread.
 fn scale_changed_later(app: &tauri::AppHandle, label: &str) {
     use std::sync::atomic::Ordering;
+    journal::write("screen", &format!("display scale changed (reported by {label})"));
     let generation = SCALE_CHANGE.fetch_add(1, Ordering::SeqCst) + 1;
     let (app, label) = (app.clone(), label.to_string());
     std::thread::spawn(move || {
@@ -62,18 +65,28 @@ fn scale_changed_later(app: &tauri::AppHandle, label: &str) {
     });
 }
 
-/// Labels of the tile windows that exist now: the built-in ones, then the custom widgets'.
+/// Labels of the tile windows that exist now: the built-in ones, then the custom widgets', then the stacks'.
 pub fn tile_labels(app: &tauri::AppHandle) -> Vec<String> {
     let mut labels: Vec<String> = TILES.iter().map(|l| l.to_string()).collect();
-    let mut own: Vec<String> = app.webview_windows().into_keys().filter(|l| custom::is_custom(l)).collect();
+    let windows: Vec<String> = app.webview_windows().into_keys().collect();
+    let mut own: Vec<String> = windows.iter().filter(|l| custom::is_custom(l)).cloned().collect();
     own.sort();
     labels.extend(own);
+    let mut stacked: Vec<String> = windows.into_iter().filter(|l| stacks::is_stack(l)).collect();
+    stacked.sort();
+    labels.extend(stacked);
     labels
 }
 
 /// What every tile window gets once: its title, the glass, the zoom, the place above the desktop.
 pub fn setup_tile(app: &tauri::AppHandle, win: &tauri::WebviewWindow, label: &str) {
-    let title = if custom::is_custom(label) { custom::title(app, label) } else { tile_title(label) };
+    let title = if custom::is_custom(label) {
+        custom::title(app, label)
+    } else if stacks::is_stack(label) {
+        stacks::title(app, label)
+    } else {
+        tile_title(label)
+    };
     let _ = win.set_title(&title);
     glass::apply(win);
     glass::keep_active_look(win);
@@ -87,13 +100,14 @@ pub fn setup_tile(app: &tauri::AppHandle, win: &tauri::WebviewWindow, label: &st
 /// Window title of a tile, in the interface language (screen readers announce it when a menu opens on the tile).
 fn tile_title(label: &str) -> String {
     let name = match label {
-        "clock" => lang::pick("часы", "clock"),
-        "system" => lang::pick("система", "system"),
-        "perf" => lang::pick("нагрузка", "performance"),
-        "launchers" => lang::pick("ярлыки", "shortcuts"),
-        "map" => lang::pick("карта", "map"),
-        "schedule" => lang::pick("расписание", "schedule"),
-        "notes" => lang::pick("заметки", "notes"),
+        "clock" => lang::pick("часы", "clock", "сағат"),
+        "system" => lang::pick("система", "system", "жүйе"),
+        "perf" => lang::pick("нагрузка", "performance", "жүктеме"),
+        "launchers" => lang::pick("ярлыки", "shortcuts", "жарлықтар"),
+        "map" => lang::pick("карта", "map", "карта"),
+        "schedule" => lang::pick("расписание", "schedule", "кесте"),
+        "notes" => lang::pick("заметки", "notes", "жазбалар"),
+        "calendar" => lang::pick("календарь", "calendar", "күнтізбе"),
         other => other,
     };
     format!("AITU Desk: {name}")
@@ -170,6 +184,7 @@ fn protect_store_file(identifier: &str) -> bool {
 }
 
 pub fn run() {
+    journal::catch_panics();
     let context = tauri::generate_context!();
     let start_with_windows = protect_store_file(&context.config().identifier);
     let language = lang::init(&context.config().identifier);
@@ -233,6 +248,7 @@ pub fn run() {
             commands::test_reminder,
             commands::get_layout,
             commands::get_tile_rect,
+            commands::desk_shape,
             commands::set_layout,
             commands::save_config_file,
             commands::open_config_file,
@@ -244,6 +260,8 @@ pub fn run() {
             commands::desktop_covered,
             commands::apply_tile_views,
             commands::apply_tile_scale,
+            commands::stack_rects,
+            stacks::sync_stacks,
             sysinfo::get_power,
             sysinfo::get_wifi,
             sysinfo::get_bluetooth,
@@ -255,9 +273,16 @@ pub fn run() {
             custom::sync_custom_widgets,
             autostart::autostart_enabled,
             autostart::set_autostart,
+            journal::journal_status,
+            journal::journal_set,
+            journal::journal_clear,
+            journal::journal_write,
+            journal::journal_folder,
+            journal::journal_save_report,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
+            journal::init(&handle);
             layout::restore_all(&handle);
             for label in TILES {
                 if let Some(win) = handle.get_webview_window(label) {
@@ -266,6 +291,8 @@ pub fn run() {
             }
             // The user's own picture widgets: windows made now, placed like the others.
             custom::sync(&handle);
+            // The stacks of widgets: their windows made now, the widgets they hold kept off the desktop.
+            stacks::sync(&handle);
             // The pop-up of folded widgets is made ahead of the first click while some widget is folded.
             popup::sync(&handle);
             // Tiles move into place when their page reports its first frame (`window_ready`).
@@ -300,6 +327,11 @@ pub fn run() {
             }
             Ok(())
         })
-        .run(context)
-        .expect("error while running AITU Desk");
+        .build(context)
+        .expect("error while building AITU Desk")
+        .run(|_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                journal::exit();
+            }
+        });
 }

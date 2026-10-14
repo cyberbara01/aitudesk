@@ -14,6 +14,7 @@ import { Switch } from "../components/Switch";
 import { Tooltip } from "../components/Tooltip";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.shell";
+import { extra as stx } from "../i18n/ru.extra.stack";
 import { CUSTOM_MAX, TILE_IDS, TILE_VIEWS, customLabel, settings, type CustomWidget, type TileId, type TileView } from "../lib/settings";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { realignIfOn, setGridSnap } from "../lib/grid";
@@ -22,6 +23,7 @@ import { CustomWidgetEditor } from "./custom/CustomWidgetEditor";
 import { tilesVisible, useExternal } from "./shell/external";
 import { useSettled } from "./shell/hooks";
 import { IconRow } from "./shell/IconRow";
+import { StackSection } from "./StackSection";
 import { TILE_ICONS, useNavigate } from "./shell/nav";
 
 const g = ru.settings.general;
@@ -44,12 +46,13 @@ function SizeSelect({ label, name, value }: { label: string; name: string; value
       onChange={(tv) => void settings.setTileView(label, tv)}
       ariaLabel={v.sizeOf(name)}
       className="tile-size"
+      icon="resize"
     />
   );
 }
 
 /** An own widget in the list: its picture (a still of the first frame), name, size, switch and editor. */
-function CustomRow({ widget, view, onEdit }: { widget: CustomWidget; view: TileView; onEdit: () => void }) {
+function CustomRow({ widget, view, stacked, onEdit }: { widget: CustomWidget; view: TileView; stacked: boolean; onEdit: () => void }) {
   const image = useWidgetImage(widget.file);
   const missing = image === "missing";
   const name = widget.name.trim() || c.unnamed;
@@ -64,7 +67,9 @@ function CustomRow({ widget, view, onEdit }: { widget: CustomWidget; view: TileV
       </span>
       <div className="row-text">
         <span className="row-label ellipsis">{name}</span>
-        <span className={missing ? "row-hint cw-warn" : "row-hint"}>{missing ? c.pictureMissing : formatOf(widget.file)}</span>
+        <span className={missing ? "row-hint cw-warn" : "row-hint"}>
+          {missing ? c.pictureMissing : stacked ? `${formatOf(widget.file)} · ${stx.settings.inStack}` : formatOf(widget.file)}
+        </span>
       </div>
       <div className="row-control">
         <SizeSelect label={customLabel(widget.id)} name={name} value={view} />
@@ -160,6 +165,9 @@ export function WidgetsPage({ editId }: Props) {
     if (enabled && settings.get().gridSnap) window.setTimeout(() => void realignIfOn(), 900);
   };
 
+  /** In the stack now: shown there instead of in its own place. */
+  const inStack = (label: string) => s.stacks.some((d) => d.members.includes(label));
+
   const toggleVisible = (on: boolean) => {
     setVisible(on);
     invoke("set_tiles_hidden", { hidden: !on }).catch(() => setVisible(!on));
@@ -173,7 +181,7 @@ export function WidgetsPage({ editId }: Props) {
           with the same gear). While every widget is hidden the switches still work; the hint says when they take effect. */}
       <Section title={g.tiles} description={visible === false ? x.tilesWhileHidden(x.showAllTiles) : `${g.tilesHint}. ${v.hint}`}>
         {TILE_IDS.map((id) => (
-          <IconRow key={id} icon={TILE_ICONS[id]} label={ru.tiles[id]} hint={x.tileHints[id]}>
+          <IconRow key={id} icon={TILE_ICONS[id]} label={ru.tiles[id]} hint={inStack(id) ? `${x.tileHints[id]} · ${stx.settings.inStack}` : x.tileHints[id]}>
             <SizeSelect label={id} name={ru.tiles[id]} value={s.tileViews[id] ?? "manual"} />
             <Switch checked={s.tiles[id]} onChange={(on) => toggleTile(id, on)} ariaLabel={ru.tiles[id]} />
             <Tooltip text={x.tileSettings(ru.tiles[id])}>
@@ -183,13 +191,21 @@ export function WidgetsPage({ editId }: Props) {
         ))}
       </Section>
 
+      <StackSection s={s} />
+
       <Section title={c.title} description={c.desc}>
         {s.customWidgets.length === 0 ? (
           <EmptyState title={c.empty} hint={c.emptyHint} action={{ label: c.add, icon: "image_add", onClick: openNew }} />
         ) : (
           <>
             {s.customWidgets.map((w) => (
-              <CustomRow key={w.id} widget={w} view={s.tileViews[customLabel(w.id)] ?? "manual"} onEdit={() => setEditor({ widget: w })} />
+              <CustomRow
+                key={w.id}
+                widget={w}
+                view={s.tileViews[customLabel(w.id)] ?? "manual"}
+                stacked={inStack(customLabel(w.id))}
+                onEdit={() => setEditor({ widget: w })}
+              />
             ))}
             <div className="cw-foot">
               <Button variant="accent" icon="image_add" onClick={openNew} disabled={full}>

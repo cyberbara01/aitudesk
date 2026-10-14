@@ -169,6 +169,28 @@
         "y": -32000,
         "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
         "scrollBarStyle": "fluentOverlay"
+      },
+      {
+        "label": "calendar",
+        "title": "AITU Desk: календарь",
+        "url": "index.html",
+        "width": 280,
+        "height": 260,
+        "decorations": false,
+        "transparent": true,
+        "noRedirectionBitmap": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "resizable": false,
+        "minimizable": false,
+        "maximizable": false,
+        "closable": false,
+        "visible": true,
+        "focus": false,
+        "x": -32000,
+        "y": -32000,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --process-per-site",
+        "scrollBarStyle": "fluentOverlay"
       }
     ]
   },

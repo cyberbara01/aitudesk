@@ -1,0 +1,52 @@
+name: Ошибка / Bug
+description: Что-то работает не так. Something does not work.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Спасибо, что сообщаете! Писать можно по-русски или по-английски. Thank you for the report, Russian or English is fine.
+  - type: textarea
+    id: what
+    attributes:
+      label: Что случилось / What happened
+      description: Что вы делали, что ожидали и что произошло. What you did, what you expected and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как повторить / Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+  - type: input
+    id: app
+    attributes:
+      label: Версия AITU Desk / AITU Desk version
+      description: Настройки → О программе. Settings → About.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Версия Windows / Windows version
+      description: Нажмите Win+R и введите winver. Press Win+R and type winver.
+      placeholder: Windows 11 24H2 (26100)
+    validations:
+      required: true
+  - type: dropdown
+    id: design
+    attributes:
+      label: Дизайн / Design
+      options:
+        - Windows 11
+        - Aqua
+        - Rice
+        - Pearl
+  - type: textarea
+    id: shots
+    attributes:
+      label: Скриншоты / Screenshots
+      description: Перетащите сюда картинки, если они помогут. Drag pictures here if they help.

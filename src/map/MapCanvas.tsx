@@ -23,6 +23,10 @@
 // the buttons lays out only at its end, a fit from 6× or a focus from 1× once or twice on the way, and no frame
 // ever shows the plan blurry.
 //
+// A mouse wheel notch is a step, not a gesture: its frame lays the plan out at once, so every notch is crisp at
+// once instead of magnified for a moment (a fast spin still lays out at most once a frame). A touchpad pinch or
+// scroll, many small events, keeps the compositor path above.
+//
 // Wheel zooms towards the cursor (×1.1 per 100 px of deltaY, 1× to 6×), the left button drags with pointer capture,
 // a double click fits (250 ms, --ease-move), the +/− buttons step ×1.5 around the centre (167 ms). Panning is
 // clamped to the host while the drawing is larger than it and centred while it is not. The view lives in refs and
@@ -263,6 +267,8 @@ export const MapCanvas = memo(
     // The requested frame (0: none), the pending lay-out of a resting view (0: none), the running animated move.
     const frame = useRef(0);
     const settleTimer = useRef(0);
+    /** A mouse wheel notch came since the last frame: that frame lays out at once (crisp) instead of scaling. */
+    const crispNext = useRef(false);
     const tween = useRef<Tween | null>(null);
     const press = useRef<Press | null>(null);
     const lod = useRef<{ shared: LodItem[]; floor: LodItem[] }>({ shared: [], floor: [] });
@@ -401,7 +407,8 @@ export const MapCanvas = memo(
         }
         const s = (box.current.fitW * view.current.zoom) / laidW.current;
         // Also true for NaN and Infinity, before the first lay-out.
-        if (!(s <= MAX_DRIFT && s >= 1 / MAX_DRIFT)) {
+        if (crispNext.current || !(s <= MAX_DRIFT && s >= 1 / MAX_DRIFT)) {
+          crispNext.current = false;
           settle();
           return;
         }
@@ -560,6 +567,8 @@ export const MapCanvas = memo(
         if (dy === 0) return;
         const b = box.current;
         const pinch = e.ctrlKey && Math.abs(dy) < PINCH_MAX_DELTA;
+        // A notch of a mouse wheel (a touchpad sends many small deltas instead): crisp on its own frame.
+        if (!pinch && Math.abs(dy) >= PINCH_MAX_DELTA) crispNext.current = true;
         zoomAt(pinch ? Math.exp(-dy / 100) : WHEEL_FACTOR ** (-dy / 100), e.clientX - b.left, e.clientY - b.top, "none");
       };
       host.addEventListener("wheel", onWheel, { passive: false });

@@ -9,6 +9,7 @@ import { Slider } from "../components/Slider";
 import { Switch } from "../components/Switch";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.clock";
+import { extra as shellText } from "../i18n/ru.extra.shell";
 import {
   DATE_FORMATS,
   clampWeight,
@@ -66,7 +67,8 @@ const DATE_POSITION_OPTIONS: readonly SegmentedOption<ClockSettings["datePositio
 const TIME_COLOR_OPTIONS: readonly SegmentedOption<ClockSettings["color"]>[] = [
   { value: "text", label: T.colorText },
   { value: "accent", label: T.colorAccent },
-  { value: "custom", label: ru.common.custom },
+  // The same words as every other colour choice («Свой цвет»).
+  { value: "custom", label: shellText.ink.modes.custom },
 ];
 const DATE_COLOR_OPTIONS: readonly SegmentedOption<ClockSettings["dateColor"]>[] = [
   { value: "secondary", label: T.colorSecondary },

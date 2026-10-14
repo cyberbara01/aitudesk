@@ -45,6 +45,8 @@ const COLOR_OPTIONS: readonly SegmentedOption<ColorMode>[] = [
 export interface NoteEditorProps {
   /** The note to edit, or null for a new one. */
   note: Note | null;
+  /** A new note's deadline day and whether it reminds (a day picked in the calendar). */
+  preset?: { date: string; remind: boolean } | null;
   onClose: () => void;
 }
 
@@ -58,15 +60,16 @@ function remindHint(on: boolean, r: ReminderSettings): string {
 }
 
 /** Mount a fresh instance (via `key`) for every open: the form state is initialised from the props once. */
-export function NoteEditor({ note, onClose }: NoteEditorProps) {
+export function NoteEditor({ note, preset, onClose }: NoteEditorProps) {
   const editing = note !== null;
   const reminderSettings = useSettings().reminders;
   const initial = useMemo(() => splitDeadline(note?.deadline), [note]);
   const [text, setText] = useState(note?.text ?? "");
-  const [hasDeadline, setHasDeadline] = useState(initial !== null);
-  const [parts, setParts] = useState<DeadlineParts>(() => initial ?? tonight(new Date()));
+  const [hasDeadline, setHasDeadline] = useState(initial !== null || Boolean(preset));
+  // A day from the calendar keeps the usual evening time.
+  const [parts, setParts] = useState<DeadlineParts>(() => initial ?? (preset ? { ...tonight(new Date()), date: preset.date } : tonight(new Date())));
   const [timeTouched, setTimeTouched] = useState(false);
-  const [remind, setRemind] = useState(note?.remind !== false);
+  const [remind, setRemind] = useState(note ? note.remind !== false : (preset?.remind ?? true));
   const [colorMode, setColorMode] = useState<ColorMode>(note?.color ? "custom" : "none");
   const [color, setColor] = useState(note?.color ?? FAVORITE_COLORS[0]);
   /** The date / time were chosen by the user (switching the deadline on again keeps them). */

@@ -1,6 +1,7 @@
 // Строки виджета «Система» и его страницы настроек, которых нет в ru.ts.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/system";
+import { kk } from "./kk/system";
 const RU = {
   settings: {
     system: {
@@ -21,4 +22,4 @@ const RU = {
 } as const;
 
 export type SystemStrings = Widen<typeof RU>;
-export const extra: SystemStrings = LANG === "en" ? en : RU;
+export const extra: SystemStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

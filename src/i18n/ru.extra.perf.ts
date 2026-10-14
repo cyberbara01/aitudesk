@@ -2,6 +2,7 @@
 // Без длинных тире: правило автора.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/perf";
+import { kk } from "./kk/perf";
 
 const RU = {
   /** Короткие подписи на виджете. */
@@ -78,4 +79,4 @@ const RU = {
 } as const;
 
 export type PerfStrings = Widen<typeof RU>;
-export const extra: PerfStrings = LANG === "en" ? en : RU;
+export const extra: PerfStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

@@ -1,17 +1,37 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { LOCALE } from "../i18n/lang";
+import { NUMBER_LOCALE } from "../i18n/lang";
 import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
-import { resolveLook, STYLE_LOOK } from "../lib/design";
+import { extra as stk } from "../i18n/ru.extra.stack";
+import { resolveLook } from "../lib/design";
 import { useEditMode } from "../lib/editMode";
 import { CUSTOM_MIN, setGridSnap, TILE_MIN } from "../lib/grid";
+import { usePointerOver, useTyping } from "../lib/hover";
+import { deskFillVars } from "../lib/fill";
+import { useDeskSpot } from "../lib/deskSpot";
 import { widgetInk } from "../lib/ink";
 import { popupMenu } from "../lib/nativeMenu";
-import { customIdOf, isCustomLabel, LOOK_CHOICES, settings, TILE_VIEWS, type LookCorners, type TileId, type TileView } from "../lib/settings";
+import {
+  CONTENT_SCALES,
+  contentScaleKey,
+  customIdOf,
+  isCustomLabel,
+  isStackLabel,
+  settings,
+  stackIdOf,
+  stackLabel,
+  TILE_VIEWS,
+  type ContentScale,
+  type TileId,
+  type TileView,
+} from "../lib/settings";
 import { isFoldedView, openTile, usePopupOpen, useTileView } from "../lib/tileView";
 import { useSettings } from "../lib/useSettings";
 import { usePopup } from "../popup/context";
+import { STACK_MAX } from "../lib/settings";
+import { addItems, addToStackItem, deleteStack, newStack } from "../stack/actions";
+import { useStack } from "../stack/context";
 import { TILE_ICONS } from "../settings/shell/nav";
 import { Button } from "./Button";
 import { ContextMenu, type MenuItemSpec } from "./ContextMenu";
@@ -20,23 +40,6 @@ import { Tooltip } from "./Tooltip";
 
 const v = shell.views;
 const gr = shell.grid;
-const ap = shell.appearance;
-
-/** «Углы виджетов» of every widget (Оформление → Тонкая настройка), right in a widget's menu: as in the design, or a
- * radius of its own. */
-function cornersMenu(corners: LookCorners | "auto", design: LookCorners): MenuItemSpec {
-  const set = (value: LookCorners | "auto") => void settings.update((cur) => ({ look: { ...cur.look, corners: value } }));
-  return {
-    id: "corners",
-    label: ap.parts.corners,
-    icon: "square",
-    onSelect: () => undefined,
-    children: [
-      { id: "corners-auto", label: ap.fineAuto(ap.values.corners[design].toLocaleLowerCase(LOCALE)), checked: corners === "auto", onSelect: () => set("auto") },
-      ...LOOK_CHOICES.corners.map((value) => ({ id: `corners-${value}`, label: ap.values.corners[value], checked: corners === value, onSelect: () => set(value) })),
-    ],
-  };
-}
 
 interface TileProps {
   /** The widget: a built-in widget's id, or `custom-<id>` for an own widget. */
@@ -137,7 +140,57 @@ function useGrow(root: React.RefObject<HTMLDivElement>, grow: Grow | undefined, 
   return box;
 }
 
+
+/** The content box of `root` (its client size less the padding), kept up to date; null while `active` is false. */
+function useContentBox(root: React.RefObject<HTMLDivElement>, active: boolean) {
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el || !active) {
+      setBox(null);
+      return;
+    }
+    const read = () => {
+      const cs = getComputedStyle(el);
+      const w = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const h = el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      if (w <= 0 || h <= 0) return;
+      setBox((prev) => (prev && Math.abs(prev.w - w) < 0.5 && Math.abs(prev.h - h) < 0.5 ? prev : { w, h }));
+    };
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [root, active]);
+  return box;
+}
+
+const percent = new Intl.NumberFormat(NUMBER_LOCALE, { style: "percent", maximumFractionDigits: 0 });
+
+/** «Размер содержимого»: «Авто» (the content grows with the widget) or a scale of its own. */
+function contentScaleMenu(key: string, value: ContentScale | undefined): MenuItemSpec {
+  const set = (v: ContentScale | null) =>
+    void settings.update((cur) => {
+      const contentScale = { ...cur.contentScale };
+      if (v === null) delete contentScale[key];
+      else contentScale[key] = v;
+      return { contentScale };
+    });
+  return {
+    id: "content-scale",
+    label: v.contentScale,
+    icon: "text_font",
+    onSelect: () => undefined,
+    children: [
+      { id: "content-scale-auto", label: v.contentAuto, checked: value === undefined, onSelect: () => set(null) },
+      ...CONTENT_SCALES.map((f) => ({ id: `content-scale-${f}`, label: percent.format(f), checked: value === f, onSelect: () => set(f) })),
+    ],
+  };
+}
+
 const DEFAULT_MIN = TILE_MIN;
+/** The stack's own smallest size: a widget in it still reads, and its dots fit beside it. */
+const STACK_MIN = { w: 200, h: 120 };
 
 const isBuiltIn = (label: string): label is TileId => label in DEFAULT_MIN;
 
@@ -169,27 +222,36 @@ function TileFace({ view, art, name, open }: { view: TileView; art: ReactNode; n
 /**
  * Glass tile root: material, 1 px border, top edge highlight, radius, padding; context menu; edit mode; views.
  * Inside the pop-up (PopupHost) it is the content of the card: no edit mode, and its menu can close the pop-up.
+ * Inside the stack (StackHost) it is the stack's face: edit mode moves and sizes the stack's window, the menu takes
+ * the widget out or puts another one in, and the stack's dots are drawn inside it.
  */
 export function Tile({ label, minSize, className, background = true, menuItems, face, grow, opacity, children }: TileProps) {
   const s = useSettings();
   const popup = usePopup();
+  const stack = useStack();
   const locked = s.lockLayout;
-  const view = useTileView();
+  const view = useTileView(label);
   const foldable = isFoldedView(view);
   const open = usePopupOpen();
   const rootRef = useRef<HTMLDivElement>(null);
-  const growBox = useGrow(rootRef, grow, !foldable);
+  // «Размер содержимого»: a scale of its own lays the content out at the box divided by it (CSS zoom: text, icons
+  // and spacing all follow, and pointers stay true); «Авто» keeps the content growing with the widget.
+  const scaleKey = contentScaleKey(label, stack?.id);
+  const manualScale = foldable ? undefined : s.contentScale[scaleKey];
+  const growBox = useGrow(rootRef, grow, !foldable && manualScale === undefined);
+  const zoomBox = useContentBox(rootRef, manualScale !== undefined);
   const builtIn = isBuiltIn(label);
   const name = face?.name ?? (builtIn ? ru.tiles[label] : "");
   // A «Большой» widget resized by hand keeps that size: it becomes «Вручную».
   const onResized = useCallback(() => {
     if (settings.get().tileViews[label] === "large") void settings.setTileView(label, "manual");
   }, [label]);
+  // In the stack, arranging moves and sizes the stack's window (one size for all its widgets).
   const edit = useEditMode({
-    label,
+    label: stack ? `stack-${stack.id}` : label,
     resizable: !foldable,
-    minSize: minSize ?? (builtIn ? DEFAULT_MIN[label] : CUSTOM_MIN),
-    onResized,
+    minSize: stack ? STACK_MIN : (minSize ?? (builtIn ? DEFAULT_MIN[label] : CUSTOM_MIN)),
+    onResized: stack ? undefined : onResized,
   });
   // The pop-up shows a widget, never arranges it.
   const editing = edit.editing && !popup;
@@ -202,7 +264,15 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
   const hasBackground = background || foldable;
   const look = resolveLook(s.style, s.look, s.theme);
   const solid = look.material === "solid";
-  const seeThrough = opacity !== undefined && !popup && !foldable;
+  // «Прозрачность до наведения» of every widget, unless it has its own (the map's «Непрозрачность»): see-through at
+  // rest, whole under the pointer, in its menu and while something is typed in it. Folded icons and the pop-up stay
+  // whole; while arranged the widget is whole too (below).
+  const fading = s.fade.enabled && opacity === undefined && !popup && !foldable;
+  const pointerOver = usePointerOver(fading);
+  const typing = useTyping(fading);
+  const lit = fading && (pointerOver || typing);
+  const shownOpacity = opacity ?? (fading ? (lit ? 1 : s.fade.opacity / 100) : undefined);
+  const seeThrough = shownOpacity !== undefined && !popup && !foldable;
   const glass = hasBackground && !solid && !seeThrough;
   // «Углы виджетов»: the glass is asked for at the CSS radius in device px; if the native side has to fall back to
   // Windows' own acrylic (8 px), the CSS follows it so no corner of bare glass shows.
@@ -221,6 +291,11 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     };
   }, [glass, popup, radius, ratio]);
   const radiusOverride = glass && glassRadius !== null && glassRadius !== radius ? glassRadius : null;
+  // «Фон виджетов»: the colour or the part of the screen-wide gradient under this widget instead of the theme's
+  // background (base.css .tile.own-fill; the pop-up's card draws its own).
+  const ownFill = s.fill.mode !== "theme" && hasBackground && !popup;
+  const spot = useDeskSpot(ownFill && s.fill.mode === "gradient");
+  const fillVars = ownFill ? deskFillVars(s.fill, spot) : null;
   // «Цвет значков» and «Цвет текста»: its own, or those of all widgets (src/lib/ink.ts).
   const { style: inkStyle, ...inkData } = widgetInk(s, label);
 
@@ -247,39 +322,59 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     // The widget's own items act on its content: only where it is shown.
     const extra = !foldable ? (menuItems?.(e.target as HTMLElement) ?? []) : [];
     const custom = isCustomLabel(label);
+    const emptyStack = stack?.label === "stack";
+    // A stack folded to its icon shows no widget: its menu is the stack's own.
+    const ownStack = isStackLabel(label);
+    const stackId = stack?.id ?? (ownStack ? stackIdOf(label) : null);
+    // The size is the window's: a widget in a stack has the stack's.
+    const sizeKey = stackId ? stackLabel(stackId) : label;
+    const sizeMenu: MenuItemSpec = {
+      id: "size",
+      label: stackId ? v.stackSize : v.size,
+      icon: "resize",
+      onSelect: () => undefined,
+      children: TILE_VIEWS.map((tv) => ({
+        id: `size-${tv}`,
+        label: v[tv],
+        checked: tv === (s.tileViews[sizeKey] ?? "manual"),
+        onSelect: () => void settings.setTileView(sizeKey, tv),
+      })),
+    };
+    // Everything about the stack in one place: take this widget out, put another one in, make or delete a stack.
+    const stackMenu: MenuItemSpec | null = stackId
+      ? {
+          id: "stack",
+          label: stk.menu.stack,
+          icon: "stack",
+          onSelect: () => undefined,
+          children: [
+            ...(stack && !emptyStack ? [{ id: "stack-out", label: stk.menu.remove(name), icon: "arrow_exit", onSelect: () => stack.remove(label) }] : []),
+            { id: "stack-add", label: stk.menu.addWidget, icon: "stack_add", onSelect: () => undefined, children: addItems(s, stackId, "stack-add") },
+            { id: "stack-new", label: stk.menu.newStack, icon: "add", onSelect: () => void newStack(), disabled: s.stacks.length >= STACK_MAX },
+            { id: "stack-sep", label: "", separator: true, onSelect: () => undefined },
+            { id: "stack-delete", label: stk.menu.delete, icon: "stack_off", onSelect: () => void deleteStack(stackId) },
+          ],
+        }
+      : null;
+    // The settings of an own widget are its editor on «Виджеты», a stack's are on «Виджеты» too.
+    const openSettings = () =>
+      void invoke("open_settings", custom ? { tab: "widgets", edit: customIdOf(label) } : stackId && (emptyStack || ownStack) ? { tab: "widgets" } : { tab: label }).catch(
+        () => undefined,
+      );
+    // Short and in the order things are done: show it, arrange it, size it, the text in it, the stack, its settings.
+    // How all widgets look («Углы виджетов») and the grid are in the settings and on the buttons while arranging.
     const standard: MenuItemSpec[] = [
       ...(popup ? [{ id: "close", label: v.close, icon: "dismiss", onSelect: popup.close }] : []),
       ...(foldable ? [{ id: "open", label: v.open(name), icon: "open", onSelect: () => void openTile() }] : []),
-      // Moving belongs to the icon on the desktop, not to the pop-up. Locked: the item says why it does nothing.
-      ...(popup
-        ? []
-        : [
-            { id: "move", label: locked ? ru.edit.locked : ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked },
-            { id: "grid", label: gr.label, checked: s.gridSnap, onSelect: () => void setGridSnap(!s.gridSnap), disabled: locked },
-          ]),
-      {
-        id: "size",
-        label: v.size,
-        icon: "resize",
-        onSelect: () => undefined,
-        children: TILE_VIEWS.map((tv) => ({
-          id: `size-${tv}`,
-          label: v[tv],
-          checked: tv === (popup ? (s.tileViews[label] ?? "manual") : view),
-          onSelect: () => void settings.setTileView(label, tv),
-        })),
-      },
-      // «Углы виджетов» of every widget, after the size: how the widgets look (not in the pop-up, a card of its own).
-      ...(popup ? [] : [cornersMenu(s.look.corners, STYLE_LOOK[s.style].corners)]),
-      {
-        id: "settings",
-        label: ru.menu.settings,
-        icon: "settings",
-        // An own widget's settings are its editor on «Виджеты».
-        onSelect: () =>
-          void invoke("open_settings", custom ? { tab: "widgets", edit: customIdOf(label) } : { tab: label }).catch(() => undefined),
-      },
-      { id: "hide", label: ru.menu.hide, icon: "eye_off", onSelect: () => void hideTile(label) },
+      // Moving belongs to the widget on the desktop, not to the pop-up. Locked: the item says why it does nothing.
+      ...(popup ? [] : [{ id: "move", label: locked ? ru.edit.locked : ru.menu.moveResize, icon: "arrow_move", onSelect: edit.start, disabled: locked }]),
+      sizeMenu,
+      // The text's own scale: on the desktop, and separately for this widget in a stack (a picture always fills its
+      // widget and a stack's icon or empty face has nothing to scale: not for them).
+      ...(foldable || custom || emptyStack || ownStack ? [] : [contentScaleMenu(scaleKey, manualScale)]),
+      ...(stackMenu ? [stackMenu] : popup ? [] : [addToStackItem(s, label, locked)]),
+      { id: "settings", label: stackId && (emptyStack || ownStack) ? stk.menu.settings : ru.menu.settings, icon: "settings", onSelect: openSettings },
+      ...(stackId ? [] : [{ id: "hide", label: ru.menu.hide, icon: "eye_off", onSelect: () => void hideTile(label) }]),
     ];
     show(extra.length ? [...extra, { id: "sep", label: "", separator: true, onSelect: () => undefined }, ...standard] : standard);
   };
@@ -299,7 +394,10 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     foldable ? `view-${view} folded` : "",
     foldable && open ? "popup-open" : "",
     hasBackground ? "" : "no-bg",
+    ownFill ? "own-fill" : "",
     seeThrough ? "see-through" : "",
+    lit ? "lit" : "",
+    stack ? "in-stack" : "",
     editing ? "editing" : "",
   ]
     .filter(Boolean)
@@ -314,7 +412,8 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
       style={
         {
           ...inkStyle,
-          ...(seeThrough ? { "--tile-opacity": editing ? 1 : opacity } : null),
+          ...fillVars,
+          ...(seeThrough ? { "--tile-opacity": editing ? 1 : shownOpacity } : null),
           ...(radiusOverride !== null ? { "--r-tile": `${radiusOverride}px` } : null),
         } as CSSProperties
       }
@@ -325,6 +424,13 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
     >
       {foldable ? (
         <TileFace view={view} art={tileArt(label, face)} name={name} open={open} />
+      ) : manualScale !== undefined ? (
+        <div
+          className="tile-zoom"
+          style={zoomBox ? ({ zoom: manualScale, width: zoomBox.w / manualScale, height: zoomBox.h / manualScale } as CSSProperties) : undefined}
+        >
+          {children}
+        </div>
       ) : grow ? (
         <div
           className="tile-grow"
@@ -339,6 +445,7 @@ export function Tile({ label, minSize, className, background = true, menuItems, 
       ) : (
         children
       )}
+      {stack?.chrome}
       {editing && (
         <div className="edit-pill" onPointerDown={(e) => e.stopPropagation()}>
           <Tooltip text={s.gridSnap ? gr.pillOn : gr.pillOff} className="edit-grid">

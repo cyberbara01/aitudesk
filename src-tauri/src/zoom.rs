@@ -9,17 +9,20 @@
 //! per page pixel about the work-area corner it is nearest to, so a widget keeps its size next to its neighbours
 //! and a column along the right edge stays along the right edge with its gaps scaled too.
 
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Manager};
 use tauri_plugin_store::StoreExt;
 
+use crate::grid::CellBase;
 use crate::layout::{Rect, WorkArea, STORE_FILE};
 
 /// The zoom the layout in the store was made with (absent: 1, every layout before this setting).
 const ZOOM_KEY: &str = "tileZoom";
 /// The display scale the layout in the store was made at (absent: the current one, every layout before it).
 const SCALE_KEY: &str = "layoutScale";
+
 
 /// Zoom the tile pages have now.
 static CURRENT: Mutex<f64> = Mutex::new(1.0);
@@ -71,6 +74,15 @@ fn stored_scale(app: &AppHandle) -> Option<f64> {
         .filter(|s| (0.5..=8.0).contains(s))
 }
 
+/// «Выравнивать по сетке» is on (`settings.gridSnap`).
+fn grid_on(app: &AppHandle) -> bool {
+    app.store(STORE_FILE)
+        .ok()
+        .and_then(|s| s.get("settings"))
+        .and_then(|v| v.get("gridSnap")?.as_bool())
+        .unwrap_or(false)
+}
+
 /// The tiles' zoom or the display scale differs from what the saved layout was made with.
 pub fn screen_changed(app: &AppHandle, wa: &WorkArea) -> bool {
     let scale = stored_scale(app).unwrap_or(wa.scale);
@@ -109,7 +121,34 @@ pub fn apply(app: &AppHandle, wa: &WorkArea) -> f64 {
     let then = stored_scale(app);
     let k = (wa.scale * zoom) / (then.unwrap_or(wa.scale) * before);
     if (k - 1.0).abs() > 1e-6 {
-        crate::layout::scale_saved(app, |r| rescale(r, wa, k));
+        crate::journal::write("zoom", &format!("widgets zoom {before} -> {zoom}, display scale {:?} -> {}", then, wa.scale));
+        // On the grid, with the same display scale (only the zoom changed), widgets keep whole cells: back and forth
+        // between two zooms they come back to the same cells. Another display scale has another grid: in pixels.
+        let same_screen = then.is_none_or(|s| (s - wa.scale).abs() < 1e-6);
+        if same_screen && grid_on(app) {
+            let grid = crate::grid::read(wa);
+            let store = app.store(STORE_FILE).ok();
+            let mut bases: HashMap<String, CellBase> =
+                store.as_ref().and_then(|s| s.get(crate::grid::BASE_KEY)).and_then(|v| serde_json::from_value(v).ok()).unwrap_or_default();
+            crate::layout::scale_saved_with(app, |key, r| match crate::grid::cells_of(&grid, r) {
+                Some(cells) => {
+                    // The base kept for this widget since it was last placed by hand (grid.rs forget_base); the
+                    // grid's own moves in between (around an icon, up to a widget's smallest size) never change it.
+                    let base = bases.get(key).copied().unwrap_or_else(|| crate::grid::base_of(&grid, cells, before));
+                    bases.insert(key.to_string(), base);
+                    crate::grid::rect_of(&grid, crate::grid::cells_at(&grid, &base, zoom))
+                }
+                None => {
+                    bases.remove(key);
+                    rescale(r, wa, k)
+                }
+            });
+            if let Some(store) = store {
+                store.set(crate::grid::BASE_KEY, serde_json::json!(bases));
+            }
+        } else {
+            crate::layout::scale_saved(app, |r| rescale(r, wa, k));
+        }
     }
     if (zoom - before).abs() > 1e-6 || then.is_none_or(|s| (s - wa.scale).abs() > 1e-6) {
         if let Ok(store) = app.store(STORE_FILE) {

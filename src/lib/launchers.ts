@@ -10,7 +10,7 @@ import learnSiteIcon from "../assets/sites/learn.png?inline";
 import lmsSiteIcon from "../assets/sites/lms.png?inline";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.launchers";
-import { SWATCHES, hexToRgb, isHex, luminance, rgbToHex, shade } from "./design";
+import { hexToRgb, isHex, luminance, rgbToHex, shade } from "./design";
 import {
   DEFAULT_LAUNCHERS,
   settings,
@@ -353,17 +353,6 @@ export function newLauncherId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** Clearly different tints first (the six of v1), then the rest of the palette. */
-const TINT_ORDER: readonly string[] = ["#60CDFF", "#9BE3A6", "#FFB6A8", "#E3B1FF", "#FFD66B", "#A9C3FF"];
-
-/** Colour for a new launcher: the first tint no visible launcher uses yet, so neighbours differ. */
-export function nextLauncherColor(s: Settings): string {
-  const used = new Set(visibleLaunchers(s).map((it) => it.color.toUpperCase()));
-  for (const c of [...TINT_ORDER, ...SWATCHES]) {
-    if (!used.has(c.toUpperCase())) return c.toUpperCase();
-  }
-  return TINT_ORDER[0];
-}
 
 /** Open the settings window on the launchers tab; `edit` = a custom id or a built-in key opens its editor. */
 export function openLaunchersSettings(edit?: string): Promise<void> {

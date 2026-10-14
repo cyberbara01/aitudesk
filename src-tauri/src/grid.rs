@@ -46,9 +46,12 @@ pub struct Grid {
     pub rows: i32,
 }
 
-/// Icon spacing and the icons' left offset in their cells, from Explorer's desktop view. None when Explorer does not
-/// answer (restarting, or another shell).
-fn explorer_spacing(wa: &WorkArea) -> Option<(i32, i32, Option<i32>)> {
+/// What Explorer tells of its desktop view: the icon spacing, the icons' offset in their cells, where the icons are.
+type Spacing = (i32, i32, Option<i32>, Vec<(i32, i32)>);
+
+/// Icon spacing, the icons' left offset in their cells and their places, from Explorer's desktop view. None when
+/// Explorer does not answer (restarting, or another shell).
+fn explorer_spacing(wa: &WorkArea) -> Option<Spacing> {
     // SAFETY: COM on this short-lived thread only, released before it ends; every pointer is checked by the calls.
     unsafe {
         let windows: IShellWindows = CoCreateInstance(&ShellWindows, None, CLSCTX_LOCAL_SERVER).ok()?;
@@ -68,6 +71,7 @@ fn explorer_spacing(wa: &WorkArea) -> Option<(i32, i32, Option<i32>)> {
         // monitor have it; the view's coordinates start at the virtual screen's corner.
         let (vx, vy) = (GetSystemMetrics(SM_XVIRTUALSCREEN), GetSystemMetrics(SM_YVIRTUALSCREEN));
         let mut offsets: HashMap<i32, u32> = HashMap::new();
+        let mut icons = Vec::new();
         let count = folder.ItemCount(SVGIO_ALLVIEW).unwrap_or(0).min(400);
         for i in 0..count {
             let Ok(pidl) = folder.Item(i) else { continue };
@@ -79,14 +83,93 @@ fn explorer_spacing(wa: &WorkArea) -> Option<(i32, i32, Option<i32>)> {
                 continue;
             }
             *offsets.entry((x - wa.x).rem_euclid(spacing.x)).or_default() += 1;
+            icons.push((x, y));
         }
         let inset = offsets.into_iter().max_by_key(|&(_, n)| n).map(|(o, _)| o).filter(|&o| o > 0 && o < spacing.x / 2);
-        Some((spacing.x, spacing.y, inset))
+        Some((spacing.x, spacing.y, inset, icons))
     }
+}
+
+/// The widgets' cells at the zoom of 1, by tile, while they are on the grid (CellBase).
+pub const BASE_KEY: &str = "gridBase";
+
+/// A widget placed or sized by hand (`Some`), or every widget (`None`: the grid switched off, the layout reset or
+/// loaded from a config): its cells at the zoom of 1 are taken anew from where it is at the next zoom change.
+pub fn forget_base(app: &AppHandle, label: Option<&str>) {
+    let Ok(store) = app.store(STORE_FILE) else { return };
+    let Some(mut bases) = store.get(BASE_KEY) else { return };
+    let changed = match (label, bases.as_object_mut()) {
+        (Some(l), Some(map)) => map.remove(l).is_some(),
+        _ => {
+            store.delete(BASE_KEY);
+            true
+        }
+    };
+    if changed {
+        if label.is_some() {
+            store.set(BASE_KEY, bases);
+        }
+        let _ = store.save();
+    }
+}
+
+/// A widget's block of cells: first column and row, columns and rows.
+pub type Cells = (i32, i32, i32, i32);
+
+/// The cells a widget of whole cells fills (its margin inside them, as `rect_in` puts it); None for a widget that
+/// does not fill its cells (a fixed size, a folded icon).
+pub fn cells_of(g: &Grid, r: &Rect) -> Option<Cells> {
+    let (fx, fy) = (r.x - g.x - g.gap, r.y - g.y - g.gap);
+    let (fw, fh) = (r.w as i32 + 2 * g.gap, r.h as i32 + 2 * g.gap);
+    let whole = |v: i32, cell: i32| v >= 0 && v % cell == 0;
+    (whole(fx, g.cx) && whole(fy, g.cy) && whole(fw, g.cx) && whole(fh, g.cy)).then_some((fx / g.cx, fy / g.cy, fw / g.cx, fh / g.cy))
+}
+
+/// The rect of a widget in `cells`.
+pub fn rect_of(g: &Grid, (col, row, n, m): Cells) -> Rect {
+    Rect { x: g.x + col * g.cx + g.gap, y: g.y + row * g.cy + g.gap, w: (n * g.cx - 2 * g.gap).max(1) as u32, h: (m * g.cy - 2 * g.gap).max(1) as u32 }
+}
+
+/// A widget's cells at the zoom of 1, unrounded: its size, and its distance from the nearer side of the screen (a
+/// widget along the right edge stays along it). Every zoom's cells are rounded from this, never from the cells of
+/// the zoom before, so going back and forth between zooms always comes back to the same cells.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
+pub struct CellBase {
+    n: f64,
+    m: f64,
+    x: f64,
+    y: f64,
+    right: bool,
+    bottom: bool,
+}
+
+/// The base of `cells` seen at zoom `z`.
+pub fn base_of(g: &Grid, (col, row, n, m): Cells, z: f64) -> CellBase {
+    let right = col * 2 + n > g.cols;
+    let bottom = row * 2 + m > g.rows;
+    let x = if right { g.cols - col - n } else { col };
+    let y = if bottom { g.rows - row - m } else { row };
+    CellBase { n: n as f64 / z, m: m as f64 / z, x: x.max(0) as f64 / z, y: y.max(0) as f64 / z, right, bottom }
+}
+
+/// The cells of a base at zoom `z`, on the screen.
+pub fn cells_at(g: &Grid, b: &CellBase, z: f64) -> Cells {
+    let n = ((b.n * z).round() as i32).clamp(1, g.cols.max(1));
+    let m = ((b.m * z).round() as i32).clamp(1, g.rows.max(1));
+    let (dx, dy) = ((b.x * z).round() as i32, (b.y * z).round() as i32);
+    let col = if b.right { g.cols - dx - n } else { dx };
+    let row = if b.bottom { g.rows - dy - m } else { dy };
+    (col.clamp(0, (g.cols - n).max(0)), row.clamp(0, (g.rows - m).max(0)), n, m)
 }
 
 /// The grid now (Explorer asked on a thread of its own), or Windows' icon spacing if Explorer does not answer.
 pub fn read(wa: &WorkArea) -> Grid {
+    read_with_icons(wa).0
+}
+
+/// The grid and the cells the desktop's icons are in (each as the rect a widget would have in that cell): widgets
+/// on the grid keep off them, as shortcuts do, so an icon never hides under a widget's glass.
+fn read_with_icons(wa: &WorkArea) -> (Grid, Vec<Rect>) {
     let area = *wa;
     let from_explorer = std::thread::spawn(move || {
         // SAFETY: COM initialised and released on this thread around the calls.
@@ -102,7 +185,7 @@ pub fn read(wa: &WorkArea) -> Grid {
     .join()
     .ok()
     .flatten();
-    let (cx, cy, inset) = from_explorer.unwrap_or_else(|| {
+    let (cx, cy, inset, icons) = from_explorer.unwrap_or_else(|| {
         let (mut h, mut v) = (0i32, 0i32);
         // SAFETY: plain reads of two system metrics into local integers.
         unsafe {
@@ -114,11 +197,11 @@ pub fn read(wa: &WorkArea) -> Grid {
         let h = if h >= 32 { h } else { (76.0 * s) as i32 };
         // Windows' vertical icon spacing leaves out the label; Explorer's cells are about 4/3 of it.
         let v = if v >= 32 { (v as f64 * 4.0 / 3.0).round() as i32 } else { (100.0 * s) as i32 };
-        (h, v, None)
+        (h, v, None, Vec::new())
     });
     // A widget's margin in its cells: an icon's own margin in its cell (14 px at 76), the same on every side.
     let gap = inset.unwrap_or(((cx as f64) * 0.18).round() as i32).clamp((4.0 * wa.scale) as i32, cx / 3);
-    Grid {
+    let grid = Grid {
         x: wa.x,
         y: wa.y,
         cx,
@@ -126,7 +209,16 @@ pub fn read(wa: &WorkArea) -> Grid {
         gap,
         cols: (wa.w as i32 / cx).max(1),
         rows: (wa.h as i32 / cy).max(1),
+    };
+    let mut cells: Vec<Rect> = Vec::new();
+    for (x, y) in icons {
+        let (col, row) = ((x - grid.x).div_euclid(cx), (y - grid.y).div_euclid(cy));
+        let cell = Rect { x: grid.x + col * cx + gap, y: grid.y + row * cy + gap, w: (cx - 2 * gap).max(1) as u32, h: (cy - 2 * gap).max(1) as u32 };
+        if !cells.iter().any(|c| c.x == cell.x && c.y == cell.y) {
+            cells.push(cell);
+        }
     }
+    (grid, cells)
 }
 
 /// A block of cells: first column and row, and how many of each.
@@ -268,12 +360,13 @@ fn glide(win: &WebviewWindow, from: Rect, to: Rect) {
 pub fn align_all(app: &AppHandle, mins: &HashMap<String, (f64, f64)>) -> Result<(), String> {
     let Some(first) = crate::tile_labels(app).into_iter().find_map(|l| app.get_webview_window(&l)) else { return Ok(()) };
     let wa = layout::work_area(&first);
-    let grid = read(&wa);
+    let (grid, icons) = read_with_icons(&wa);
     let before = layout::saved(app);
     let mut tiles = on_screen(app);
     // The order people read the desktop in: rows of widgets from the top, each row from the left.
     tiles.sort_by_key(|t| (t.rect.y, t.rect.x));
-    let mut taken: Vec<Rect> = Vec::new();
+    // The desktop's icons hold their cells, as the widgets placed before do.
+    let mut taken: Vec<Rect> = icons;
     let mut moves: Vec<(String, Rect, Rect)> = Vec::new();
     for t in &tiles {
         let shape = Shape { w: t.rect.w as i32, h: t.rect.h as i32, fixed: t.fixed };
@@ -297,6 +390,7 @@ pub fn align_all(app: &AppHandle, mins: &HashMap<String, (f64, f64)>) -> Result<
     for h in handles {
         let _ = h.join();
     }
+    crate::journal::write("grid", &format!("aligned {} widgets to the grid (cell {}x{}, {} icon cells kept free)", moves.len(), grid.cx, grid.cy, taken.len() - moves.len()));
     let placed: Vec<(String, Rect)> = moves.into_iter().map(|(label, _, to)| (label, to)).collect();
     layout::save_rects(app, &placed)?;
     let after = layout::saved(app);
@@ -312,6 +406,8 @@ pub fn align_all(app: &AppHandle, mins: &HashMap<String, (f64, f64)>) -> Result<
 
 /// The option switched off: if no widget moved since they were aligned, they go back to where they were.
 pub fn unalign(app: &AppHandle) {
+    crate::journal::write("grid", "grid switched off");
+    forget_base(app, None);
     let Ok(store) = app.store(STORE_FILE) else { return };
     let undo = store.get(UNDO_KEY);
     store.delete(UNDO_KEY);
@@ -345,17 +441,20 @@ pub fn forget_undo(app: &AppHandle) {
 pub fn snap_one(app: &AppHandle, win: &WebviewWindow, mins: &HashMap<String, (f64, f64)>) -> Option<Rect> {
     let label = win.label().to_string();
     let wa = layout::work_area(win);
-    let grid = read(&wa);
+    let (grid, icons) = read_with_icons(&wa);
     let (pos, size) = (win.outer_position().ok()?, win.outer_size().ok()?);
     let from = Rect { x: pos.x, y: pos.y, w: size.width, h: size.height };
     let fixed = layout::view_of(app, &label) != layout::View::Manual;
-    let taken: Vec<Rect> = on_screen(app).into_iter().filter(|t| t.label != label).map(|t| t.rect).collect();
+    let mut taken: Vec<Rect> = on_screen(app).into_iter().filter(|t| t.label != label).map(|t| t.rect).collect();
+    taken.extend(icons);
     let shape = Shape { w: from.w as i32, h: from.h as i32, fixed };
     let want = grid.block_for(&from, shape, min_of(mins, &label, &wa));
     let shape = if fixed { shape } else { Shape { w: want.n * grid.cx - 2 * grid.gap, h: want.m * grid.cy - 2 * grid.gap, fixed: false } };
     let to = grid.rect_in(grid.nearest_free(want, shape, &taken), shape);
     glide(win, from, to);
+    crate::journal::write("grid", &format!("{label} dropped onto the grid at {},{} {}x{}", to.x, to.y, to.w, to.h));
     let _ = layout::save_rect(app, &label, to);
     forget_undo(app);
+    forget_base(app, Some(&label));
     Some(to)
 }

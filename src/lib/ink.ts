@@ -2,12 +2,13 @@
 // widget on its own page («Цвета»). Resolved here to CSS variables and data attributes on the widget's root (Tile.tsx
 // and the previews in the settings window); src/styles/ink.css hands them to every glyph and every word inside.
 import type { CSSProperties } from "react";
-import { onColor } from "./design";
-import type { Ink, InkPart, Settings } from "./settings";
+import { contrast, onColor, readableOn } from "./design";
+import { fillMiddle } from "./fill";
+import type { Ink, InkPart, Settings, WidgetFill } from "./settings";
 
 /** The widgets with colours of their own (the clock has its own colours for the digits and the date). */
-export type InkWidget = "system" | "perf" | "launchers" | "map" | "schedule" | "notes";
-const INK_WIDGETS: readonly string[] = ["system", "perf", "launchers", "map", "schedule", "notes"] satisfies readonly InkWidget[];
+export type InkWidget = "system" | "perf" | "launchers" | "map" | "schedule" | "notes" | "calendar";
+const INK_WIDGETS: readonly string[] = ["system", "perf", "launchers", "map", "schedule", "notes", "calendar"] satisfies readonly InkWidget[];
 const isInkWidget = (label: string): label is InkWidget => INK_WIDGETS.includes(label);
 
 /** The widgets that draw no glyphs of their own (the folded icon follows the colour of all widgets). */
@@ -64,5 +65,19 @@ export function inkAttrs(ink: Ink): InkAttrs {
   return out;
 }
 
-/** The attributes of a widget's root (or its preview) from the settings. */
-export const widgetInk = (s: Settings, label: string): InkAttrs => inkAttrs(inkOf(s, label));
+/** A colour of one's own made to read on «Фон виджетов»: nudged lighter or darker (its hue kept) until it stands
+ * out from the background, against the part of a gradient where it reads worst. */
+function readableOnFill(color: string, fill: WidgetFill, min: number): string {
+  const backs = fill.mode === "gradient" ? [fill.from.color, fill.to.color, fillMiddle(fill)] : [fill.color];
+  const worst = backs.reduce((a, b) => (contrast(color, b) < contrast(color, a) ? b : a));
+  return readableOn(color, worst, min);
+}
+
+/** The attributes of a widget's root (or its preview) from the settings. On a background of one's own the colours of
+ * one's own still read: text at 4.5:1, icons at 3:1. */
+export function widgetInk(s: Settings, label: string): InkAttrs {
+  const ink = inkOf(s, label);
+  if (s.fill.mode === "theme") return inkAttrs(ink);
+  const fit = (part: InkPart, min: number): InkPart => (part.mode === "custom" ? { ...part, color: readableOnFill(part.color, s.fill, min) } : part);
+  return inkAttrs({ icons: fit(ink.icons, 3), text: fit(ink.text, 4.5) });
+}

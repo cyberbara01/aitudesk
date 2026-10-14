@@ -37,6 +37,19 @@ jobs:
 
       - run: npm ci
 
+      # "What's new" of this version from docs/releases/<tag>.md (written before tagging), above the install text.
+      # Without that file the release has the install text only.
+      - name: What's new
+        id: notes
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $file = "docs/releases/$env:TAG.md"
+          $text = if (Test-Path -LiteralPath $file) { (Get-Content -LiteralPath $file -Raw -Encoding utf8).Trim() + "`n`n---`n" } else { "" }
+          $end = "END_" + [guid]::NewGuid().ToString("N")
+          Add-Content -LiteralPath $env:GITHUB_OUTPUT -Encoding utf8 -Value "text<<$end`n$text`n$end"
+
       - name: Build and publish the installer
         id: tauri
         uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
@@ -46,6 +59,7 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "AITU Desk ${{ github.ref_name }}"
           releaseBody: |
+            ${{ steps.notes.outputs.text }}
             **English.** Download `AITU-Desk_*_x64-setup.exe` and run it. No administrator rights are needed: the app installs for your Windows account only.
 
             SmartScreen may warn about an unknown publisher: the app is not signed with a paid certificate. Click "More info", then "Run anyway". GitHub Actions built the installer from the sources of this tag, and the code is open in this repository.
@@ -67,6 +81,18 @@ jobs:
             GitHub ещё и подтверждает, что сам собрал файл из этого репозитория: тот же хеш есть на странице [подтверждений сборки](${{ github.server_url }}/${{ github.repository }}/attestations). Эту запись делает GitHub Actions во время сборки и подписывает её, у файла, загруженного вручную, её нет. Через GitHub CLI: `gh attestation verify ".\AITU-Desk_<версия>_x64-setup.exe" --repo ${{ github.repository }}`.
 
             Что делает установщик, где хранятся настройки и как удалить приложение: раздел «Что делает установщик» в README.ru.md.
+
+            ---
+
+            **Қазақша.** `AITU-Desk_*_x64-setup.exe` файлын жүктеп алып, іске қосыңыз. Әкімші құқықтары керек емес: қолданба тек сіздің Windows тіркелгіңізге орнатылады.
+
+            SmartScreen белгісіз баспагер туралы ескертуі мүмкін: қолданбаға ақылы сертификатпен қол қойылмаған. «Қосымша ақпарат» (More info), содан кейін «Бәрібір іске қосу» (Run anyway) батырмасын басыңыз. Орнатқышты осы тегтің бастапқы кодынан GitHub Actions жинады, код осы репозиторийде ашық.
+
+            Файлды тексеру: бақылау сомалары `SHA256SUMS.txt` ішінде. PowerShell-де: `Get-FileHash ".\AITU-Desk_<нұсқа>_x64-setup.exe" -Algorithm SHA256`, мәні сәйкес келуі керек.
+
+            GitHub файлды осы репозиторийден өзі жинағанын да растайды: дәл сол хеш [жинақ растаулары](${{ github.server_url }}/${{ github.repository }}/attestations) бетінде бар. Бұл жазуды жинақ кезінде GitHub Actions жасап, оған қол қояды, қолмен жүктелген файлда ол болмайды. GitHub CLI арқылы: `gh attestation verify ".\AITU-Desk_<нұсқа>_x64-setup.exe" --repo ${{ github.repository }}`.
+
+            Орнатқыш не істейтіні, баптаулар қайда сақталатыны және қолданбаны қалай жою керегі: README.kk.md ішіндегі «Орнатқыш не істейді» бөлімі.
           releaseDraft: false
           prerelease: false
           # The product name has a space, which GitHub would turn into a dot in the file name: the installer gets

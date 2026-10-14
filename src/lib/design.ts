@@ -112,6 +112,13 @@ export function accentPreset(id: string): AccentPreset {
   return ACCENT_PRESETS.find((p) => p.id === id) ?? ACCENT_PRESETS[0];
 }
 
+/** The accent the page shows now (#RRGGBB): where a colour that followed the accent becomes one of one's own, it
+ * starts from there, so nothing jumps. */
+export function accentNow(fallback = "#60CDFF"): string {
+  const v = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim().toUpperCase();
+  return isHex(v) ? v : fallback;
+}
+
 // ---------------------------------------------------------------------------------------------
 // Colour helpers
 // ---------------------------------------------------------------------------------------------
@@ -274,11 +281,11 @@ export interface ClockPreset {
 export const CLOCK_PRESETS: readonly ClockPreset[] = [
   {
     id: "classic",
-    values: { font: "auto", weight: 300, width: 100, size: 56, letterSpacing: -2, seconds: false, dateFormat: "long", datePosition: "below", align: "left", valign: "top", color: "text", dateColor: "secondary", tabular: true, background: true, blinkColon: false },
+    values: { font: "auto", weight: 300, width: 100, size: 56, letterSpacing: -2, seconds: false, dateFormat: "long", datePosition: "below", align: "left", valign: "top", color: "accent", dateColor: "secondary", tabular: true, background: true, blinkColon: false },
   },
   {
     id: "grand",
-    values: { font: "inter", weight: 200, width: 100, size: 88, letterSpacing: -4, seconds: false, dateFormat: "short", datePosition: "below", align: "center", valign: "center", color: "text", dateColor: "secondary", tabular: true, background: true, blinkColon: false },
+    values: { font: "inter", weight: 200, width: 100, size: 88, letterSpacing: -4, seconds: false, dateFormat: "short", datePosition: "below", align: "center", valign: "center", color: "accent", dateColor: "secondary", tabular: true, background: true, blinkColon: false },
   },
   {
     id: "mono",
@@ -290,15 +297,15 @@ export const CLOCK_PRESETS: readonly ClockPreset[] = [
   },
   {
     id: "float",
-    values: { font: "inter", weight: 300, width: 100, size: 64, letterSpacing: -3, seconds: false, dateFormat: "long", datePosition: "below", align: "center", valign: "center", color: "text", dateColor: "secondary", tabular: true, background: false, blinkColon: false },
+    values: { font: "inter", weight: 300, width: 100, size: 64, letterSpacing: -3, seconds: false, dateFormat: "long", datePosition: "below", align: "center", valign: "center", color: "accent", dateColor: "secondary", tabular: true, background: false, blinkColon: false },
   },
   {
     id: "serif",
-    values: { font: "sitka", weight: 400, width: 100, size: 60, letterSpacing: 0, seconds: false, dateFormat: "long", datePosition: "below", align: "right", valign: "center", color: "text", dateColor: "secondary", tabular: false, background: true, blinkColon: false },
+    values: { font: "sitka", weight: 400, width: 100, size: 60, letterSpacing: 0, seconds: false, dateFormat: "long", datePosition: "below", align: "right", valign: "center", color: "accent", dateColor: "secondary", tabular: false, background: true, blinkColon: false },
   },
   {
     id: "sidecar",
-    values: { font: "segoe-text", weight: 600, width: 100, size: 40, letterSpacing: -1, seconds: false, dateFormat: "short", datePosition: "right", align: "left", valign: "center", color: "text", dateColor: "secondary", tabular: true, background: true, blinkColon: false },
+    values: { font: "segoe-text", weight: 600, width: 100, size: 40, letterSpacing: -1, seconds: false, dateFormat: "short", datePosition: "right", align: "left", valign: "center", color: "accent", dateColor: "secondary", tabular: true, background: true, blinkColon: false },
   },
   {
     id: "script",
@@ -320,7 +327,7 @@ export const MAP_CODE_WEIGHT: Record<MapCodeWeight, number> = { light: 400, regu
  * the room codes' weight and, when one is chosen, their colour.
  */
 export function mapVars(m: Pick<MapSettings, "color" | "codeWeight" | "codeColor">): CSSProperties {
-  const vars: Record<string, string | number> = { "--map-tint": m.color, "--mp-code-weight": MAP_CODE_WEIGHT[m.codeWeight] };
+  const vars: Record<string, string | number> = { "--map-tint": m.color || "var(--accent)", "--mp-code-weight": MAP_CODE_WEIGHT[m.codeWeight] };
   if (m.codeColor) vars["--mp-code"] = m.codeColor;
   return vars as CSSProperties;
 }

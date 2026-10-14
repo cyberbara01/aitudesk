@@ -1,9 +1,10 @@
-// The interface language, Russian or English, fixed for the life of a page. The native side picks it when the app
-// starts (settings.language, or the display language of Windows for "auto") and hands it to every window before
-// any script runs (window.__AITUDESK_LANG__, src-tauri/src/lang.rs); changing it in «Общие» restarts the app.
-// The string files (ru.ts, ru.extra.*.ts) export the dictionary of this language; English lives in src/i18n/en/.
+// The interface language, Russian, Kazakh or English, fixed for the life of a page. The native side picks it when
+// the app starts (settings.language, or the display language of Windows for "auto") and hands it to every window
+// before any script runs (window.__AITUDESK_LANG__, src-tauri/src/lang.rs); changing it in «Общие» restarts the app.
+// The string files (ru.ts, ru.extra.*.ts) export the dictionary of this language; Kazakh lives in src/i18n/kk/,
+// English in src/i18n/en/.
 
-export type Lang = "ru" | "en";
+export type Lang = "ru" | "en" | "kk";
 
 declare global {
   interface Window {
@@ -11,23 +12,29 @@ declare global {
   }
 }
 
-/** Display languages of Windows that get the Russian interface (the rest get English), as in lang.rs. */
-const RUSSIAN_SPEAKING = /^(ru|kk|be|ky)\b/;
+/** Display languages of Windows that get the Russian interface (Kazakh gets Kazakh, the rest English), as in lang.rs. */
+const RUSSIAN_SPEAKING = /^(ru|be|ky)\b/;
 
 function detect(): Lang {
   const given = typeof window !== "undefined" ? window.__AITUDESK_LANG__ : undefined;
-  if (given === "ru" || given === "en") return given;
+  if (given === "ru" || given === "en" || given === "kk") return given;
   // Without the native side (a plain browser): the browser's language, by the same rule.
   const nav = typeof navigator !== "undefined" ? (navigator.language || "").toLowerCase() : "";
-  return RUSSIAN_SPEAKING.test(nav) ? "ru" : "en";
+  return /^kk\b/.test(nav) ? "kk" : RUSSIAN_SPEAKING.test(nav) ? "ru" : "en";
 }
 
 export const LANG: Lang = detect();
 // The page says which language it is in, so Narrator reads the English interface by English rules.
 if (typeof document !== "undefined") document.documentElement.lang = LANG;
 
-/** Locale for dates, letter case and sorting: Russian, or British English (day before month, week from Monday). */
-export const LOCALE = LANG === "ru" ? "ru-RU" : "en-GB";
+/** Locale for dates, letter case and sorting: Russian, Kazakh, or British English (day before month, week from Monday). */
+export const LOCALE = LANG === "ru" ? "ru-RU" : LANG === "kk" ? "kk-KZ" : "en-GB";
+/**
+ * Locale for numbers and numeric times. The browser's data may lack Kazakh (a date then comes out as «M10 14,
+ * Wed»), and Kazakh writes numbers as Russian does (a space between thousands, a decimal comma), so Kazakh
+ * borrows the Russian rules; its words for dates come from the dictionaries (src/lib/clock.ts).
+ */
+export const NUMBER_LOCALE = LANG === "kk" ? "ru-RU" : LOCALE;
 
 /**
  * The type of a dictionary with its texts widened to string: `as const` keeps the Russian object's keys and

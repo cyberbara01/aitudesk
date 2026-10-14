@@ -91,6 +91,7 @@ export const en: RemindersStrings = {
     repeatNever: "The interval is not shorter than the time from the first reminder to the deadline, so there will be no repeats",
     repeatPreset: (m: number) => (m === 0 ? "Don't repeat" : cap(every(m))),
     repeatLead: "Every",
+    repeatTail: "",
     repeatLabel: "Repeat interval",
     repeatRange: "From 1 minute to 7 days",
     unit: "Time unit",

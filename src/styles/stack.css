@@ -1,0 +1,277 @@
+/* «Стопка виджетов» (src/stack/StackHost.tsx): one widget at a time in the stack's window, its dots on the right
+   edge, the slide between widgets, the empty stack and the call to drop a widget in while the widgets are arranged.
+   The frame of the tile never moves: only the content slides, so the stack reads as one object. */
+
+.stack-root { position: fixed; inset: 0; }
+/* A stack opened from its icon fills the pop-up card's body, not the pop-up window (it covers the screen). */
+.popup-body .stack-root { position: absolute; }
+/* There the widget fills the page the way the card's body is filled (its dots at the card's lower edge). */
+.popup-body .stack-page { display: flex; }
+.stack-page { position: absolute; inset: 0; }
+.stack-page.leaving { pointer-events: none; }
+
+/* The dots take the right edge; the widget's content keeps clear of them. */
+.stack-page.with-rail .tile { padding-right: calc(var(--tile-pad) + 10px); }
+
+/* ---- The slide. `translate` (not transform) leaves the content's own scale (Tile «grow») alone. ---- */
+.stack-page .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) {
+  --stack-ease: cubic-bezier(.32, .72, 0, 1);
+}
+.stack-page.from-down .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { animation: stack-in-from-below 420ms var(--stack-ease) both; }
+.stack-page.from-up .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { animation: stack-in-from-above 420ms var(--stack-ease) both; }
+.stack-page.leaving.to-up .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { animation: stack-out-up 420ms var(--stack-ease) both; }
+.stack-page.leaving.to-down .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { animation: stack-out-down 420ms var(--stack-ease) both; }
+/* The widget sliding out lends its frame to the one coming in: only one frame shows. */
+.stack-page.leaving .tile { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+
+@keyframes stack-in-from-below { from { translate: 0 40px; opacity: 0; } }
+@keyframes stack-in-from-above { from { translate: 0 -40px; opacity: 0; } }
+/* A page turned by a drag leaves from where the pointer left it (--drag-x, --drag-y on the leaving page). */
+@keyframes stack-out-up { from { translate: var(--drag-x, 0px) var(--drag-y, 0px); } to { translate: 0 -40px; opacity: 0; } }
+@keyframes stack-out-down { from { translate: var(--drag-x, 0px) var(--drag-y, 0px); } to { translate: 0 40px; opacity: 0; } }
+
+/* While dragged, the content follows the pointer; let go short of a turn, it glides back. */
+.stack-page.dragging .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { translate: var(--drag-x, 0px) var(--drag-y, 0px); }
+.stack-page.settling .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { translate: 0 0; transition: translate 300ms cubic-bezier(.32, .72, 0, 1); }
+:root[data-stack-drag],
+:root[data-stack-drag] * { cursor: grabbing !important; user-select: none !important; }
+
+/* At the first or the last widget a turn only nudges the content and lets it settle back. */
+
+/* A widget that just came in: an accent ring that fades out around the frame. */
+.stack-page.joined .tile { animation: stack-joined 1000ms cubic-bezier(.2, .8, .2, 1); }
+@keyframes stack-joined {
+  from { box-shadow: inset 0 0 0 2px var(--accent), inset 0 1px 0 var(--tile-edge); }
+  to { box-shadow: inset 0 0 0 2px transparent, inset 0 1px 0 var(--tile-edge); }
+}
+
+/* ---- The dots: always there (the stack says what it is at a glance), the arrows come with the pointer. ---- */
+.stack-rail {
+  position: absolute;
+  z-index: 20;
+  right: 3px;
+  top: 50%;
+  translate: 0 -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-height: calc(100% - 8px);
+}
+.stack-dots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* As many dots as there are widgets; on a low stack they move closer. */
+  gap: clamp(3px, calc((100vh - 72px) / var(--n) - 6px), 6px);
+  padding: 2px 0;
+}
+.stack-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text) 24%, transparent);
+  cursor: pointer;
+  transition: height 300ms cubic-bezier(.32, .72, 0, 1), background-color 180ms ease-out;
+}
+/* A bigger target than the dot itself. */
+.stack-dot::after { content: ""; position: absolute; inset: -4px -10px; }
+.stack-dot:hover { background: color-mix(in srgb, var(--text) 48%, transparent); }
+.stack-dot.on { height: 16px; background: var(--ink-icon, color-mix(in srgb, var(--text) 82%, transparent)); }
+.stack-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The arrows: plain chevrons at the ends of the dots while the pointer is on the stack (at rest only the dots show),
+   each hit across a 45 px square around it, like the gear of a widget, so a laptop's touchpad finds it easily. */
+.stack-arrow {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  opacity: 0;
+  cursor: pointer;
+  pointer-events: none;
+  transition: opacity 160ms ease-out, color 120ms ease-out;
+}
+.stack-arrow::after { content: ""; position: absolute; inset: -11.5px; }
+/* Any pointer over the window shows them (the page that just slid in may not know the pointer is over it yet). */
+:root:hover .stack-arrow { opacity: 1; pointer-events: auto; }
+/* One widget: nowhere to go, the arrows only say «a stack». */
+.stack-rail.single .stack-arrow:disabled { visibility: visible; opacity: 0; cursor: default; }
+:root:hover .stack-rail.single .stack-arrow:disabled { opacity: .4; pointer-events: none; }
+.stack-arrow:hover { color: var(--text); }
+.stack-arrow:active svg { translate: 0 1px; }
+.axis-x .stack-arrow:active svg { translate: 1px 0; }
+.stack-arrow:first-child:active svg { translate: 0 -1px; }
+.axis-x .stack-arrow:first-child:active svg { translate: -1px 0; }
+.stack-arrow:disabled { visibility: hidden; }
+.stack-arrow:focus-visible { opacity: 1; pointer-events: auto; outline: 2px solid var(--accent); outline-offset: 1px; border-radius: var(--r-ctl); }
+
+/* ---- While the widgets are arranged: the stack calls them in, and lights up under the one over it. ---- */
+.stack-drop {
+  position: absolute;
+  z-index: 30;
+  inset: 6px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: var(--s3);
+  border: 1.5px dashed color-mix(in srgb, var(--text) 34%, transparent);
+  border-radius: max(4px, calc(var(--r-tile) - 5px));
+  pointer-events: none;
+  animation: stack-drop-in 220ms cubic-bezier(.2, .8, .2, 1) both;
+  transition: border-color 160ms ease-out, background-color 160ms ease-out;
+}
+.stack-drop.over {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.stack-drop-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 16px);
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  background: var(--tile-fallback);
+  color: var(--text);
+  font-size: var(--caption-size);
+  line-height: var(--caption-lh);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 4px 14px rgba(0, 0, 0, .16);
+  transition: background-color 160ms ease-out, color 160ms ease-out;
+}
+.stack-drop.over .stack-drop-pill { background: var(--accent); color: var(--on-accent); }
+@keyframes stack-drop-in { from { opacity: 0; scale: .98; } }
+
+/* The widget being dragged lets the stack under it show through. */
+:root[data-over-stack] .tile.editing { opacity: .55; transition: opacity 120ms ease-out; }
+
+/* ---- The empty stack ---- */
+.tile-stack-empty { container-type: size; }
+.stack-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  text-align: center;
+}
+.stack-art { position: relative; width: 72px; height: 50px; margin-bottom: var(--s2); }
+.stack-art-card {
+  position: absolute;
+  left: 50%;
+  border-radius: 9px;
+  translate: -50% 0;
+  transition: translate 360ms cubic-bezier(.32, .72, 0, 1), rotate 360ms cubic-bezier(.32, .72, 0, 1);
+}
+.stack-art-card.back { top: 0; width: 42px; height: 30px; background: color-mix(in srgb, var(--text) 9%, transparent); }
+.stack-art-card.mid { top: 6px; width: 52px; height: 34px; background: color-mix(in srgb, var(--text) 15%, transparent); }
+.stack-art-card.front {
+  top: 13px;
+  width: 62px;
+  height: 37px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--tile-fallback));
+  color: var(--accent-text, var(--accent));
+}
+/* Under the pointer the cards fan out a little: there is room for more. */
+.tile:hover .stack-art-card.back { translate: calc(-50% - 11px) 3px; rotate: -9deg; }
+.tile:hover .stack-art-card.mid { translate: calc(-50% + 9px) 2px; rotate: 7deg; }
+.stack-empty-title { color: var(--text); font-size: var(--body-size); line-height: var(--body-lh); font-weight: 600; }
+.stack-empty-text { max-width: 230px; color: var(--text-2); font-size: var(--caption-size); line-height: var(--caption-lh); text-wrap: balance; }
+.stack-empty .btn { margin-top: var(--s2); }
+/* A low stack keeps what matters: first the picture goes, then the words. */
+@container (max-height: 150px) { .stack-art { display: none; } }
+@container (max-height: 104px) { .stack-empty-text { display: none; } }
+
+/* ---- «Листать: влево и вправо»: the widgets slide sideways, the dots run along the lower edge. ---- */
+.axis-x .stack-page.with-rail .tile { padding-right: var(--tile-pad); padding-bottom: calc(var(--tile-pad) + 10px); }
+.axis-x .stack-rail { top: auto; right: auto; bottom: 3px; left: 50%; translate: -50% 0; flex-direction: row; max-height: none; max-width: calc(100% - 8px); }
+.axis-x .stack-arrow { margin: 0 1px; }
+.axis-x .stack-dots { flex-direction: row; gap: clamp(3px, calc((100vw - 72px) / var(--n) - 6px), 6px); padding: 0 2px; }
+.axis-x .stack-dot { transition: width 300ms cubic-bezier(.32, .72, 0, 1), background-color 180ms ease-out; }
+.axis-x .stack-dot::after { inset: -6px -3px; }
+.axis-x .stack-dot.on { width: 16px; height: 6px; }
+/* A sideways turn (the stack's axis, or a sideways swipe or drag on any stack): the widgets slide left and right. */
+.stack-page.sx.from-down .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { animation-name: stack-in-from-right; }
+.stack-page.sx.from-up .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { animation-name: stack-in-from-left; }
+.stack-page.leaving.sx.to-up .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { animation-name: stack-out-left; }
+.stack-page.leaving.sx.to-down .tile > :not(.stack-rail, .stack-drop, .edit-pill, .resize-grip) { animation-name: stack-out-right; }
+@keyframes stack-in-from-right { from { translate: 48px 0; opacity: 0; } }
+@keyframes stack-in-from-left { from { translate: -48px 0; opacity: 0; } }
+@keyframes stack-out-left { from { translate: var(--drag-x, 0px) var(--drag-y, 0px); } to { translate: -48px 0; opacity: 0; } }
+@keyframes stack-out-right { from { translate: var(--drag-x, 0px) var(--drag-y, 0px); } to { translate: 48px 0; opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .stack-page .tile > *,
+  .stack-page.joined .tile { animation-duration: 1ms !important; }
+  .stack-art-card, .stack-dot { transition: none; }
+}
+
+/* ---- «Стопка виджетов» on «Виджеты» (src/settings/StackSection.tsx) ---- */
+.stack-set-empty {
+  margin: 0;
+  padding: var(--s3) var(--s4);
+  color: var(--text-2);
+  font-size: var(--caption-size);
+  line-height: var(--caption-lh);
+}
+.stack-set-row { position: relative; }
+.stack-set-row.off .row-icon,
+.stack-set-row.off .row-label { opacity: .55; }
+/* The handle sits in the row's left padding and shows with the pointer, like the notes list's. */
+.stack-set-grip { position: absolute; top: 0; bottom: 0; left: 0; display: flex; width: var(--s4); }
+.stack-set-grip-btn {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-3);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease-in), color var(--t-fast) var(--ease-in);
+}
+.stack-set-row:hover .stack-set-grip-btn,
+.stack-set-row[data-reorder="lift"] .stack-set-grip-btn,
+.stack-set-grip-btn:focus-visible { opacity: 1; }
+.stack-set-grip-btn:hover { color: var(--text); }
+.stack-set-grip-btn:focus-visible { outline-offset: -2px; }
+.section:has(> .section-body > .stack-set-list > [data-reorder]) { overflow: visible; }
+
+/* ---- «Как пользоваться» (src/settings/shell/WelcomePage.tsx): the stack in the desk picture and its own step ---- */
+.ob-lstack { left: 98px; top: 58px; width: 48px; height: 28px; padding-bottom: 6px; }
+/* The dots run along the lower edge, as a new stack pages: left and right. */
+.ob-stack-dots { position: absolute; bottom: 3px; left: 50%; translate: -50% 0; display: flex; gap: 2px; }
+.ob-stack-dots > i { width: 3px; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--text) 30%, transparent); }
+.ob-stack-dots > i.on { width: 8px; background: var(--text); }
+.ob-stack-back {
+  position: absolute;
+  border-radius: var(--r-ctl);
+  background: var(--tile-fill);
+  border: 1px solid var(--tile-border);
+}
+.ob-stack-back.b2 { left: 70px; top: 12px; width: 84px; height: 60px; opacity: .35; }
+.ob-stack-back.b1 { left: 61px; top: 18px; width: 102px; height: 62px; opacity: .6; }
+.ob-stack-front { left: 52px; top: 26px; width: 120px; height: 66px; align-items: flex-start; padding-bottom: 14px; }
+.ob-stack-front > .ob-time { font-size: 22px; }
+.ob-stack-front > .ob-bar.short { width: 48px; }
+.ob-stack-front > .ob-stack-dots { bottom: 6px; gap: 3px; }
+.ob-stack-front > .ob-stack-dots > i { width: 4px; height: 4px; }
+.ob-stack-front > .ob-stack-dots > i.on { width: 11px; }

@@ -1,6 +1,7 @@
 // Строки раздела «Часы», которых нет в ru.ts.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/clock";
+import { kk } from "./kk/clock";
 const RU = {
   clock: {
     pageDesc: "Шрифт, размер, формат и цвета часов. Готовые стили применяются в один клик",
@@ -43,4 +44,4 @@ const RU = {
 } as const;
 
 export type ClockStrings = Widen<typeof RU>;
-export const extra: ClockStrings = LANG === "en" ? en : RU;
+export const extra: ClockStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

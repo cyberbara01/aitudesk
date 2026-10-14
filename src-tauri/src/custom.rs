@@ -99,7 +99,7 @@ fn store_bytes(app: &AppHandle, bytes: &[u8]) -> Result<String, String> {
 #[tauri::command]
 pub async fn pick_widget_image(app: AppHandle, window: WebviewWindow) -> Result<Option<String>, String> {
     let owner = window.hwnd().map(|h| h.0 as isize).unwrap_or(0);
-    let title = crate::lang::pick("Картинка для виджета", "Picture for the widget").to_string();
+    let title = crate::lang::pick("Картинка для виджета", "Picture for the widget", "Виджетке арналған сурет").to_string();
     let Some(path) = crate::files::open_image(owner, title)? else { return Ok(None) };
     let size = std::fs::metadata(&path).map_err(|e| e.to_string())?.len();
     if size > MAX_IMAGE as u64 {
@@ -182,7 +182,7 @@ pub fn title(app: &AppHandle, label: &str) -> String {
     let id = label.strip_prefix(PREFIX).unwrap_or("");
     let name = listed(app).into_iter().find(|(i, ..)| i == id).map(|(_, n, ..)| n).unwrap_or_default();
     let name = name.trim();
-    format!("AITU Desk: {}", if name.is_empty() { crate::lang::pick("виджет", "widget") } else { name })
+    format!("AITU Desk: {}", if name.is_empty() { crate::lang::pick("виджет", "widget", "виджет") } else { name })
 }
 
 /// A new custom widget window, built like the tiles in tauri.conf.json (same WebView2 arguments, so it shares
@@ -219,8 +219,9 @@ pub fn sync(app: &AppHandle) {
         if let Some(win) = app.get_webview_window(&label) {
             let _ = win.set_title(&title(app, &label));
             let off = app.state::<Visibility>().disabled.lock().unwrap().contains(&label);
-            if off == *enabled {
-                crate::layout::set_tile_enabled(app, &label, *enabled);
+            let want = *enabled && !crate::stacks::holds(app, &label);
+            if off == want {
+                crate::layout::set_tile_enabled(app, &label, want);
             }
             continue;
         }
@@ -229,7 +230,7 @@ pub fn sync(app: &AppHandle) {
                 crate::setup_tile(app, &win, &label);
                 crate::layout::restore_one(app, &win, &label);
             }
-            Err(e) => eprintln!("custom widget {label}: {e}"),
+            Err(e) => crate::note!("problem", "custom widget {label}: {e}"),
         }
     }
     for (label, win) in app.webview_windows() {

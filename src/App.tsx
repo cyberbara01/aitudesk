@@ -15,12 +15,15 @@ const pages = {
   map: lazy(() => import("./tiles/Map").then((m) => ({ default: m.MapTile }))),
   schedule: lazy(() => import("./tiles/Schedule").then((m) => ({ default: m.ScheduleTile }))),
   notes: lazy(() => import("./tiles/Notes").then((m) => ({ default: m.NotesTile }))),
+  calendar: lazy(() => import("./tiles/Calendar").then((m) => ({ default: m.CalendarTile }))),
   settings: lazy(() => import("./settings/SettingsShell").then((m) => ({ default: m.SettingsWindow }))),
 } as const;
 /** Every own widget's window (`custom-<id>`) shows the same page. */
 const custom = lazy(() => import("./tiles/Custom").then((m) => ({ default: () => <m.CustomTile label={label} /> })));
 /** The pop-up of folded widgets (src-tauri/src/popup.rs). */
 const popup = lazy(() => import("./popup/PopupHost").then((m) => ({ default: m.PopupHost })));
+/** Every stack of widgets (`stack-<id>`, src-tauri/src/stacks.rs) shows the same page. */
+const stack = lazy(() => import("./stack/StackHost").then((m) => ({ default: m.StackHost })));
 
 /** Mounts once the page's code is loaded and rendered; then the hidden window may be shown. */
 function Ready() {
@@ -32,7 +35,7 @@ function Ready() {
 
 export function App() {
   useTheme();
-  const Page = label.startsWith("custom-") ? custom : label === "popup" ? popup : pages[label as keyof typeof pages];
+  const Page = label.startsWith("custom-") ? custom : label === "popup" ? popup : label.startsWith("stack-") ? stack : pages[label as keyof typeof pages];
   if (!Page) return null;
   return (
     <Suspense fallback={null}>

@@ -137,7 +137,12 @@ const HEIGHTS: &[(&str, f64)] = &[
     ("launchers", 184.0),
     ("schedule", 256.0),
     ("notes", 200.0),
+    ("stack", 200.0),
+    ("calendar", 260.0),
 ];
+/// Tiles that start off: a widget added in a later version stays out of an existing layout until switched on
+/// (DEFAULT_SETTINGS.tiles in src/lib/settings.ts says the same). None now: the calendar is on from the start.
+const OFF_BY_DEFAULT: &[&str] = &[];
 const COL_W: f64 = 280.0;
 const MARGIN: f64 = 24.0;
 const GAP: f64 = 16.0;
@@ -150,7 +155,9 @@ const MAP_MIN_H: f64 = 220.0;
 /// (184 + 200 and 144 + 256) end within 16 px of each other.
 const RIGHT_COLUMNS: [&[&str]; 2] = [&["launchers", "notes"], &["system", "schedule"]];
 /// The fallback layout of a narrow screen: one column along the right edge, continued to the left.
-const COLUMN: &[&str] = &["clock", "system", "launchers", "schedule", "notes", "perf"];
+const COLUMN: &[&str] = &["clock", "system", "launchers", "schedule", "notes", "perf", "stack", "calendar"];
+/// The middle column of the designed layout, top to bottom: the clock, «Нагрузка», the stack.
+const MIDDLE: &[&str] = &["clock", "perf", "stack"];
 /// Where the map begins in the top left corner, in the screen's own logical px (not scaled with the tiles' zoom):
 /// right of the first column of desktop icons (Windows' medium icons, 76 px apart, the Recycle Bin of a fresh
 /// install among them), so the map never lies over an icon that then could not be clicked.
@@ -167,6 +174,11 @@ fn height_of(label: &str) -> f64 {
 /// wide one, or a small one at a zoom larger than «Авто» gives it) gets one column along the right edge, continued
 /// to the left, and the map at the bottom left of it. Own widgets start in the middle, below the top row.
 fn default_rect(app: &AppHandle, label: &str, wa: &WorkArea) -> Rect {
+    // Every stack starts at the stack's spot of the layout, each next one right under the one before while the
+    // screen has room, else a little lower and to the right of the first.
+    let stack = crate::stacks::is_stack(label);
+    let nth = if stack { crate::stacks::index_of(app, label) } else { 0 };
+    let label = if stack { "stack" } else { label };
     let zoom = crate::zoom::current();
     let s = wa.scale * zoom;
     let px = |v: f64| (v * s).round() as i32;
@@ -181,20 +193,32 @@ fn default_rect(app: &AppHandle, label: &str, wa: &WorkArea) -> Rect {
         .iter()
         .map(|c| c.iter().map(|l| height_of(l) + GAP).sum::<f64>() - GAP)
         .fold(0.0, f64::max);
-    let designed = map_room >= MAP_MIN_W && MARGIN + tallest <= bottom;
+    let middle = MIDDLE.iter().map(|l| height_of(l) + GAP).sum::<f64>() - GAP;
+    let designed = map_room >= MAP_MIN_W && MARGIN + tallest.max(middle) <= bottom;
     let (lx, ly, lw, lh) = if crate::custom::is_custom(label) {
         // A custom widget: a square in the middle of the screen (in the designed layout below its top row of
         // widgets), each next one a little lower and to the right.
         let side = crate::custom::DEFAULT_SIZE;
         let step = 32.0 * (crate::custom::index_of(app, label) % 8) as f64;
-        let top = if designed { MARGIN + tallest.max(MAP_H) + GAP } else { MARGIN };
+        let top = if designed { MARGIN + tallest.max(MAP_H).max(middle) + GAP } else { MARGIN };
         let cx = ((width - side) / 2.0 + step).min(width - MARGIN - side).max(MARGIN);
         let cy = (((bottom + MARGIN - side) / 2.0).max(top) + step).min(bottom - side).max(MARGIN);
         (cx, cy, side, side)
     } else if designed {
-        designed_rect(label, width, right_x, map_x, map_room)
+        designed_rect(label, width, right_x, map_x, map_room, bottom)
     } else {
         column_rect(label, width, bottom)
+    };
+    let (lx, ly) = if stack && nth > 0 {
+        let below = ly + nth as f64 * (lh + GAP);
+        if below + lh <= bottom {
+            (lx, below)
+        } else {
+            let step = 32.0 * (nth % 8) as f64;
+            ((lx + step).min(width - MARGIN - lw).max(MARGIN), (ly + step).min(bottom - lh).max(MARGIN))
+        }
+    } else {
+        (lx, ly)
     };
     Rect {
         x: wa.x + px(lx),
@@ -205,18 +229,26 @@ fn default_rect(app: &AppHandle, label: &str, wa: &WorkArea) -> Rect {
 }
 
 /// The designed layout (see `default_rect`); the map begins at `map_x` and has `map_room` for its width.
-fn designed_rect(label: &str, width: f64, right_x: f64, map_x: f64, map_room: f64) -> (f64, f64, f64, f64) {
+fn designed_rect(label: &str, width: f64, right_x: f64, map_x: f64, map_room: f64, bottom: f64) -> (f64, f64, f64, f64) {
     let map_w = map_room.min(MAP_W);
+    let map_h = (map_w * MAP_H / MAP_W).round().max(MAP_MIN_H);
     if label == "map" {
-        return (map_x, MARGIN, map_w, (map_w * MAP_H / MAP_W).round().max(MAP_MIN_H));
+        return (map_x, MARGIN, map_w, map_h);
+    }
+    // The calendar under the map, where the desktop is usually free (on a low screen it keeps above the bottom).
+    if label == "calendar" {
+        let h = height_of(label);
+        return (map_x, (MARGIN + map_h + GAP).min(bottom - h).max(MARGIN), COL_W, h);
     }
     // The clock's column in the middle of the screen, unless the map or the right columns are in the way (min and
     // max rather than clamp: with the narrowest map both bounds are the same sum, which rounding may tip over).
     let mid_x = ((width - COL_W) / 2.0).min(right_x - GAP - COL_W).max(map_x + map_w + GAP);
-    match label {
-        "clock" => return (mid_x, MARGIN, COL_W, height_of("clock")),
-        "perf" => return (mid_x, MARGIN + height_of("clock") + GAP, COL_W, height_of("perf")),
-        _ => {}
+    let mut y = MARGIN;
+    for &name in MIDDLE {
+        if name == label {
+            return (mid_x, y, COL_W, height_of(name));
+        }
+        y += height_of(name) + GAP;
     }
     for (i, column) in RIGHT_COLUMNS.iter().enumerate() {
         let x = right_x + i as f64 * (COL_W + GAP);
@@ -315,6 +347,38 @@ pub fn forget(app: &AppHandle, label: &str) {
     }
 }
 
+/// The saved rects of tile `from` given to tile `to` when it has none of its own (the one stack of the first
+/// version was the window `stack`, it is `stack-main` now).
+pub fn move_saved(app: &AppHandle, from: &str, to: &str) {
+    let mut layout = load_layout(app);
+    let mut changed = false;
+    for (a, b) in [(from.to_string(), to.to_string()), (compact_key(from), compact_key(to))] {
+        if let Some(r) = layout.remove(&a) {
+            layout.entry(b).or_insert(r);
+            changed = true;
+        }
+    }
+    if changed {
+        if let Ok(store) = app.store(STORE_FILE) {
+            store.set(LAYOUT_KEY, json!(layout));
+            let _ = store.save();
+        }
+    }
+}
+
+/// Every saved rect through `f` with its key (the zoom on the grid, see zoom.rs), written back at once.
+pub fn scale_saved_with(app: &AppHandle, mut f: impl FnMut(&str, &Rect) -> Rect) {
+    let saved = load_layout(app);
+    if saved.is_empty() {
+        return;
+    }
+    let scaled: HashMap<String, Rect> = saved.iter().map(|(k, r)| (k.clone(), f(k, r))).collect();
+    if let Ok(store) = app.store(STORE_FILE) {
+        store.set(LAYOUT_KEY, json!(scaled));
+        let _ = store.save();
+    }
+}
+
 /// Every saved rect through `f` (the zoom of the tiles or the display scale changed, see zoom.rs), written back
 /// at once.
 pub fn scale_saved(app: &AppHandle, f: impl Fn(&Rect) -> Rect) {
@@ -363,18 +427,51 @@ fn load_layout(app: &AppHandle) -> HashMap<String, Rect> {
         .unwrap_or_default()
 }
 
-/// `settings.tiles[label]` from the shared store (default: enabled).
+/// Whether tile `label` is in its own place on the desktop: switched on in the settings (`settings.tiles[label]`,
+/// default on; an own widget's entry; a stack while it is listed) and in no stack.
 pub fn tile_enabled_in_store(app: &AppHandle, label: &str) -> bool {
-    if crate::custom::is_custom(label) {
-        return crate::custom::enabled(app, label);
+    if crate::stacks::is_stack(label) {
+        return crate::stacks::exists(app, label);
     }
-    app.store(STORE_FILE)
-        .ok()
-        .and_then(|s| s.get(SETTINGS_KEY))
-        .and_then(|v| v.get("tiles")?.get(label)?.as_bool())
-        // Settings saved before a tile existed do not name it: it starts on, as every tile in DEFAULT_SETTINGS.tiles
-        // (src/lib/settings.ts).
-        .unwrap_or(true)
+    let on = if crate::custom::is_custom(label) {
+        crate::custom::enabled(app, label)
+    } else {
+        app.store(STORE_FILE)
+            .ok()
+            .and_then(|s| s.get(SETTINGS_KEY))
+            .and_then(|v| v.get("tiles")?.get(label)?.as_bool())
+            // Settings saved before a tile existed do not name it: it starts as in DEFAULT_SETTINGS.tiles
+            // (src/lib/settings.ts), on unless it is one of the later ones.
+            .unwrap_or(!OFF_BY_DEFAULT.contains(&label))
+    };
+    on && !crate::stacks::holds(app, label)
+}
+
+/// The stacks or their widgets changed (src/lib/settings.ts, stacks.rs): every widget takes the state the settings
+/// give it now. A widget that went into a stack leaves the desktop, one taken out comes back to its own place.
+pub fn sync_stack(app: &AppHandle) {
+    for label in crate::tile_labels(app) {
+        let want = tile_enabled_in_store(app, &label);
+        let off = app.state::<Visibility>().disabled.lock().unwrap().contains(&label);
+        if want == off {
+            set_tile_enabled(app, &label, want);
+        }
+    }
+}
+
+/// Where tile `label` is on the screen now (physical px), or None while it is parked, switched off or hidden.
+pub fn shown_rect(app: &AppHandle, label: &str) -> Option<Rect> {
+    let vis = app.state::<Visibility>();
+    if *vis.hidden.lock().unwrap() || vis.disabled.lock().unwrap().contains(label) {
+        return None;
+    }
+    let win = app.get_webview_window(label)?;
+    let pos = win.outer_position().ok()?;
+    if is_parked(pos) {
+        return None;
+    }
+    let size = win.outer_size().ok()?;
+    Some(Rect { x: pos.x, y: pos.y, w: size.width, h: size.height })
 }
 
 fn intersects(r: &Rect, wa: &WorkArea) -> bool {
@@ -633,6 +730,7 @@ fn unpark(app: &AppHandle, win: &WebviewWindow, label: &str) {
 /// Hide = park off-screen (hide() would drop the acrylic); show = move back to the saved rect. The choice is
 /// saved, so tiles switched off stay off after a restart until they are switched on in «Виджеты».
 pub fn set_hidden(app: &AppHandle, hidden: bool) {
+    crate::journal::write("layout", if hidden { "all widgets hidden" } else { "all widgets shown" });
     let vis = app.state::<Visibility>();
     // Set first: a page that reports its first frame while the tiles are being shown must find them shown.
     *vis.hidden.lock().unwrap() = hidden;
@@ -668,6 +766,9 @@ pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
     if !crate::is_tile(label) {
         return;
     }
+    // A widget in a stack is shown there, never in its own place.
+    let enabled = enabled && !crate::stacks::holds(app, label);
+    crate::journal::write("layout", &format!("{label} {}", if enabled { "on the desktop" } else { "off the desktop (switched off or in a stack)" }));
     let vis = app.state::<Visibility>();
     let hidden = *vis.hidden.lock().unwrap();
     let Some(win) = app.get_webview_window(label) else { return };
@@ -687,7 +788,9 @@ pub fn set_tile_enabled(app: &AppHandle, label: &str, enabled: bool) {
 
 /// Drop the saved layout and re-place every tile at its default rect.
 pub fn reset(app: &AppHandle) -> Result<(), String> {
+    crate::journal::write("layout", "layout reset to the first places");
     crate::grid::forget_undo(app);
+    crate::grid::forget_base(app, None);
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     store.delete(LAYOUT_KEY);
     store.save().map_err(|e| e.to_string())?;
@@ -805,6 +908,7 @@ fn clamp_into(r: Rect, wa: &WorkArea) -> Rect {
 
 /// Apply the tile rects of a settings file (adapted to this screen) and move the tiles there.
 pub fn import(app: &AppHandle, file: LayoutFile) -> Result<(), String> {
+    crate::journal::write("layout", "layout loaded from a config");
     crate::grid::forget_undo(app);
     let Some(first) = first_tile(app) else { return Ok(()) };
     let screen = work_area(&first);

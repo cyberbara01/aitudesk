@@ -5,7 +5,7 @@
 // threshold crossing touches no DOM at all. Never re-renders the drawings through React.
 import { CAP_HEIGHT } from "./codes";
 import { labelSize, outlineOf, pictogramSize } from "./geometry";
-import { CODE_MIN_DEVICE_PX, CODE_MIN_PX, LABEL_MIN_PX, PICTOGRAM_MIN_PX } from "./types";
+import { CODE_FINE_PX, CODE_MIN_DEVICE_PX, CODE_MIN_PX, LABEL_MIN_PX, PICTOGRAM_MIN_PX } from "./types";
 
 /** Room groups whose own <path> children are their code. The coworking curves and the Mediker logo are not text. */
 const ROOM_WITH_LABEL = 'g[data-name]:not(.map-groups-coworking-atameken):not([data-name^="MEDIKER"])';
@@ -24,6 +24,8 @@ export interface LodItem {
   /** Smallest readable size on screen, CSS px; NaN for a room code (codeMinPx, it depends on the screen). */
   minPx: number;
   shown: boolean;
+  /** A room code small on screen, in the face hinted for small text (.code-fine). */
+  fine: boolean;
 }
 
 /** Smallest readable cap height of a room code on this screen, CSS px (see CODE_MIN_DEVICE_PX). */
@@ -103,7 +105,7 @@ function measure(root: Element, key: string): Measured {
 /** LOD items of one drawing. `key` names the drawing ("floor-2", "shared") for the size cache. */
 export function lodItems(root: Element, key: string): LodItem[] {
   const { els, sizes, minPx } = measure(root, key);
-  return els.map((el, k) => ({ el, size: sizes[k], minPx: minPx[k], shown: !el.classList.contains("lod-off") }));
+  return els.map((el, k) => ({ el, size: sizes[k], minPx: minPx[k], shown: !el.classList.contains("lod-off"), fine: el.classList.contains("code-fine") }));
 }
 
 /**
@@ -114,9 +116,16 @@ export function applyLod(items: readonly LodItem[], pxPerUnit: number, codes = t
   const codeMin = codeMinPx();
   for (const it of items) {
     const code = Number.isNaN(it.minPx);
-    const show = (!code || codes) && it.size * pxPerUnit >= (code ? codeMin : it.minPx);
-    if (show === it.shown) continue;
-    it.shown = show;
-    it.el.classList.toggle("lod-off", !show);
+    const px = it.size * pxPerUnit;
+    const show = (!code || codes) && px >= (code ? codeMin : it.minPx);
+    if (show !== it.shown) {
+      it.shown = show;
+      it.el.classList.toggle("lod-off", !show);
+    }
+    const fine = code && px < CODE_FINE_PX;
+    if (fine !== it.fine) {
+      it.fine = fine;
+      it.el.classList.toggle("code-fine", fine);
+    }
   }
 }

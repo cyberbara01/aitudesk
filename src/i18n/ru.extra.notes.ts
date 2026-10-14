@@ -2,6 +2,7 @@
 // Без длинных тире: правило автора. Единицы времени короткие («д», «ч», «мин»), так не нужны падежи.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/notes";
+import { kk } from "./kk/notes";
 import { plural as pluralRu } from "./ru";
 
 const notesCount = (n: number) => `${n} ${pluralRu(n, "заметка", "заметки", "заметок")}`;
@@ -115,4 +116,4 @@ const RU = {
 } as const;
 
 export type NotesStrings = Widen<typeof RU>;
-export const extra: NotesStrings = LANG === "en" ? en : RU;
+export const extra: NotesStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

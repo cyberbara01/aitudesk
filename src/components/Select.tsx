@@ -18,6 +18,8 @@ interface SelectProps<T extends string> {
   className?: string;
   /** Apply the selected option's style to the button text too (font previews). */
   styledValue?: boolean;
+  /** An icon on the button before the value: what the choice is about (the size of a widget). */
+  icon?: string;
 }
 
 /** The box a list must stay inside: the nearest scrolling ancestor (the settings page, a dialog's body), else the
@@ -38,7 +40,7 @@ function boundsOf(el: HTMLElement): { top: number; bottom: number } {
  * below the button, or above it when only there it has room (a row near the bottom of the page); otherwise the
  * page scrolls it into view. It opens scrolled to the chosen option, and keyboard moves keep the active one in view.
  */
-export function Select<T extends string>({ options, value, onChange, label, ariaLabel, className, styledValue }: SelectProps<T>) {
+export function Select<T extends string>({ options, value, onChange, label, ariaLabel, className, styledValue, icon }: SelectProps<T>) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(() => Math.max(0, options.findIndex((o) => o.value === value)));
@@ -133,6 +135,7 @@ export function Select<T extends string>({ options, value, onChange, label, aria
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKey}
       >
+        {icon && <Icon name={icon} size={16} className="select-icon" />}
         <span className="select-text" style={styledValue ? current?.style : undefined}>
           {current?.label ?? ""}
         </span>

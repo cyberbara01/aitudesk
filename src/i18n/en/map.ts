@@ -33,6 +33,9 @@ export const en: MapStrings = {
 
   backdrop: "Map background",
   color: "Map color",
+  colorHint: "In the accent the plan changes color with it",
+  colorModes: { accent: "Accent", custom: "Custom" },
+  colorPick: "Custom map color",
   codeWeight: "Number weight",
   codeWeightHint: "Room numbers on the plan",
   codeWeights: { light: "Light", regular: "Regular", bold: "Bold" },
@@ -48,7 +51,7 @@ export const en: MapStrings = {
     silhouette: "No glass: a soft underlay beneath the building keeps the plan readable on any wallpaper",
     none: "Only the plan itself, right on the wallpaper, with no underlay at all",
   },
-  labelsHint: "Numbers on the plan. Small ones appear as you zoom in, so the whole-floor view stays clean",
+  labelsHint: "Numbers on the plan. In a small widget the smallest ones appear as you zoom in",
   labelsWhenZoomed: "Numbers only when zoomed in",
   labelsWhenZoomedHint: "The whole-floor view shows no numbers; they appear once the map is zoomed in a little: two wheel notches or a pinch",
   iconsHint: "Hidden while the map is too small",

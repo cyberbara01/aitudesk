@@ -164,6 +164,7 @@ pub fn autostart_enabled() -> bool {
 
 #[tauri::command]
 pub fn set_autostart(app: AppHandle, on: bool) -> Result<(), String> {
+    crate::journal::write("autostart", if on { "start with Windows switched on" } else { "start with Windows switched off" });
     if on {
         enable()?;
     } else {

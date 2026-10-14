@@ -48,8 +48,15 @@ export interface IconProps {
   style?: CSSProperties;
 }
 
+/** The icon at its size, else at the other size (scaled by its box), so an icon kept at one size never draws empty. */
 function syncLookup(name: string, size: 16 | 20, variant: IconVariant): string | undefined {
-  return byName.get(`${name}_${size}_${variant}`) ?? byName.get(`${name}_20_${variant}`) ?? byName.get(`${name}_20_regular`);
+  return (
+    byName.get(`${name}_${size}_${variant}`) ??
+    byName.get(`${name}_20_${variant}`) ??
+    byName.get(`${name}_20_regular`) ??
+    byName.get(`${name}_16_${variant}`) ??
+    byName.get(`${name}_16_regular`)
+  );
 }
 
 export const Icon = memo(function Icon({ name, variant = "regular", size = 20, className, style }: IconProps) {

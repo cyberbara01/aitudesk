@@ -226,7 +226,7 @@ fn sync_glass(window: &WebviewWindow) -> Glass {
         if let Some(h) = hwnd {
             set_corners(h, false);
             if let Err(e) = crate::backdrop::attach(h, px, dark) {
-                eprintln!("[glass] own glass unavailable on '{label}': {e}");
+                crate::note!("problem", "[glass] own glass unavailable on '{label}': {e}");
                 next = Glass::Acrylic { round: true };
             }
         } else {
@@ -243,7 +243,7 @@ fn sync_glass(window: &WebviewWindow) -> Glass {
             }
             if !matches!(prev, Some(Glass::Acrylic { .. })) {
                 if let Err(e) = window_vibrancy::apply_acrylic(window, Some(tint(dark))) {
-                    eprintln!("[glass] acrylic unavailable on '{label}': {e}");
+                    crate::note!("problem", "[glass] acrylic unavailable on '{label}': {e}");
                     GLASS_OK.store(false, Ordering::Relaxed);
                 }
             }
@@ -287,7 +287,7 @@ pub fn set_window_material(window: &WebviewWindow, material: &str, dark: bool) {
 /// Mica for the decorated settings window; `dark` selects the Mica variant.
 pub fn apply_mica(window: &WebviewWindow, dark: bool) {
     if let Err(e) = window_vibrancy::apply_mica(window, Some(dark)) {
-        eprintln!("[glass] mica unavailable on '{}': {e}", window.label());
+        crate::note!("problem", "[glass] mica unavailable on '{}': {e}", window.label());
         MICA_OK.store(false, Ordering::Relaxed);
     }
 }

@@ -20,6 +20,7 @@ export const en: TransferStrings = {
     tilesNone: "All off",
     locked: "layout locked",
     grid: "on the grid",
+    inStack: (n: number) => `${n} in the stack`,
     layoutExport: "On a screen of another size the widgets adjust to it",
     layoutAdapts: "The widgets adjust to your screen",
     layoutNoScreen: "The config doesn't give a screen size, so the widgets stay within yours",

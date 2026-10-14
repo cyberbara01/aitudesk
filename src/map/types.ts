@@ -22,12 +22,15 @@ export const SWITCH_COLUMN_PX = 48;
 export const LABEL_MIN_PX = 6.5;
 /**
  * Level of detail: a room code is drawn once its cap height on screen is at least CODE_MIN_DEVICE_PX device
- * pixels and CODE_MIN_PX CSS px. Semibold hinted digits read from about 4.5 pixels but only look clean from 5:
- * the whole-floor view of a widget on a 100 % screen shows the codes of the larger rooms, the rest come in as it
- * zooms, and a sharp screen draws small codes with more pixels, so it shows more of them at once.
+ * pixels and CODE_MIN_PX CSS px. Small codes are set in a face hinted for small sizes (CODE_FINE_PX), whose digits
+ * read from 3.5 pixels: the whole-floor view of the widget at its first size shows every code even on a 100 %
+ * screen; a smaller widget brings the smallest ones in as it zooms.
  */
-export const CODE_MIN_DEVICE_PX = 5;
-export const CODE_MIN_PX = 3.6;
+export const CODE_MIN_DEVICE_PX = 3.5;
+export const CODE_MIN_PX = 3.2;
+/** Below this cap height on screen (CSS px) a code is set in Windows' face made for small text (map.css
+ * .code-fine): the bundled faces are not hinted and go soft at that size. */
+export const CODE_FINE_PX = 7;
 /** Level of detail: a pictogram (toilet, exit, stairs) is drawn once it is at least this large on screen; on the
  *  whole-floor view they would be specks, so they come in with the first steps of zoom. */
 export const PICTOGRAM_MIN_PX = 12;

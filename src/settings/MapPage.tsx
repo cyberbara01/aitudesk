@@ -15,7 +15,7 @@ import { Switch } from "../components/Switch";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.map";
 import { formatPercent } from "../lib/clock";
-import { FAVORITE_COLORS, MAP_CODE_WEIGHTS, MAP_SCHEMES, mapVars } from "../lib/design";
+import { FAVORITE_COLORS, MAP_CODE_WEIGHTS, MAP_SCHEMES, accentNow, mapVars } from "../lib/design";
 import { settings, type MapCodeWeight, type MapFavorite, type MapScheme, type MapSettings } from "../lib/settings";
 import { useSettings } from "../lib/useSettings";
 import { recolorRoom, setRoomNote, unmarkRoom } from "../map/favorites";
@@ -50,6 +50,10 @@ type CodeColorMode = "scheme" | "custom";
 const CODE_COLOR_OPTIONS: readonly SegmentedOption<CodeColorMode>[] = [
   { value: "scheme", label: extra.codeColors.scheme },
   { value: "custom", label: extra.codeColors.custom },
+];
+const TINT_OPTIONS: readonly SegmentedOption<"accent" | "custom">[] = [
+  { value: "accent", label: extra.colorModes.accent },
+  { value: "custom", label: extra.colorModes.custom },
 ];
 /** The first «Свой» colour of the codes: white on dark palettes, near black on light ones. */
 const firstCodeColor = () => (document.documentElement.dataset.scheme === "light" ? "#1F2937" : "#FFFFFF");
@@ -111,7 +115,17 @@ export function MapPage() {
             ))}
           </div>
         </Row>
-        {m.scheme === "tint" && <MapColorRow label={extra.color} value={m.color} field="color" />}
+        {m.scheme === "tint" && (
+          <Row label={extra.color} hint={extra.colorHint}>
+            <Segmented
+              options={TINT_OPTIONS}
+              value={m.color ? "custom" : "accent"}
+              onChange={(v) => update({ color: v === "custom" ? accentNow() : "" })}
+              ariaLabel={extra.color}
+            />
+          </Row>
+        )}
+        {m.scheme === "tint" && m.color !== "" && <MapColorRow label={extra.colorPick} value={m.color} field="color" />}
         <Row label={extra.backdrop} hint={extra.backdropHints[backdrop]}>
           <Segmented options={BACKDROP_OPTIONS} value={backdrop} onChange={(v) => update(BACKDROP_PATCH[v])} ariaLabel={extra.backdrop} />
         </Row>

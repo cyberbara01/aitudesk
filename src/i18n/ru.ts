@@ -1,6 +1,7 @@
 // Все строки интерфейса только здесь. Без длинных тире: правило автора.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/main";
+import { kk } from "./kk/main";
 
 /** Russian plural form: one (1, 21, 101), few (2-4, 22-24) or many (0, 5-20, 25-30, 11-14). */
 export function plural(n: number, one: string, few: string, many: string): string {
@@ -25,6 +26,7 @@ const RU = {
     map: "Карта AITU",
     schedule: "Расписание",
     notes: "Заметки",
+    calendar: "Календарь",
   },
   menu: {
     moveResize: "Переместить и изменить размер",
@@ -160,6 +162,7 @@ const RU = {
       map: "Карта",
       schedule: "Расписание",
       notes: "Заметки",
+      calendar: "Календарь",
       reminders: "Напоминания",
       transfer: "Конфиги",
       about: "О программе",
@@ -175,7 +178,7 @@ const RU = {
       lockLayoutHint: "Нельзя будет перетаскивать виджеты и менять их размер",
       autostart: "Запускать вместе с Windows",
       autostartHint: "Виджеты появятся сразу после входа в систему",
-      arrangeHint: "Чтобы переставить виджет или изменить его размер, нажмите на него правой кнопкой мыши и выберите «Переместить и изменить размер». Размер меняется, если потянуть за правый нижний угол, и всё внутри растёт вместе с виджетом. Последнее действие отменяет кнопка со стрелкой или Ctrl+Z, кнопка с сеткой включает выравнивание по клеткам значков, а «Готово» завершает настройку",
+      arrangeHint: "Нажмите на виджет правой кнопкой мыши и выберите «Переместить и изменить размер»: тяните виджет, чтобы переставить его, и правый нижний угол, чтобы изменить размер. Ctrl+Z отменяет последний шаг, «Готово» завершает",
       resetLayout: "Сбросить расположение",
       resetLayoutDone: "Расположение сброшено",
     },
@@ -184,7 +187,7 @@ const RU = {
       styleHint: "Готовый набор: вид кнопок и переключателей, шрифты, формы и материалы. Ниже любую часть можно выбрать отдельно",
       styles: {
         fluent: "Windows 11",
-        fluentHint: "Акрил, строгие радиусы, Segoe UI",
+        fluentHint: "Матовый фон, строгие углы, Segoe UI",
         aqua: "Aqua",
         aquaHint: "Мягкие формы, Inter, светлое стекло",
         rice: "Rice",
@@ -323,7 +326,7 @@ const RU = {
         outline: "Контур",
         outlineHint: "Только линии и подписи",
         tint: "Свой цвет",
-        tintHint: "Вся карта в оттенках выбранного цвета",
+        tintHint: "Вся карта в оттенках акцента или своего цвета",
         blueprint: "Чертёж",
         blueprintHint: "Синий план со светлыми линиями",
       },
@@ -352,6 +355,8 @@ const RU = {
       telegramUrl: "https://t.me/capybara205",
       /** Google Форма: оценка от 0 до 10 и предложения. */
       feedbackUrl: "https://forms.gle/LV7BYCqeveRyRm9YA",
+      /** Страница релизов: там новые версии и что в них нового. */
+      releasesUrl: "https://github.com/cyberbara01/aitudesk/releases",
       github: "GitHub",
       telegram: "Telegram",
       credits: "Благодарности",
@@ -377,4 +382,4 @@ const RU = {
 } as const;
 
 export type MainStrings = Widen<typeof RU>;
-export const ru: MainStrings = LANG === "en" ? en : RU;
+export const ru: MainStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

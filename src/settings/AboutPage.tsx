@@ -3,9 +3,14 @@
 // actions on the right. The feedback row says up front that the form is anonymous and a rating alone will do.
 // The only marks are the ones that are links: GitHub (the author, the map's author, the map's repository),
 // Telegram and Google (the feedback form is a Google Form).
-import { useId, useState, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useState, type MouseEvent, type ReactNode } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { Switch } from "../components/Switch";
+import { LOCALE, NUMBER_LOCALE } from "../i18n/lang";
+import { announceJournal, describeSetting } from "../lib/journal";
+import { settings } from "../lib/settings";
 import { Button } from "../components/Button";
 import { Icon } from "../components/Icon";
 import { Page, Row, Section } from "../components/Section";
@@ -19,6 +24,7 @@ import { useNavigate } from "./shell/nav";
 
 const ab = ru.settings.about;
 const x = extra.about;
+const jr = extra.journal;
 
 const open = (url: string) => void openUrl(url).catch(() => undefined);
 
@@ -99,6 +105,110 @@ function MarkLink({ href, name, children }: { href: string; name: string; childr
   );
 }
 
+interface JournalStatus {
+  on: boolean;
+  size: number;
+  limit: number;
+  /** Reached the limit once: it keeps the newest records now. */
+  full: boolean;
+}
+
+const kb = new Intl.NumberFormat(NUMBER_LOCALE, { maximumFractionDigits: 1 });
+/** A size for people: «12 КБ», «1,4 МБ». */
+const human = (bytes: number) =>
+  bytes >= 1024 * 1024 ? `${kb.format(bytes / 1024 / 1024)} ${LOCALE.startsWith("en") ? "MB" : "МБ"}` : `${kb.format(Math.ceil(bytes / 1024))} ${LOCALE.startsWith("en") ? "KB" : "КБ"}`;
+
+/** What is on in the app, for the report: every setting as the journal writes it (nothing personal), and the
+ * switches kept outside the settings. */
+async function featureSummary(): Promise<string> {
+  const s = settings.get() as unknown as Record<string, unknown>;
+  const lines = Object.keys(s)
+    .filter((k) => k !== "version")
+    .map((k) => `${k}: ${describeSetting(k, s[k])}`);
+  const autostart = await invoke<boolean>("autostart_enabled").catch(() => null);
+  const hidden = await invoke<boolean>("get_tiles_hidden").catch(() => null);
+  lines.push(`start with Windows: ${autostart}`, `all widgets hidden: ${hidden}`, `language: ${LOCALE}`);
+  return lines.join("\n");
+}
+
+/** «Журнал для отчёта об ошибке»: the switch, how full it is, the report, the folder, «Очистить», and how to send it. */
+function JournalSection() {
+  const [st, setSt] = useState<JournalStatus | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const refresh = useCallback(() => {
+    void invoke<JournalStatus>("journal_status").then(setSt, () => undefined);
+  }, []);
+  useEffect(() => {
+    refresh();
+    // The file grows while the window is open: the bar follows now and then.
+    const t = window.setInterval(refresh, 5000);
+    return () => window.clearInterval(t);
+  }, [refresh]);
+  if (!st) return null;
+  const ratio = Math.min(1, st.size / st.limit);
+  const level = st.full || ratio >= 0.95 ? "full" : ratio >= 0.75 ? "near" : "ok";
+  const toggle = (on: boolean) =>
+    void invoke<JournalStatus>("journal_set", { on }).then((next) => {
+      setSt(next);
+      announceJournal(next.on);
+    });
+  const save = async () => {
+    setNote(null);
+    try {
+      const summary = await featureSummary();
+      const path = await invoke<string | null>("journal_save_report", { title: jr.saveTitle, fileName: jr.fileName, summary });
+      if (path) {
+        setNote(jr.saved);
+        void revealItemInDir(path).catch(() => undefined);
+      }
+    } catch {
+      setNote(jr.saveFailed);
+    }
+    refresh();
+  };
+  const openFolder = () => void invoke("journal_folder").catch(() => undefined);
+  return (
+    <Section title={jr.title} description={jr.desc}>
+      <Row label={jr.enable} hint={jr.enableHint}>
+        <Switch checked={st.on} onChange={toggle} ariaLabel={jr.enable} />
+      </Row>
+      <div className="row journal-fill">
+        <div className="row-text">
+          <span className="row-label">{jr.fill(human(st.size), human(st.limit))}</span>
+          <span className="row-hint">{level === "full" ? jr.full : level === "near" ? jr.nearFull : jr.fillHint}</span>
+          <span className={`journal-bar ${level}`} role="meter" aria-valuemin={0} aria-valuemax={st.limit} aria-valuenow={st.size}>
+            <span style={{ width: `${Math.max(ratio * 100, st.size > 0 ? 1.5 : 0)}%` }} />
+          </span>
+        </div>
+      </div>
+      <div className="cw-foot">
+        <Button variant="accent" icon="arrow_download" onClick={() => void save()}>
+          {jr.save}
+        </Button>
+        <Button icon="folder_open" onClick={openFolder}>
+          {jr.folder}
+        </Button>
+        <Button
+          icon="delete"
+          onClick={() => void invoke<JournalStatus>("journal_clear").then(setSt, () => undefined)}
+          disabled={st.size === 0}
+        >
+          {jr.clear}
+        </Button>
+        {note && <span className="cw-hint">{note}</span>}
+      </div>
+      <Row label={jr.howTitle} hint={jr.howText}>
+        <Button onClick={() => open(ab.telegramUrl)}>
+          <ButtonMark>
+            <TelegramMark />
+          </ButtonMark>
+          {jr.telegram}
+        </Button>
+      </Row>
+    </Section>
+  );
+}
+
 /** A licence's name with «Показать» / «Скрыть», and its full text under them. */
 function LicenceText({ label, text }: { label: string; text: readonly string[] }) {
   const [open, setOpen] = useState(false);
@@ -141,6 +251,7 @@ export function AboutPage() {
             <span className="about-dot" aria-hidden="true" />
             <span>{ab.licenseName}</span>
           </div>
+          <div className="about-unofficial">{x.unofficial}</div>
         </div>
       </header>
 
@@ -148,6 +259,15 @@ export function AboutPage() {
         <Row label={extra.shell.help} hint={x.helpHint}>
           <Button icon="book_open" onClick={() => navigate("welcome")}>
             {x.guide}
+          </Button>
+        </Row>
+        {/* No update check of its own (the app never goes online by itself): a gentle «maybe», and the way there. */}
+        <Row label={x.updates} hint={x.updatesHint(ru.app.version)}>
+          <Button onClick={() => open(ab.releasesUrl)}>
+            <ButtonMark>
+              <GitHubMark />
+            </ButtonMark>
+            {x.updatesButton}
           </Button>
         </Row>
         <Row label={ab.author}>
@@ -169,6 +289,8 @@ export function AboutPage() {
           </Button>
         </Row>
       </Section>
+
+      <JournalSection />
 
       <Section title={ab.credits}>
         <Row label={x.mapTitle} hint={ab.mapCredit}>

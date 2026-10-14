@@ -32,7 +32,9 @@
 /* =====================================================================================
    Settings: the size of each widget, the list of own widgets and their editor
    ===================================================================================== */
-.row-control .select.tile-size { width: 132px; }
+.row-control .select.tile-size { width: 150px; }
+/* The size's icon on the button says what the choice is about without opening it. */
+.select .select-icon { flex: none; color: var(--text-2); margin-right: -2px; }
 /* «Тонкая настройка»: wide enough for «Как в дизайне: JetBrains Mono». */
 .row-control .select.look-select { width: 236px; }
 .row-control .select.look-select .select-btn { min-width: 0; width: 100%; }

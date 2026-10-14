@@ -34,11 +34,17 @@
 .sys-row:last-child { margin-bottom: auto; }
 /* First row: the value («72 %», «от сети») is short and stays whole; a long PC label gives way first. */
 .sys-row[data-row="power"] { grid-template-columns: var(--sys-icon-w) minmax(0, 1fr) auto; }
-/* Hidden names (Masked.tsx, privacy.css): the eye has a column of its own at the right end, as in the notes and
-   schedule rows, so the dots never run under it and nothing moves when it fades in on hover. It reaches 4 px into
-   the tile padding: its glyph then ends where the values of the other rows end. */
-.sys-row.reveal-row { grid-template-columns: var(--sys-icon-w) auto minmax(0, 1fr) auto; }
-.sys-row > .reveal-btn { margin-right: -4px; }
+/* Hidden names (Masked.tsx, privacy.css): the dots end at the right edge like the values of the other rows, and
+   the eye sits just left of them, in the free space of the row, so nothing moves when it fades in on hover. */
+.sys-end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s1);
+  min-width: 0;
+}
+.sys-end > .reveal-btn { flex: none; }
+.sys-end > .sys-value { flex: 0 1 auto; }
 /* The dots are never cut or ellipsized: in a narrow tile only the dots that fit whole show (the rest wrap onto a
    second line, clipped away), still flush right. Eight dots need 59 px in Segoe UI and 76 px in Inter. */
 .sys-row .masked-dots {
@@ -46,6 +52,8 @@
   white-space: normal;
   word-break: break-all;
   text-align: right;
+  /* The letter spacing also follows the last dot: without it the dots would stop short of the edge. */
+  margin-right: -0.12em;
 }
 
 /* Icon. Fluent: the glyph alone, coloured by state. */

@@ -12,7 +12,7 @@ export interface LauncherLook {
   caption?: string;
   url: string;
   icon: LauncherIconSpec;
-  /** #RRGGBB tint. */
+  /** #RRGGBB tint, or "" for the accent. */
   color: string;
 }
 
@@ -50,13 +50,14 @@ function FluentGlyph({ name, svg, fallback }: { name: string; svg?: string; fall
  */
 export function LauncherIcon({ look, className }: { look: LauncherLook; className?: string }) {
   const { icon, color, name, url } = look;
-  const ink = launcherInk(color);
   const letter = <span className="ln-letter">{letterOf(name, url)}</span>;
   let inner: ReactNode;
   if (icon.kind === "fluent") inner = <FluentGlyph name={icon.name} svg={icon.svg} fallback={letter} />;
   else if (icon.kind === "site" && isImageDataUrl(icon.data)) inner = <SiteImage data={icon.data} fallback={letter} />;
   else inner = letter;
-  const style = { "--ln-color": color, "--ln-ink-dark": ink.dark, "--ln-ink-light": ink.light } as CSSProperties;
+  // In the accent, the square takes it from launchers.css and follows a change of it by itself.
+  const ink = color ? launcherInk(color) : null;
+  const style = (ink ? { "--ln-color": color, "--ln-ink-dark": ink.dark, "--ln-ink-light": ink.light } : undefined) as CSSProperties | undefined;
   return (
     <span className={cx("ln-square", className)} style={style} aria-hidden="true">
       {inner}

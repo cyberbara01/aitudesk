@@ -5,7 +5,7 @@
 // all back into the icon. Only one widget is shown at a time; the code of the folded widgets is loaded ahead of
 // the first click, so the card opens at once. A room clicked in the schedule while the map is folded opens the
 // map here and shows that room.
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { IconButton } from "../components/Button";
@@ -14,13 +14,21 @@ import { ru } from "../i18n/ru";
 import { extra as shell } from "../i18n/ru.extra.shell";
 import { EDIT_EVENT } from "../lib/editMode";
 import { isMenuOpen } from "../lib/nativeMenu";
-import { customIdOf, isCustomLabel, settings, TILE_IDS, type TileId, type TileView } from "../lib/settings";
+import { Icon } from "../components/Icon";
+import { customIdOf, isCustomLabel, isStackLabel, settings, stackIdOf, type TileId, type TileView } from "../lib/settings";
+import { stackName } from "../stack/actions";
+import { CustomTile, preloadWidget, WIDGETS } from "../lib/widgetPages";
+import { useDeskSpot } from "../lib/deskSpot";
+import { fillCss, fillImage } from "../lib/fill";
 import { widgetInk } from "../lib/ink";
 import { isFoldedView } from "../lib/tileView";
 import { useSettings } from "../lib/useSettings";
 import { useWidgetImage } from "../lib/widgetImage";
 import { PopupContext } from "./context";
 import { CLOSE, OPEN, cardStart, fly, flyStart, morph, progressAt, shellStart, type Rect } from "./motion";
+
+/** A stack opened from its icon (its code only when one opens). */
+const StackPage = lazy(() => import("../stack/StackHost").then((m) => ({ default: m.StackHost })));
 
 const v = shell.views;
 /** CSS px: the card's header (popup.rs HEADER), the icon in it and the room left of that icon (popup.css). */
@@ -37,19 +45,6 @@ const LET_GO_MS = 40;
 /** Leaving for another window closes the pop-up; a short wait skips focus that only passes through. */
 const BLUR_MS = 120;
 
-type Loader = () => Promise<{ default: ComponentType }>;
-const LOADERS: Record<TileId, Loader> = {
-  clock: () => import("../tiles/Clock").then((m) => ({ default: m.ClockTile })),
-  system: () => import("../tiles/System").then((m) => ({ default: m.SystemTile })),
-  perf: () => import("../tiles/Perf").then((m) => ({ default: m.PerfTile })),
-  launchers: () => import("../tiles/Launchers").then((m) => ({ default: m.LaunchersTile })),
-  map: () => import("../tiles/Map").then((m) => ({ default: m.MapTile })),
-  schedule: () => import("../tiles/Schedule").then((m) => ({ default: m.ScheduleTile })),
-  notes: () => import("../tiles/Notes").then((m) => ({ default: m.NotesTile })),
-};
-const WIDGETS = Object.fromEntries(TILE_IDS.map((id) => [id, lazy(LOADERS[id])])) as unknown as Record<TileId, ComponentType>;
-const loadCustom = () => import("../tiles/Custom");
-const CustomTile = lazy(() => loadCustom().then((m) => ({ default: m.CustomTile })));
 
 /** popup.rs Show: physical px relative to this window. */
 interface Payload {
@@ -115,6 +110,8 @@ interface Motion {
 
 export function PopupHost() {
   const s = useSettings();
+  // Where this window is on the screen: the card shows its part of the screen-wide gradient, as the widgets do.
+  const spot = useDeskSpot(s.fill.mode === "gradient");
   const [show, setShow] = useState<Show | null>(null);
   const shownRef = useRef<Show | null>(null);
   const seq = useRef(0);
@@ -368,10 +365,7 @@ export function PopupHost() {
   const folded = useMemo(() => Object.keys(s.tileViews).filter((l) => isFoldedView(s.tileViews[l])), [s.tileViews]);
   useEffect(() => {
     const idle = window.setTimeout(() => {
-      for (const l of folded) {
-        if (isCustomLabel(l)) void loadCustom();
-        else if (l in LOADERS) void LOADERS[l as TileId]();
-      }
+      for (const l of folded) preloadWidget(l);
     }, 400);
     return () => window.clearTimeout(idle);
   }, [folded]);
@@ -381,11 +375,24 @@ export function PopupHost() {
   if (!show || !api) return null;
 
   const custom = isCustomLabel(show.label) ? s.customWidgets.find((w) => w.id === customIdOf(show.label)) : undefined;
-  const name = custom ? custom.name.trim() || shell.custom.unnamed : (ru.tiles as Record<string, string>)[show.label] ?? "";
-  const art = custom ? <CustomArt file={custom.file} /> : tileArt(show.label);
-  const Widget = isCustomLabel(show.label) ? null : WIDGETS[show.label as TileId];
+  // A stack folded to its icon opens whole here, paging as on the desktop.
+  const stackDef = isStackLabel(show.label) ? s.stacks.find((d) => d.id === stackIdOf(show.label)) : undefined;
+  const name = custom
+    ? custom.name.trim() || shell.custom.unnamed
+    : stackDef
+      ? stackName(s, stackDef)
+      : ((ru.tiles as Record<string, string>)[show.label] ?? "");
+  const art = custom ? <CustomArt file={custom.file} /> : stackDef ? <Icon name="stack" size={24} /> : tileArt(show.label);
+  const Widget = isCustomLabel(show.label) || stackDef ? null : WIDGETS[show.label as TileId];
   const { card } = show;
   const head = { x: card.x + HEAD_PAD, y: card.y + (HEAD - HEAD_ART) / 2 };
+  // «Фон виджетов»: the card has the widgets' colour, or its part of their gradient, whole (it stands over the desktop).
+  const shellFill =
+    s.fill.mode === "theme"
+      ? undefined
+      : spot
+        ? { background: `${fillImage(s.fill, spot.w, spot.h, 1)} ${-(spot.x + card.x)}px ${-(spot.y + card.y)}px / ${spot.w}px ${spot.h}px no-repeat` }
+        : { background: fillCss(s.fill, card.w, card.h, 1) };
 
   return (
     // The header and the flying icon take the widget's colours too (src/lib/ink.ts).
@@ -404,7 +411,11 @@ export function PopupHost() {
         aria-label={name}
       >
         <div ref={shadowRef} className="popup-shadow" />
-        <div ref={shellRef} className="popup-shell" />
+        <div
+          ref={shellRef}
+          className="popup-shell"
+          style={shellFill}
+        />
         <div ref={contentRef} className="popup-content">
           <header className="popup-head">
             <span ref={headArtRef} className="popup-art" aria-hidden="true">
@@ -415,7 +426,15 @@ export function PopupHost() {
           </header>
           <div className="popup-body">
             <PopupContext.Provider value={api}>
-              <Suspense fallback={null}>{Widget ? <Widget key={show.label} /> : <CustomTile key={show.label} label={show.label} />}</Suspense>
+              <Suspense fallback={null}>
+                {stackDef ? (
+                  <StackPage key={show.label} id={stackDef.id} />
+                ) : Widget ? (
+                  <Widget key={show.label} />
+                ) : (
+                  <CustomTile key={show.label} label={show.label} />
+                )}
+              </Suspense>
             </PopupContext.Provider>
           </div>
         </div>

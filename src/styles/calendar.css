@@ -1,0 +1,190 @@
+/* «Календарь» (src/tiles/Calendar.tsx). One cell sizes everything: the smaller of a seventh of the width and the
+   height shared by the weeks, the title, the weekday names and the day line (--units cells high in all, each part a
+   fixed share of a cell). The cells stay square, the month sits in the middle of a widget of any shape, and the
+   title, the numbers and the line keep their proportions at any size: crisp text, never a stretched picture. */
+
+.cal-box {
+  width: 100%;
+  height: 100%;
+  container-type: size;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.cal {
+  /* The column of week numbers, in cells. */
+  --wk: 0;
+  --cw: calc(100cqw / (7 + var(--wk)));
+  --ch: calc(100cqh / var(--units));
+  --cell: min(var(--cw), var(--ch));
+  /* A wide widget spreads the days a little and a tall one the weeks, never far apart. */
+  --col: min(calc((100cqw - var(--cell) * var(--wk)) / 7), calc(var(--cell) * 1.3));
+  --row: min(calc((100cqh - var(--cell) * (var(--units) - var(--rows))) / var(--rows)), calc(var(--cell) * 1.25));
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--col) * 7 + var(--cell) * var(--wk));
+  height: calc(var(--cell) * (var(--units) - var(--rows)) + var(--row) * var(--rows));
+  color: var(--text);
+  font-family: var(--font-text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cal.with-weeks { --wk: .8; }
+
+/* ---- The title and the arrows ---- */
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--cell) * .12);
+  height: calc(var(--cell) * 1.1);
+  flex: none;
+  min-width: 0;
+}
+.cal.title-center .cal-head { justify-content: center; }
+.cal-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: calc(var(--cell) * .2);
+  min-width: 0;
+  padding: calc(var(--cell) * .06) calc(var(--cell) * .16);
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: none;
+  color: var(--text);
+  font: 600 clamp(12px, calc(var(--cell) * .5), 32px) / 1.2 var(--font-text);
+  letter-spacing: -.005em;
+  /* One line: what does not fit whole (the week's number) wraps under it and is not seen. */
+  flex-wrap: wrap;
+  height: calc(1.2em + var(--cell) * .12);
+  overflow: hidden;
+}
+.cal.title-left .cal-title { margin-left: calc(var(--cell) * -.16); }
+.cal.title-right .cal-title { margin-right: calc(var(--cell) * -.16); }
+/* Away from today the title is the way back: it answers the pointer and carries a dot. */
+.cal-title.away { cursor: pointer; }
+.cal-title.away:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.cal-title.away::after {
+  content: "";
+  flex: none;
+  align-self: center;
+  width: clamp(4px, calc(var(--cell) * .13), 8px);
+  height: clamp(4px, calc(var(--cell) * .13), 8px);
+  border-radius: 50%;
+  background: var(--cal-today);
+}
+/* The month never gives way: the week's number goes first. */
+.cal-title > .ellipsis { flex: none; max-width: 100%; }
+.cal-title.away::after { order: 1; }
+.cal-week-no { order: 2; color: var(--text-2); font-weight: 400; font-size: clamp(10px, calc(var(--cell) * .32), 19px); white-space: nowrap; }
+.cal-nav { display: inline-flex; gap: calc(var(--cell) * .04); flex: none; }
+.cal.title-left .cal-nav { margin-right: calc(var(--cell) * -.14); }
+.cal.title-right .cal-nav { margin-left: calc(var(--cell) * -.14); }
+.cal-arrow {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: clamp(22px, calc(var(--cell) * .8), 42px);
+  height: clamp(22px, calc(var(--cell) * .8), 42px);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-icon, var(--text-2));
+  cursor: pointer;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+.cal-arrow .icon { width: clamp(14px, calc(var(--cell) * .4), 22px); height: clamp(14px, calc(var(--cell) * .4), 22px); }
+.cal-arrow .icon svg { width: 100%; height: 100%; }
+/* A larger target than the circle, like the stack's arrows. */
+.cal-arrow::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; }
+.cal-arrow:hover { background: color-mix(in srgb, var(--text) 9%, transparent); color: var(--ink-icon, var(--text)); }
+.cal-arrow:active { background: color-mix(in srgb, var(--text) 14%, transparent); }
+
+/* ---- The grid ---- */
+.cal-grid { display: flex; flex-direction: column; flex: none; }
+.cal-row { display: grid; grid-template-columns: repeat(7, var(--col)); height: var(--row); }
+.cal.with-weeks .cal-row { grid-template-columns: calc(var(--cell) * var(--wk)) repeat(7, var(--col)); }
+.cal-row.cal-names { height: calc(var(--cell) * .62); align-items: center; }
+.cal-name { text-align: center; color: var(--text-3); font-size: clamp(9px, calc(var(--cell) * .3), 17px); font-weight: 600; letter-spacing: .02em; }
+.cal-name.weekend { color: color-mix(in srgb, var(--cal-weekend) 80%, transparent); }
+.cal-wk { display: grid; place-items: center; color: var(--text-3); font: 500 clamp(8px, calc(var(--cell) * .27), 15px) var(--font-num); font-variant-numeric: tabular-nums; }
+
+.cal-day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: 500 clamp(10px, calc(var(--cell) * .42), 28px) / 1 var(--font-num);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.cal-day.empty { cursor: default; }
+.cal-num {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--cell) * .8);
+  height: calc(var(--cell) * .8);
+  border-radius: 50%;
+  transition: background-color 120ms ease-out, box-shadow 120ms ease-out;
+}
+.cal-day.weekend { color: var(--cal-weekend); }
+.cal-day.outside { color: var(--text-3); opacity: .6; }
+.cal-day:hover:not(.today) .cal-num { background: color-mix(in srgb, var(--text) 9%, transparent); }
+.cal-day.picked .cal-num { box-shadow: inset 0 0 0 max(1px, calc(var(--cell) * .04)) color-mix(in srgb, var(--text) 40%, transparent); }
+
+/* Today: a filled circle, a filled rounded square, or a ring in the colour of today. */
+.cal-day.today .cal-num { background: var(--cal-today); color: var(--cal-on-today); font-weight: 700; }
+.cal.today-square .cal-day.today .cal-num { border-radius: 28%; }
+.cal:not(.today-ring) .cal-day.today .cal-dot { background: var(--cal-on-today); }
+.cal.today-ring .cal-day.today .cal-num { background: transparent; color: var(--cal-today); box-shadow: inset 0 0 0 max(1.5px, calc(var(--cell) * .06)) var(--cal-today); }
+
+/* A deadline that day: a dot under the number, inside the day's mark (on today's filled mark in the colour of the
+   number, so the two never run together). Placed from the number's own size, so it never touches the digits. */
+.cal-dot {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + .6em);
+  width: clamp(3px, calc(var(--cell) * .11), 7px);
+  height: clamp(3px, calc(var(--cell) * .11), 7px);
+  border-radius: 50%;
+  background: var(--cal-dot);
+  translate: -50% 0;
+}
+
+/* ---- The day line ---- */
+.cal-line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--cell) * .15);
+  height: calc(var(--cell) * .95);
+  flex: none;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--text-2);
+  font-size: clamp(10px, calc(var(--cell) * .34), 19px);
+  line-height: 1.3;
+}
+.cal.line-center .cal-line { justify-content: center; }
+.cal.line-right .cal-line { justify-content: flex-end; }
+.cal-line-day { color: var(--text); font-weight: 600; flex: none; }
+.cal-line-plain { flex: none; }
+.cal-line-sep { color: var(--text-3); flex: none; }
+.cal-line-due { display: inline-flex; align-items: center; gap: calc(var(--cell) * .15); min-width: 0; }
+.cal-line-dot { width: clamp(5px, calc(var(--cell) * .15), 9px); height: clamp(5px, calc(var(--cell) * .15), 9px); border-radius: 50%; background: var(--cal-dot); flex: none; }
+.cal-line-more { flex: none; color: var(--text-3); }
+
+/* The preview in the settings: the widget at its first size. */
+.cal-preview.tile { width: 300px; height: 270px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-num, .cal-arrow { transition: none; }
+}
+.cal-day-select .select-btn { min-width: 200px; }

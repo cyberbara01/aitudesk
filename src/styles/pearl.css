@@ -191,6 +191,8 @@
 :root[data-style="pearl"] .row-icon[data-icon="folder"] { --row-tint: #5AC8FA; --row-ink: rgba(0, 0, 0, .78); }
 :root[data-style="pearl"] .row-icon[data-icon="document"] { --row-tint: #8E8E93; }
 :root[data-style="pearl"] .row-icon[data-icon="grid"] { --row-tint: #5E5CE6; }
+:root[data-style="pearl"] .row-icon[data-icon="stack"] { --row-tint: #AF52DE; }
+:root[data-style="pearl"] .row-icon[data-icon="image"] { --row-tint: #FF9F0A; }
 :root[data-style="pearl"] .row-icon[data-icon="alert"] { --row-tint: #FF2D55; }
 :root[data-style="pearl"] .row-icon[data-icon="book_open"] { --row-tint: #FF9500; }
 

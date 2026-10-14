@@ -24,7 +24,7 @@ const MAX_FILE: u64 = 64 * 1024 * 1024;
 
 /// Name of the file type in the dialogs' type box.
 fn filter_name() -> &'static str {
-    crate::lang::pick("Конфиг AITU Desk (*.json)", "AITU Desk config (*.json)")
+    crate::lang::pick("Конфиг AITU Desk (*.json)", "AITU Desk config (*.json)", "AITU Desk конфигі (*.json)")
 }
 const FILTER_SPEC: &str = "*.json";
 
@@ -98,6 +98,29 @@ pub fn save(owner: isize, title: String, file_name: String, contents: String) ->
     })
 }
 
+/// «Сохранить отчёт» of the journal: asks where (suggesting `file_name`), writes `contents` as a text file.
+pub fn save_text(owner: isize, title: String, file_name: String, contents: String) -> Result<Option<String>, String> {
+    on_sta_thread(move || unsafe {
+        let dialog: IFileSaveDialog = CoCreateInstance(&FileSaveDialog, None, CLSCTX_INPROC_SERVER).map_err(err)?;
+        let options = dialog.GetOptions().map_err(err)?;
+        dialog
+            .SetOptions(options | FOS_OVERWRITEPROMPT | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_STRICTFILETYPES)
+            .map_err(err)?;
+        dialog.SetDefaultExtension(&HSTRING::from("txt")).map_err(err)?;
+        dialog.SetFileName(&HSTRING::from(file_name)).map_err(err)?;
+        let filter = crate::lang::pick("Текстовый файл (*.txt)", "Text file (*.txt)", "Мәтіндік файл (*.txt)");
+        if !show_with(&dialog, owner, &title, filter, "*.txt")? {
+            return Ok(None);
+        }
+        let path = result_path(&dialog)?;
+        // With a BOM, so Notepad and every other editor reads it as UTF-8.
+        let mut bytes = vec![0xEF, 0xBB, 0xBF];
+        bytes.extend_from_slice(contents.as_bytes());
+        std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+        Ok(Some(path))
+    })
+}
+
 /// A file picked in «Открыть»: its path (for the message) and text.
 #[derive(serde::Serialize)]
 pub struct OpenedFile {
@@ -140,7 +163,7 @@ pub fn open_image(owner: isize, title: String) -> Result<Option<String>, String>
         let dialog: IFileOpenDialog = CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER).map_err(err)?;
         let options = dialog.GetOptions().map_err(err)?;
         dialog.SetOptions(options | FOS_FILEMUSTEXIST | FOS_PATHMUSTEXIST | FOS_FORCEFILESYSTEM).map_err(err)?;
-        let filter = crate::lang::pick("Картинки и анимации", "Pictures and animations");
+        let filter = crate::lang::pick("Картинки и анимации", "Pictures and animations", "Суреттер мен анимациялар");
         if !show_with(&dialog, owner, &title, filter, "*.png;*.jpg;*.jpeg;*.gif;*.webp;*.bmp")? {
             return Ok(None);
         }

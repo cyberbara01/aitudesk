@@ -34,7 +34,7 @@ import {
   visibleDays,
   type LessonState,
 } from "../lib/schedule";
-import type { Lesson, Weekday } from "../lib/settings";
+import { settings, type Lesson, type Weekday } from "../lib/settings";
 import { useFolded } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 
@@ -259,7 +259,12 @@ function LessonList({ lessons, day, now, mapLink }: { lessons: readonly Lesson[]
       leave: hideTip,
       open: (el, code) => {
         hideTip();
-        if (inView(el)) void emitTo("map", MAP_FOCUS_EVENT, { room: code }).catch(() => undefined);
+        if (inView(el)) {
+          // The map's own window, or the stack that holds the map.
+          const host = settings.get().stacks.find((d) => d.members.includes("map"));
+          const target = host ? `stack-${host.id}` : "map";
+          void emitTo(target, MAP_FOCUS_EVENT, { room: code }).catch(() => undefined);
+        }
       },
     };
   }, [mapLink, hideTip, inView]);

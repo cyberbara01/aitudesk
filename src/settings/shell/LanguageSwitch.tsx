@@ -1,5 +1,5 @@
-// «Язык · Language» in the bottom-left corner of the settings window, under «Как пользоваться»: a small button
-// that reads «RU | EN», the language in use bright. Its menu offers «Как в Windows», Русский and English, each
+// «Язык · Тіл · Language» in the bottom-left corner of the settings window, under «Как пользоваться»: a small button
+// that reads «RU | KZ | EN», the language in use bright. Its menu offers «Как в Windows», Русский, Қазақша and English, each
 // name in its own language so anyone finds theirs, drawn like the sidebar's items (the one in use looks like the
 // selected page in every design); picking another one asks first, since the app restarts to switch.
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
@@ -18,6 +18,7 @@ const x = extra.general;
 export const LANGUAGE_OPTIONS: readonly { value: LanguageSetting; label: string }[] = [
   { value: "auto", label: x.languageAuto },
   { value: "ru", label: "Русский" },
+  { value: "kk", label: "Қазақша" },
   { value: "en", label: "English" },
 ];
 
@@ -88,6 +89,8 @@ export function LanguageSwitch() {
           onKeyDown={onKey}
         >
           <span className={LANG === "ru" ? "lang-code on" : "lang-code"}>RU</span>
+          <span className="lang-sep" aria-hidden="true" />
+          <span className={LANG === "kk" ? "lang-code on" : "lang-code"}>KZ</span>
           <span className="lang-sep" aria-hidden="true" />
           <span className={LANG === "en" ? "lang-code on" : "lang-code"}>EN</span>
         </button>

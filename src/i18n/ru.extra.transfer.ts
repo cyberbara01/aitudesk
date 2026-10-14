@@ -2,6 +2,7 @@
 // в ru.ts (разделы боковой панели, «Виджеты на рабочем столе»), берутся оттуда. Без длинных тире: правило автора.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/transfer";
+import { kk } from "./kk/transfer";
 import { plural } from "./ru";
 
 const count = (n: number, one: string, few: string, many: string) => `${n} ${plural(n, one, few, many)}`;
@@ -24,6 +25,7 @@ const RU = {
     tilesNone: "Все выключены",
     locked: "расположение закреплено",
     grid: "по сетке",
+    inStack: (n: number) => `${n} в стопке`,
     layoutExport: "На экране другого размера виджеты подстроятся под него",
     layoutAdapts: "Виджеты подстроятся под ваш экран",
     layoutNoScreen: "Размер экрана в конфиге не указан, виджеты останутся в пределах вашего",
@@ -157,4 +159,4 @@ const RU = {
 } as const;
 
 export type TransferStrings = Widen<typeof RU>;
-export const extra: TransferStrings = LANG === "en" ? en : RU;
+export const extra: TransferStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

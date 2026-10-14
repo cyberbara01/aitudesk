@@ -35,6 +35,8 @@ pub fn save_rect(app: AppHandle, label: String, x: i32, y: i32, w: u32, h: u32) 
     if !crate::is_tile(&label) {
         return Err("unknown tile".into());
     }
+    // Placed by hand: its cells for every zoom are taken from here.
+    crate::grid::forget_base(&app, Some(&label));
     layout::save_rect(&app, &label, Rect { x, y, w, h })
 }
 
@@ -89,6 +91,7 @@ pub fn apply_tile_scale(app: AppHandle) -> f64 {
 /// process starts), and the new process opens the settings window on «Общие» again.
 #[tauri::command]
 pub fn restart_app(app: AppHandle) {
+    crate::journal::write("app", "restart (the interface language changed)");
     std::env::set_var("AITUDESK_OPEN_SETTINGS", "general");
     app.request_restart();
 }
@@ -99,6 +102,7 @@ pub fn restart_app(app: AppHandle) {
 /// a fresh install does. The app starts again at once.
 #[tauri::command]
 pub fn reset_everything(app: AppHandle) -> Result<(), String> {
+    crate::journal::write("app", "«Сбросить всё»: everything is reset at the next start");
     crate::reset::request(&app)?;
     crate::popup::close(&app);
     std::env::set_var("AITUDESK_OPEN_SETTINGS", "general");
@@ -114,6 +118,16 @@ pub fn open_settings(app: AppHandle, tab: Option<String>, edit: Option<String>) 
 #[tauri::command]
 pub fn set_tile_enabled(app: AppHandle, label: String, enabled: bool) {
     layout::set_tile_enabled(&app, &label, enabled);
+}
+
+/// Where every stack on the desktop is (physical px) while a widget is dragged: let go over one, the widget goes in.
+#[tauri::command]
+pub fn stack_rects(app: AppHandle) -> Vec<(String, layout::Rect)> {
+    crate::tile_labels(&app)
+        .into_iter()
+        .filter(|l| crate::stacks::is_stack(l))
+        .filter_map(|l| layout::shown_rect(&app, &l).map(|r| (l, r)))
+        .collect()
 }
 
 /// Windows account name for the "Система" tile label option.
@@ -255,9 +269,33 @@ pub fn get_tile_rect(app: AppHandle, label: String) -> Option<layout::Rect> {
     layout::content_rect(&app, &label)
 }
 
+/// The main screen and the widgets on it (physical px, from the screen's corner), for the miniature of the desktop
+/// the gradient of «Фон виджетов» is placed on.
+#[derive(serde::Serialize)]
+pub struct DeskShape {
+    pub w: u32,
+    pub h: u32,
+    pub tiles: Vec<Rect>,
+}
+
+#[tauri::command]
+pub fn desk_shape(app: AppHandle) -> Option<DeskShape> {
+    let m = app.primary_monitor().ok().flatten()?;
+    let (mx, my) = (m.position().x, m.position().y);
+    let (w, h) = (m.size().width, m.size().height);
+    let tiles = crate::tile_labels(&app)
+        .into_iter()
+        .filter_map(|l| layout::shown_rect(&app, &l))
+        .filter(|r| r.x + r.w as i32 > mx && r.x < mx + w as i32 && r.y + r.h as i32 > my && r.y < my + h as i32)
+        .map(|r| Rect { x: r.x - mx, y: r.y - my, w: r.w, h: r.h })
+        .collect();
+    Some(DeskShape { w, h, tiles })
+}
+
 /// Tile positions and sizes from a settings file, adapted to this screen; the tiles move there.
 #[tauri::command]
 pub fn set_layout(app: AppHandle, layout: layout::LayoutFile) -> Result<(), String> {
+    crate::grid::forget_base(&app, None);
     layout::import(&app, layout)
 }
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Telegram @capybara205
+    url: https://t.me/capybara205
+    about: Быстрый вопрос или идея. A quick question or idea.
+  - name: Анонимная форма / Anonymous form
+    url: https://forms.gle/LV7BYCqeveRyRm9YA
+    about: Без аккаунта GitHub, данные не нужны. No GitHub account, no personal data.

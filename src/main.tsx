@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App } from "./App";
+import { journalErrors } from "./lib/journal";
 import "./styles/base.css";
 import "./styles/clock.css";
 import "./styles/system.css";
@@ -17,6 +18,11 @@ import "./styles/reminders.css";
 import "./styles/transfer.css";
 import "./styles/pearl.css";
 import "./styles/ink.css";
+import "./styles/stack.css";
+import "./styles/calendar.css";
+
+// «Журнал»: this page's errors go into it while it is on.
+journalErrors();
 
 // No browser context menu anywhere (tiles render their own).
 document.addEventListener("contextmenu", (e) => e.preventDefault());

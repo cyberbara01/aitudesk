@@ -22,6 +22,7 @@ import { SchedulePage } from "./SchedulePage";
 import { NotesPage } from "./NotesPage";
 import { RemindersPage } from "./RemindersPage";
 import { PerfPage } from "./PerfPage";
+import { CalendarPage } from "./CalendarPage";
 import { SystemPage } from "./SystemPage";
 import { TransferPage } from "./TransferPage";
 import { WidgetsPage } from "./WidgetsPage";
@@ -47,6 +48,8 @@ function renderPage(route: Route) {
       return <SystemPage />;
     case "perf":
       return <PerfPage />;
+    case "calendar":
+      return <CalendarPage />;
     case "launchers":
       // Remount on every navigate-with-edit so the same launcher can be opened twice in a row.
       return <LaunchersPage key={`launchers-${route.nonce}`} editId={route.edit} />;

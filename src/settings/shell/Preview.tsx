@@ -8,24 +8,17 @@ import { extra } from "../../i18n/ru.extra.shell";
 import { clockFont } from "../../lib/design";
 import { widgetInk } from "../../lib/ink";
 import type { ClockSettings, Settings } from "../../lib/settings";
-import { LOCALE } from "../../i18n/lang";
-
-const DATE_FORMATS: Record<Exclude<ClockSettings["dateFormat"], "none">, Intl.DateTimeFormatOptions> = {
-  long: { weekday: "long", day: "numeric", month: "long" },
-  short: { weekday: "short", day: "numeric", month: "short" },
-  numeric: { day: "2-digit", month: "2-digit", year: "numeric" },
-  weekday: { weekday: "long" },
-};
+import { NUMBER_LOCALE } from "../../i18n/lang";
+import { formatDate } from "../../lib/clock";
 
 export function formatPreviewTime(d: Date, c: Pick<ClockSettings, "hour12" | "seconds">): string {
   const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit", hour12: c.hour12 };
   if (c.seconds) opts.second = "2-digit";
-  return new Intl.DateTimeFormat(LOCALE, opts).format(d);
+  return new Intl.DateTimeFormat(NUMBER_LOCALE, opts).format(d);
 }
 
 export function formatPreviewDate(d: Date, f: ClockSettings["dateFormat"]): string {
-  if (f === "none") return "";
-  return new Intl.DateTimeFormat(LOCALE, DATE_FORMATS[f]).format(d);
+  return formatDate(d, f) ?? "";
 }
 
 const ALIGN: Record<ClockSettings["align"], CSSProperties["alignItems"]> = { left: "flex-start", center: "center", right: "flex-end" };

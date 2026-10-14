@@ -1,5 +1,5 @@
 // Welcome page: shown instead of «Общие» the first time the settings window opens, and later from
-// «Как пользоваться». Six calm steps, each beside a small picture drawn with the real kit (tokens, the tile
+// «Как пользоваться». Seven calm steps, each beside a small picture drawn with the real kit (tokens, the tile
 // menu's own classes, the style cards) or beside real shortcuts to the pages it mentions, then «Начать»,
 // which marks the page as seen and opens «Виджеты». The last step shows the start with Windows (on from the first
 // start) with its switch right here, and its text follows that switch: it decides whether the widgets are still
@@ -12,6 +12,7 @@ import { Page } from "../../components/Section";
 import { Switch } from "../../components/Switch";
 import { ru } from "../../i18n/ru";
 import { extra } from "../../i18n/ru.extra.shell";
+import { extra as stk } from "../../i18n/ru.extra.stack";
 import { STYLES, THEMES } from "../../lib/design";
 import { useSettings } from "../../lib/useSettings";
 import { autostartOn, useExternal } from "./external";
@@ -88,6 +89,15 @@ function DeskPicture({ desk }: { desk: CSSProperties }) {
         <span className="ob-bar" />
         <span className="ob-bar short" />
       </span>
+      <span className="ob-tile ob-mini ob-lstack">
+        <span className="ob-bar" />
+        <span className="ob-bar short" />
+        <span className="ob-stack-dots">
+          <i className="on" />
+          <i />
+          <i />
+        </span>
+      </span>
       <span className="ob-tile ob-mini ob-lsched">
         <span className="ob-bar accent" />
         <span className="ob-bar" />
@@ -112,8 +122,8 @@ function MenuPicture() {
         <Icon name="chevron_right" size={16} />
       </div>
       <div className="ctx-item ob-sub">
-        <Icon name="square" />
-        <span>{extra.appearance.parts.corners}</span>
+        <Icon name="text_font" />
+        <span>{extra.views.contentScale}</span>
         <Icon name="chevron_right" size={16} />
       </div>
       <div className="ctx-item">
@@ -124,6 +134,25 @@ function MenuPicture() {
         <Icon name="eye_off" />
         <span>{ru.menu.hide}</span>
       </div>
+    </div>
+  );
+}
+
+/** The stack: a widget with two more behind it, and its dots on the right edge, the shown one long. */
+function StackPicture({ desk }: { desk: CSSProperties }) {
+  return (
+    <div className="ob-desk" style={desk}>
+      <span className="ob-stack-back b2" />
+      <span className="ob-stack-back b1" />
+      <span className="ob-tile ob-stack-front">
+        <span className="ob-time">{extra.appearance.sampleTime}</span>
+        <span className="ob-bar short" />
+        <span className="ob-stack-dots">
+          <i />
+          <i className="on" />
+          <i />
+        </span>
+      </span>
     </div>
   );
 }
@@ -204,12 +233,13 @@ export function WelcomePage() {
         <Step
           n={2}
           title={w.menuTitle}
-          text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done, extra.views.size, extra.grid.label, extra.appearance.parts.corners)}
+          text={w.menuText(ru.menu.moveResize, ru.menu.settings, ru.common.done, extra.views.size, extra.views.contentScale)}
           picture={<MenuPicture />}
         />
-        <Step n={3} title={w.mapTitle} text={w.mapText} picture={<MapPicture desk={desk} />} />
+        <Step n={3} title={w.stackTitle} text={w.stackText(ru.menu.moveResize, stk.menu.add)} picture={<StackPicture desk={desk} />} />
+        <Step n={4} title={w.mapTitle} text={w.mapText} picture={<MapPicture desk={desk} />} />
         <Step
-          n={4}
+          n={5}
           title={w.dataTitle}
           text={w.dataText}
           aside={
@@ -227,7 +257,7 @@ export function WelcomePage() {
           }
         />
         <Step
-          n={5}
+          n={6}
           title={w.lookTitle}
           text={w.lookText(nav.appearance, styleNames.fluent, styleNames.aqua, styleNames.rice, styleNames.pearl)}
           picture={<StylesPicture desk={desk} />}
@@ -238,7 +268,7 @@ export function WelcomePage() {
           }
         />
         <Step
-          n={6}
+          n={7}
           title={w.startTitle}
           text={autostart === false ? w.startTextOff(nav.general, nav.reminders) : w.startText(nav.general, nav.reminders)}
           actions={

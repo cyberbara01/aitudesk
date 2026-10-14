@@ -20,6 +20,7 @@ export const en: LaunchersStrings = {
   backgroundHint: "Without the background the icons sit right on the wallpaper",
   moveUp: "Move up",
   moveDown: "Move down",
+  colorModes: { accent: "Accent", custom: "Custom" },
 
   tileNames: { du: "DU", moodle: "LMS", learn: "Learn" },
   menuTurnOff: "Turn off shortcut",

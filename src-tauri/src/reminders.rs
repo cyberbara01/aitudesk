@@ -96,10 +96,35 @@ fn plural<'a>(n: i64, one: &'a str, few: &'a str, many: &'a str) -> &'a str {
     }
 }
 
+/// Kazakh: «10 минут», «2 сағат», «1 сағат 30 минут», «3 күн», «1 күн 2 сағат» (a noun after a number stays singular),
+/// or with the last word in the ablative for «… кейін»: «10 минуттан», «2 сағаттан», «3 күннен».
+fn span_kk(minutes: i64, ablative: bool) -> String {
+    let (d, h, m) = (minutes / 1440, (minutes % 1440) / 60, minutes % 60);
+    let (minute, hour, day) = if ablative { ("минуттан", "сағаттан", "күннен") } else { ("минут", "сағат", "күн") };
+    match (d, h, m) {
+        (0, 0, m) => format!("{m} {minute}"),
+        (0, h, 0) => format!("{h} {hour}"),
+        (0, h, m) => format!("{h} сағат {m} {minute}"),
+        (d, 0, _) => format!("{d} {day}"),
+        (d, h, _) => format!("{d} күн {h} {hour}"),
+    }
+}
+
+/// The deadline's line: «Дедлайн через 2 часа», "Deadline in 2 hours", «Мерзімге 2 сағат қалды».
+fn deadline_in(minutes: i64) -> String {
+    if crate::lang::current() == crate::lang::Lang::Kk {
+        return format!("Мерзімге {} қалды", span_kk(minutes, false));
+    }
+    format!("{} {}", pick("Дедлайн", "Deadline", "Мерзім"), in_time(minutes))
+}
+
 /// "через 10 минут", "через 2 часа", "через 1 ч 30 мин", "через 3 дня"; in English "in 10 minutes", "in 2 hours",
-/// "in 1 h 30 min", "in 3 days".
+/// "in 1 h 30 min", "in 3 days"; in Kazakh «10 минуттан кейін», «1 сағат 30 минуттан кейін».
 fn in_time(minutes: i64) -> String {
     let (d, h, m) = (minutes / 1440, (minutes % 1440) / 60, minutes % 60);
+    if crate::lang::current() == crate::lang::Lang::Kk {
+        return format!("{} кейін", span_kk(minutes, true));
+    }
     if crate::lang::current() == crate::lang::Lang::En {
         let unit = |n: i64, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
         let s = match (d, h, m) {
@@ -178,13 +203,13 @@ fn lessons_due(settings: &Value, rem: &Value, from: i64, now: &LocalNow, out: &m
                 continue;
             }
             let id = text(lesson, "id").unwrap_or("");
-            let when = if left == 0 { pick("Начинается сейчас", "Starts now").to_string() } else { capitalize(&in_time(left)) };
-            let lesson_word = pick("Пара", "Class");
+            let when = if left == 0 { pick("Начинается сейчас", "Starts now", "Қазір басталады").to_string() } else { capitalize(&in_time(left)) };
+            let lesson_word = pick("Пара", "Class", "Сабақ");
             // Privacy on: neither the subject nor the room appears on screen.
             let (title, body) = match (private, text(lesson, "title"), text(lesson, "room")) {
                 (true, _, _) => (lesson_word.to_string(), when),
                 (false, title, Some(room)) => {
-                    (title.unwrap_or(lesson_word).to_string(), format!("{when}, {} {room}", pick("аудитория", "room")))
+                    (title.unwrap_or(lesson_word).to_string(), format!("{when}, {} {room}", pick("аудитория", "room", "аудитория")))
                 }
                 (false, title, None) => (title.unwrap_or(lesson_word).to_string(), when),
             };
@@ -236,15 +261,15 @@ fn deadlines_due(settings: &Value, rem: &Value, from: i64, now: &LocalNow, out: 
         let id = text(note, "id").unwrap_or("");
         let title = match (private, note.get("text").and_then(Value::as_str).map(headline)) {
             (false, Some(h)) if !h.is_empty() => h,
-            _ => pick("Заметка", "Note").to_string(),
+            _ => pick("Заметка", "Note", "Жазба").to_string(),
         };
         for at in times {
             // From the time really left: a reminder shown late (after sleep) must not promise more time.
             let left = deadline - now.minute;
             let body = if at >= deadline || left <= 0 {
-                pick("Дедлайн наступил", "The deadline is now").to_string()
+                pick("Дедлайн наступил", "The deadline is now", "Мерзім жетті").to_string()
             } else {
-                format!("{} {}", pick("Дедлайн", "Deadline"), in_time(left))
+                deadline_in(left)
             };
             out.push(Due { key: format!("n:{id}:{at}"), title: title.clone(), body });
         }
@@ -302,5 +327,5 @@ pub fn test(app: &AppHandle) -> Result<(), String> {
         .and_then(|s| s.get("settings"))
         .and_then(|s| s.pointer("/reminders/sound").and_then(Value::as_bool))
         .is_some_and(|sound| !sound);
-    crate::notify::show("AITU Desk", pick("Так выглядят напоминания о парах и дедлайнах", "This is how reminders about classes and deadlines look"), silent, false)
+    crate::notify::show("AITU Desk", pick("Так выглядят напоминания о парах и дедлайнах", "This is how reminders about classes and deadlines look", "Сабақтар мен мерзімдер туралы еске салғыштар осылай көрінеді"), silent, false)
 }

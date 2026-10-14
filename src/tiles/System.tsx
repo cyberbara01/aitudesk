@@ -10,7 +10,7 @@ import { ru } from "../i18n/ru";
 import { useDesktopCovered } from "../lib/desktopCovered";
 import { DENSITY_PAD, resolveLook } from "../lib/design";
 import type { Settings, SystemSettings } from "../lib/settings";
-import { IN_POPUP, useFolded, useTileView } from "../lib/tileView";
+import { IN_HOST, useFolded, useTileView } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { useSystemInfo, useUserName, type BluetoothInfo, type PowerInfo, type SystemInfo, type WifiInfo } from "../lib/useSystemInfo";
 
@@ -135,7 +135,7 @@ function StatusRow({ id, icon, tone, label, num, unit, text, masked, count, hint
       {num && (
         <span className="sys-fixed">
           <span className="num">{num}</span>
-          {unit && `${LANG === "ru" ? NNBSP : ""}${unit}`}
+          {unit && `${LANG === "en" ? "" : NNBSP}${unit}`}
         </span>
       )}
       {text &&
@@ -147,20 +147,28 @@ function StatusRow({ id, icon, tone, label, num, unit, text, masked, count, hint
       {count && (!masked || namesShown) && <span className="sys-fixed">{`${NBSP}${count}`}</span>}
     </>
   );
+  const valueBox = hint ? (
+    <Tooltip text={hint} className="sys-value body">
+      {value}
+    </Tooltip>
+  ) : (
+    <span className="sys-value body">{value}</span>
+  );
   return (
     <div className={masked ? "sys-row reveal-row" : "sys-row"} data-row={id} role="listitem">
       <span className={`sys-icon-wrap tone-${tone}`} aria-hidden="true">
         {icon && <Icon name={icon} className="sys-icon" />}
       </span>
       <span className="sys-label body">{label}</span>
-      {hint ? (
-        <Tooltip text={hint} className="sys-value body">
-          {value}
-        </Tooltip>
+      {/* Hidden names: the dots flush right like every other value, the eye just left of them (system.css). */}
+      {masked ? (
+        <span className="sys-end">
+          <RevealButton id={id} />
+          {valueBox}
+        </span>
       ) : (
-        <span className="sys-value body">{value}</span>
+        valueBox
       )}
-      {masked && <RevealButton id={id} />}
     </div>
   );
 }
@@ -246,8 +254,8 @@ export function SystemTile() {
   const view = useTileView();
   const info = useSystemInfo({ wifi: sys.showWifi, bluetooth: sys.showBluetooth, active: loaded && !folded && !covered });
   const fit = rowsFit(1 + Number(sys.showWifi) + Number(sys.showBluetooth), s);
-  // Only the tile itself grows (the pop-up keeps the size it opened with).
-  useGrowToFit(fit, loaded && view === "manual" && !IN_POPUP);
+  // Only the tile itself grows (the pop-up keeps the size it opened with, the stack the size it was given).
+  useGrowToFit(fit, loaded && view === "manual" && !IN_HOST);
   // Wait for the stored settings so the tile never flashes default rows (or toggles the acrylic twice).
   if (!loaded) return null;
   return (

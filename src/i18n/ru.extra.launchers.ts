@@ -1,6 +1,7 @@
 // Строки раздела «Ярлыки», которых нет в ru.ts: виджет, страница настроек, редактор ярлыка и выбор иконки.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/launchers";
+import { kk } from "./kk/launchers";
 import { plural as pluralRu } from "./ru";
 
 const icons = (n: number) => `${n} ${pluralRu(n, "иконка", "иконки", "иконок")}`;
@@ -24,6 +25,8 @@ const RU = {
   backgroundHint: "Без фона иконки лежат прямо на обоях",
   moveUp: "Выше",
   moveDown: "Ниже",
+  /** Цвет ярлыка в редакторе: акцент (и любая его смена) или свой. */
+  colorModes: { accent: "Акцент", custom: "Свой цвет" },
 
   // Виджет
   /** Короткие подписи встроенных ярлыков на виджете: полные имена не помещаются в ячейку 64 px. */
@@ -53,4 +56,4 @@ const RU = {
 } as const;
 
 export type LaunchersStrings = Widen<typeof RU>;
-export const extra: LaunchersStrings = LANG === "en" ? en : RU;
+export const extra: LaunchersStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

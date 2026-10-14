@@ -15,10 +15,10 @@ import { Tile } from "../components/Tile";
 import { ru } from "../i18n/ru";
 import { extra } from "../i18n/ru.extra.map";
 import { FAVORITE_COLORS, mapVars } from "../lib/design";
-import { isMenuOpen } from "../lib/nativeMenu";
+import { usePointerOver, useTyping } from "../lib/hover";
 import { minutesUntil } from "../lib/schedule";
 import { settings, type Lesson, type MapSettings } from "../lib/settings";
-import { IN_POPUP, openTile, useFolded } from "../lib/tileView";
+import { IN_HOST, openTile, useFolded } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
 import { markRoom, restoreRoom, roomState, unmarkRoom, type RoomState } from "../map/favorites";
 import { FloorSwitch } from "../map/FloorSwitch";
@@ -31,6 +31,7 @@ import { roomAt } from "../map/rooms";
 import { LABELS_ZOOM, toFloor, type Floor, type PaintTool } from "../map/types";
 import { useRoomSearch } from "../map/useRoomSearch";
 import { usePopup } from "../popup/context";
+import { useStack } from "../stack/context";
 
 const MIN_SIZE = { w: 400, h: 220 };
 const FIRST_COLOR = FAVORITE_COLORS[0].toUpperCase();
@@ -47,74 +48,6 @@ const FOCUS_HOLD_MS = 12000;
 /** The lesson bubble opens after the kit Tooltip's delay (ms). */
 const TIP_DELAY = 500;
 const NO_LESSONS: readonly Lesson[] = [];
-/**
- * A see-through map comes forward as soon as the pointer is over it and goes back this long after it has left (ms),
- * so a quick pass over its edge does not make it blink.
- */
-const FADE_BACK_MS = 160;
-/** While the map's own menu is open (the pointer is on the menu), whether it has closed is checked this often (ms). */
-const MENU_CHECK_MS = 250;
-
-/**
- * Whether the pointer is over the page, for a see-through map with «Проявлять при наведении» (`active`). Only the
- * pointer's way in and out are listened to: nothing runs while it rests. The map's own menu keeps it lit: the
- * pointer leaves the page for the menu, and after the menu the page's hover state decides.
- */
-function usePointerOver(active: boolean): boolean {
-  const [over, setOver] = useState(false);
-  useEffect(() => {
-    if (!active) {
-      setOver(false);
-      return;
-    }
-    const root = document.documentElement;
-    let timer = 0;
-    const enter = () => {
-      window.clearTimeout(timer);
-      setOver(true);
-    };
-    const settle = () => {
-      if (isMenuOpen()) timer = window.setTimeout(settle, MENU_CHECK_MS);
-      else setOver(root.matches(":hover"));
-    };
-    const leave = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(settle, FADE_BACK_MS);
-    };
-    root.addEventListener("pointerenter", enter);
-    root.addEventListener("pointerleave", leave);
-    setOver(root.matches(":hover"));
-    return () => {
-      window.clearTimeout(timer);
-      root.removeEventListener("pointerenter", enter);
-      root.removeEventListener("pointerleave", leave);
-    };
-  }, [active]);
-  return over;
-}
-
-/** Whether a text field of the page (the map search) has the keyboard. */
-function useTyping(active: boolean): boolean {
-  const [typing, setTyping] = useState(false);
-  useEffect(() => {
-    if (!active) {
-      setTyping(false);
-      return;
-    }
-    const update = (e: FocusEvent) => {
-      const to = e.type === "focusin" ? e.target : e.relatedTarget;
-      setTyping(to instanceof HTMLInputElement);
-    };
-    document.addEventListener("focusin", update);
-    document.addEventListener("focusout", update);
-    return () => {
-      document.removeEventListener("focusin", update);
-      document.removeEventListener("focusout", update);
-    };
-  }, [active]);
-  return typing;
-}
-
 /** The bubble's two lines: the title, then when the lesson runs (no marker at all while the schedule is private). */
 function lessonTip(next: NextLesson): { title: string; when: string } {
   const l = next.lesson;
@@ -260,7 +193,7 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
   // Heard for this window only: without a target a page gets the event sent to any window, so the folded map
   // would hear the pop-up's map too and open it again and again. The map in the pop-up gets its room from there.
   useEffect(() => {
-    if (IN_POPUP) return;
+    if (IN_HOST) return;
     let alive = true;
     let off: (() => void) | undefined;
     void listen<{ room?: unknown }>(
@@ -282,10 +215,11 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
       off?.();
     };
   }, [focusRoom]);
-  // Opened in the pop-up for a room, or asked for another one while open there.
+  // Opened in the pop-up for a room, or asked for another one while open there; in the stack, turned to for one.
   const popup = usePopup();
-  const popupRoom = popup?.room ?? null;
-  const popupAsk = popup?.ask ?? 0;
+  const stack = useStack();
+  const popupRoom = popup?.room ?? stack?.room ?? null;
+  const popupAsk = popup?.ask ?? stack?.ask ?? 0;
   useEffect(() => {
     if (popupRoom) focusRoom(popupRoom);
     // Each request once, also the same room again.
@@ -413,7 +347,7 @@ function MapTileBody({ map, lessons, privacy }: BodyProps) {
 
   // «Непрозрачность»: below 100 the widget fades (Tile); under the pointer, while its search is in use or a room is
   // shown it is lit to «Непрозрачность при наведении»; while painting it is whole. Folded or in the pop-up, never.
-  const seeThrough = map.opacity < 100 && !folded && !IN_POPUP;
+  const seeThrough = map.opacity < 100 && !folded && !IN_HOST;
   const reveals = seeThrough && map.hoverReveal;
   const pointerOver = usePointerOver(reveals);
   const typing = useTyping(reveals);

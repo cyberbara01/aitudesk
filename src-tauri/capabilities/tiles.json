@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "tiles",
-  "description": "AITU Desk widgets: their own window's place and size, the light or dark look, the settings, web links",
+  "description": "AITU Desk widgets: their own window's place and size and its screen, the light or dark look, the settings, web links",
   "windows": [
     "clock",
     "system",
@@ -10,6 +10,8 @@
     "map",
     "schedule",
     "notes",
+    "calendar",
+    "stack-*",
     "custom-*",
     "popup"
   ],
@@ -19,6 +21,7 @@
     "core:window:allow-set-size",
     "core:window:allow-outer-position",
     "core:window:allow-outer-size",
+    "core:window:allow-current-monitor",
     "core:window:allow-theme",
     "store:default",
     "opener:allow-open-url",

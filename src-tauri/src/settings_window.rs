@@ -44,7 +44,7 @@ pub fn open(app: &AppHandle, tab: &str, edit: Option<&str>) {
     let app = app.clone();
     std::thread::spawn(move || {
         let built = WebviewWindowBuilder::new(&app, LABEL, WebviewUrl::App(url.into()))
-            .title(crate::lang::pick("Настройки AITU Desk", "AITU Desk Settings"))
+            .title(crate::lang::pick("Настройки AITU Desk", "AITU Desk Settings", "AITU Desk баптаулары"))
             .inner_size(860.0, 640.0)
             .min_inner_size(720.0, 560.0)
             .resizable(true)
@@ -69,7 +69,7 @@ pub fn open(app: &AppHandle, tab: &str, edit: Option<&str>) {
                     let _ = win.set_focus();
                 }
             }
-            Err(e) => eprintln!("[settings] cannot create window: {e}"),
+            Err(e) => crate::note!("problem", "[settings] cannot create window: {e}"),
         }
     });
 }

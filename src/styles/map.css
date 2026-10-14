@@ -754,6 +754,9 @@
   text-anchor: middle;
   pointer-events: none;
 }
+/* A code small on screen (lod.ts .code-fine): Windows' face drawn for small text, hinted to the pixel grid, so the
+   digits stay crisp where the bundled faces go soft. Monospaced numbers (Rice) keep their own hinted face. */
+:root:not([data-numfont="mono"]) .map-svg g.code-fine > text.map-code { font-family: "Segoe UI Variable Small", "Segoe UI", var(--font-num); }
 
 /* Lettering outside the rooms (atrium, coworking, the hall, open space): it lies on the plate, not on a fill. */
 .map-svg path.label,

@@ -10,7 +10,7 @@ use windows::UI::Notifications::{ToastNotification, ToastNotificationManager};
 const AUMID: &str = "kz.edu.astanait.aitudesk";
 /// Small grey line under every reminder: where to change or switch them off.
 fn where_to_change() -> &'static str {
-    crate::lang::pick("Изменить можно в разделе «Напоминания»", "You can change this in “Reminders”")
+    crate::lang::pick("Изменить можно в разделе «Напоминания»", "You can change this in “Reminders”", "Мұны «Еске салғыштар» бөлімінде өзгертуге болады")
 }
 
 fn escape(text: &str) -> String {

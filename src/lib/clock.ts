@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { extra } from "../i18n/ru.extra.clock";
 import { CLOCK_PRESETS, clockFont, isHex, type ClockFontMeta } from "./design";
 import type { ClockSettings } from "./settings";
-import { LOCALE } from "../i18n/lang";
+import { LANG, LOCALE } from "../i18n/lang";
 
 export type DateFormat = ClockSettings["dateFormat"];
 
@@ -40,9 +40,27 @@ const formatters: Record<Exclude<DateFormat, "none">, Intl.DateTimeFormat> = {
   weekday: new Intl.DateTimeFormat(LOCALE, { weekday: "long" }),
 };
 
+/** Kazakh names, written here: the browser may have no Kazakh dates (see NUMBER_LOCALE in lang.ts). Monday first. */
+const KK = {
+  weekdays: ["дүйсенбі", "сейсенбі", "сәрсенбі", "бейсенбі", "жұма", "сенбі", "жексенбі"],
+  weekdaysShort: ["дс", "сс", "ср", "бс", "жм", "сб", "жс"],
+  months: ["қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым", "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан"],
+  monthsShort: ["қаң", "ақп", "нау", "сәу", "мам", "мау", "шіл", "там", "қыр", "қаз", "қар", "жел"],
+};
+
+/** «сәрсенбі, 14 қазан» · «ср, 14 қаз» · «14.10.2026» · «сәрсенбі». */
+function formatDateKk(d: Date, format: Exclude<DateFormat, "none">): string {
+  const day = (d.getDay() + 6) % 7;
+  if (format === "long") return `${KK.weekdays[day]}, ${d.getDate()} ${KK.months[d.getMonth()]}`;
+  if (format === "short") return `${KK.weekdaysShort[day]}, ${d.getDate()} ${KK.monthsShort[d.getMonth()]}`;
+  if (format === "numeric") return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
+  return KK.weekdays[day];
+}
+
 /** "вторник, 6 октября" · "вт, 6 окт" · "06.10.2026" · "вторник" · null. */
 export function formatDate(d: Date, format: DateFormat): string | null {
   if (format === "none") return null;
+  if (LANG === "kk") return formatDateKk(d, format);
   const text = formatters[format].format(d);
   // Intl abbreviates months with a trailing period ("окт."); the catalogue shows them without it.
   return format === "short" ? text.replace(/\.$/, "") : text;

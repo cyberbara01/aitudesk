@@ -61,7 +61,7 @@ pub fn ensure(app: &AppHandle) -> Option<WebviewWindow> {
         return Some(win);
     }
     let win = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("index.html".into()))
-        .title(crate::lang::pick("AITU Desk: виджет", "AITU Desk: widget"))
+        .title(crate::lang::pick("AITU Desk: виджет", "AITU Desk: widget", "AITU Desk: виджет"))
         .inner_size(320.0, 240.0)
         .position(-32000.0, -32000.0)
         .decorations(false)
@@ -126,6 +126,7 @@ pub fn open(app: &AppHandle, tile: &WebviewWindow, label: &str, room: Option<Str
     let card_h = (ch + header).min(wa.h.saturating_sub(2 * edge)).max(1);
     let (icon_pos, icon_size) = (tile.outer_position().unwrap_or_default(), tile.outer_size().unwrap_or_default());
     *SHOWN.lock().unwrap() = Some(label.to_string());
+    crate::journal::write("popup", &format!("opened {label}"));
     layout::set_page_visible(&win, true);
     // Again on every opening: whatever set a material on the window meanwhile (the theme, another program), the
     // desktop around the card must stay as it is.
@@ -151,9 +152,8 @@ pub fn open(app: &AppHandle, tile: &WebviewWindow, label: &str, room: Option<Str
 /// Closes the pop-up: the icons hear it at once (the page lets go of its card, the icon shows its picture again),
 /// and a moment later the window is parked out of sight, unless something opened it again meanwhile.
 pub fn close(app: &AppHandle) {
-    if SHOWN.lock().unwrap().take().is_none() {
-        return;
-    }
+    let Some(was) = SHOWN.lock().unwrap().take() else { return };
+    crate::journal::write("popup", &format!("closed {was}"));
     let _ = app.emit("popup-state", None::<String>);
     let handle = app.clone();
     std::thread::spawn(move || {

@@ -6,24 +6,141 @@
 
 **Widgets for the Windows 11 desktop, made for students of Astana IT University.**
 
-A clock, battery and network, computer load, shortcuts, notes with deadlines, the class schedule, the AITU map<br>and your own pictures lie right on the wallpaper.
+A clock, battery and network, computer load, shortcuts, notes with deadlines, the class schedule, a calendar,<br>the AITU map and your own pictures lie right on the wallpaper.
 
 [![Version](https://img.shields.io/github/v/release/cyberbara01/aitudesk?label=version&color=0078D4)](https://github.com/cyberbara01/aitudesk/releases/latest)
 [![Windows 11](https://img.shields.io/badge/Windows-11%2C_64--bit-0078D4)](#installation)
-[![English and Russian](https://img.shields.io/badge/languages-English%2C_Russian-0078D4)](README.ru.md)
+[![English, Russian and Kazakh](https://img.shields.io/badge/languages-English%2C_Russian%2C_Kazakh-0078D4)](README.ru.md)
 [![MIT license](https://img.shields.io/badge/license-MIT-2EA043)](LICENSE)
 [![No telemetry](https://img.shields.io/badge/telemetry-none-2EA043)](#why-you-can-trust-it)
 [![No admin rights](https://img.shields.io/badge/admin_rights-not_needed-2EA043)](#installation)
 
 <a href="https://github.com/cyberbara01/aitudesk/releases/latest"><img src="https://img.shields.io/badge/Download%20for%20Windows%2011-0078D4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNMTMgM2ExIDEgMCAxIDAtMiAwdjEyLjA5bC0zLjMtMy4zYTEgMSAwIDAgMC0xLjQgMS40Mmw1IDVhMSAxIDAgMCAwIDEuNCAwbDUtNWExIDEgMCAwIDAtMS40LTEuNDJMMTMgMTUuMXpNNSAyMGExIDEgMCAxIDAgMCAyaDE0YTEgMSAwIDEgMCAwLTJ6Ii8%2BPC9zdmc%2B" alt="Download for Windows 11"></a>
 
-**English** · [Русский](README.ru.md)
+**English** · [Русский](README.ru.md) · [Қазақша](README.kk.md)
+
+<sub>An unofficial student project, not affiliated with Astana IT University.</sub>
 
 </div>
 
 <p align="center">
-  <img src="docs/screenshots/en/desk-1.webp" alt="A laptop with AITU Desk: the map, the clock and the load at the top, notes, system and shortcuts on the right, the schedule on the left" width="100%">
-  <br><sub>The map, the clock and the load at the top, the schedule, notes, system and shortcuts around them.</sub>
+  <img src="docs/screenshots/en/desk.webp" alt="The desktop with AITU Desk: the map, the calendar and a stack on the left, the clock and the load in the middle, shortcuts, system, notes and the schedule on the right" width="100%">
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/widgets-dark.webp">
+  <img src="docs/screenshots/en/widgets.webp" alt="Every AITU Desk widget: schedule, map, clock, notes, performance, system, shortcuts and a picture" width="100%">
+</picture>
+</p>
+
+## What it does
+
+<table>
+<tr>
+<td width="33%" valign="top"><img src="docs/readme/schedule.svg" width="32" height="32" alt=""><br><b>Schedule</b><br>The current and next class, and time left</td>
+<td width="33%" valign="top"><img src="docs/readme/notes.svg" width="32" height="32" alt=""><br><b>Notes</b><br>Deadlines with a live countdown</td>
+<td width="33%" valign="top"><img src="docs/readme/reminders.svg" width="32" height="32" alt=""><br><b>Reminders</b><br>Before a class and a deadline, quiet hours</td>
+</tr>
+<tr>
+<td width="33%" valign="top"><img src="docs/readme/calendar.svg" width="32" height="32" alt=""><br><b>Calendar</b><br>The month, note deadlines and the day’s classes</td>
+<td width="33%" valign="top"><img src="docs/readme/map.svg" width="32" height="32" alt=""><br><b>AITU map</b><br>Every floor, room search: 223 or C1.2.223</td>
+<td width="33%" valign="top"><img src="docs/readme/clock.svg" width="32" height="32" alt=""><br><b>Clock</b><br>Styles, font, size, seconds and date</td>
+</tr>
+<tr>
+<td width="33%" valign="top"><img src="docs/readme/system.svg" width="32" height="32" alt=""><br><b>System</b><br>Battery, Wi-Fi and Bluetooth, names hidden</td>
+<td width="33%" valign="top"><img src="docs/readme/perf.svg" width="32" height="32" alt=""><br><b>Performance</b><br>CPU, GPU, memory and disk</td>
+<td width="33%" valign="top"><img src="docs/readme/launchers.svg" width="32" height="32" alt=""><br><b>Shortcuts</b><br>DU, LMS, Learn and any site</td>
+</tr>
+<tr>
+<td width="33%" valign="top"><img src="docs/readme/custom.svg" width="32" height="32" alt=""><br><b>Your widgets</b><br>A picture or GIF on the wallpaper, up to 20</td>
+<td width="33%" valign="top"><img src="docs/readme/stack.svg" width="32" height="32" alt=""><br><b>Widget stacks</b><br>Several stacks of any widgets</td>
+<td width="33%" valign="top"><img src="docs/readme/layout.svg" width="32" height="32" alt=""><br><b>Layout</b><br>Icon grid, window and text size</td>
+</tr>
+<tr>
+<td width="33%" valign="top"><img src="docs/readme/background.svg" width="32" height="32" alt=""><br><b>Your background</b><br>A color or a gradient across the screen</td>
+<td width="33%" valign="top"><img src="docs/readme/fade.svg" width="32" height="32" alt=""><br><b>Fade in</b><br>A widget comes forward under the pointer</td>
+<td width="33%" valign="top"><img src="docs/readme/privacy.svg" width="32" height="32" alt=""><br><b>Privacy</b><br>Text behind dots, the app sends nothing</td>
+</tr>
+<tr>
+<td width="33%" valign="top"><img src="docs/readme/configs.svg" width="32" height="32" alt=""><br><b>Configs</b><br>All settings in one file</td>
+<td width="33%" valign="top"><img src="docs/readme/journal.svg" width="32" height="32" alt=""><br><b>Crash log</b><br>A bug report in one click, nothing personal</td>
+<td width="33%" valign="top"><img src="docs/readme/languages.svg" width="32" height="32" alt=""><br><b>Three languages</b><br>English, Russian and Kazakh</td>
+</tr>
+</table>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/calendar-dark.webp">
+  <img src="docs/screenshots/en/calendar.webp" alt="The calendar turns its months, picks a Friday, and a right click on it makes a reminder: a deadline for that day appears in the notes" width="100%">
+</picture>
+  <br><sub>A right click on a day of the calendar makes a note or a reminder for that day</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/map-dark.webp">
+  <img src="docs/screenshots/en/map.webp" alt="The map zooms in with the mouse wheel where the pointer is, moves with a drag, goes up to the third floor, and a double click shows the whole floor again" width="100%">
+</picture>
+  <br><sub>The map zooms in with the wheel where the pointer is, a double click shows the whole floor</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-dark.webp">
+  <img src="docs/screenshots/en/stack.webp" alt="The widget stack: a mouse drag to the left, the wheel and an arrow page through the schedule, performance, shortcuts and notes, a click on a dot goes back to the first" width="100%">
+</picture>
+  <br><sub>A stack pages by a mouse drag, the wheel, two fingers on the touchpad and the arrows</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-in-dark.webp">
+  <img src="docs/screenshots/en/stack-in.webp" alt="In move mode the clock is dragged onto a stack with the schedule and notes and goes into it" width="100%">
+</picture>
+  <br><sub>Any widget drags into a stack, and you can have several stacks</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fold-dark.webp">
+  <img src="docs/screenshots/en/fold.webp" alt="The schedule, folded into an icon, opens into a window with a click, Tuesday is picked in it, and a click beside it folds it back" width="100%">
+</picture>
+  <br><sub>Any widget folds into an icon and opens with a click</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/move-dark.webp">
+  <img src="docs/screenshots/en/move.webp" alt="The clock goes into move mode from its menu, moves to the right, lands on the grid and grows by its corner" width="100%">
+</picture>
+  <br><sub>A widget moves with the mouse, lands on the grid and resizes by its corner, its content grows with it</sub>
+</p>
+
+## Make it yours
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/looks-dark.webp">
+  <img src="docs/screenshots/en/looks.webp" alt="The clock and System in the Windows 11, Aqua, Rice and Pearl designs, System in three colors, the light theme" width="100%">
+</picture>
+  <br><sub>Windows 11, Aqua, Rice and Pearl · your accent and any color for icons and text · your own background: a color or a gradient across the screen · themes from light to black</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/scale-dark.webp">
+  <img src="docs/screenshots/en/scale.webp" alt="The notes menu sets the text size to 80 %, then 130 %, then back to Auto" width="100%">
+</picture>
+  <br><sub>Text size: text and icons smaller or bigger at any widget size</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fade-dark.webp">
+  <img src="docs/screenshots/en/fade.webp" alt="The see-through clock, System and notes come forward when the pointer is over them" width="100%">
+</picture>
+  <br><sub>Fade in on hover: a see-through widget comes forward under the pointer</sub>
 </p>
 
 ## Installation
@@ -34,8 +151,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 3. The settings window opens with a short guide, and the widgets appear on the desktop. They start with Windows from
    then on; this can be turned off in “General”.
 
-Windows 11, 64-bit, is required. The interface is in English or Russian, following Windows; switch it in “General” or
-with the “RU | EN” button at the bottom of the settings window.
+Windows 11, 64-bit, is required. The interface is in English, Russian or Kazakh, following Windows; switch it in
+“General” or with the “RU | KZ | EN” button at the bottom of the settings window.
 
 <details>
 <summary><b>Check that the installer is genuine</b></summary>
@@ -121,6 +238,58 @@ right after installing.
 **Privacy.** AITU Desk goes online only when you ask it to: to open a shortcut or to fetch a site's icon. Your
 classes, notes and settings stay on your computer. The details are under “Network and privacy” in
 [Installation](#installation).
+
+## FAQ
+
+<details>
+<summary><b>Windows says “Windows protected your PC”. Is it dangerous?</b></summary>
+<br>
+
+No. Windows says this about any program without a paid code signing certificate. Click “More info”, then “Run
+anyway”. GitHub builds the installer from the open source of this repository, and you can check the file with
+“Check that the installer is genuine” above.
+</details>
+
+<details>
+<summary><b>I don’t study at AITU. Is it for me?</b></summary>
+<br>
+
+Yes. The clock, performance, notes, schedule, shortcuts and your own pictures are useful to anyone. The map and the
+university shortcuts can be turned off in the settings.
+</details>
+
+<details>
+<summary><b>Will it slow down my computer or drain the battery?</b></summary>
+<br>
+
+No. When idle, AITU Desk barely touches the processor. While a game or a video is full screen, the load is not read
+and GIFs pause, and in battery saver everything updates less often.
+</details>
+
+<details>
+<summary><b>Does it work on Windows 10?</b></summary>
+<br>
+
+No, it needs Windows 11, 64-bit. The rounded corners, glass and transparency of the widgets exist only in Windows 11.
+</details>
+
+<details>
+<summary><b>The app froze or closed by itself. What do I do?</b></summary>
+<br>
+
+Open AITU Desk again. On “About”, turn on “Keep a log”, and when it happens again, click “Save a report” and send the
+file on Telegram to [@capybara205](https://t.me/capybara205). The log holds only what happened in the app: what is on,
+what was clicked and the errors. The text of notes and classes, shortcut addresses and the names of networks and
+devices never go in, and the file is never sent anywhere by itself.
+</details>
+
+<details>
+<summary><b>How do I open the settings or bring the widgets back?</b></summary>
+<br>
+
+Click the AITU Desk icon in the tray or start the app again from the Start menu: the settings window opens. Its
+“Widgets” page turns each widget on and off.
+</details>
 
 ## Links
 

@@ -20,17 +20,23 @@ import {
   isImageDataUrl,
   isValidUrl,
   newLauncherId,
-  nextLauncherColor,
   saveBuiltIn,
   upsertCustom,
   type IconMode,
   type LauncherItem,
 } from "../../lib/launchers";
-import { settings, type LauncherIcon as LauncherIconSpec } from "../../lib/settings";
+import { accentNow } from "../../lib/design";
+import type { LauncherIcon as LauncherIconSpec } from "../../lib/settings";
 import { IconPickerDialog } from "./IconPickerDialog";
 import { iconSvgFor, trustedIconSvg } from "./iconCache";
 import { LauncherCell, LauncherIcon, type LauncherLook } from "./LauncherIcon";
 import { PopularIcons } from "./PopularIcons";
+
+/** The launcher's colour: the accent (and every change of it), or one of one's own. */
+const COLOR_OPTIONS: readonly SegmentedOption<"accent" | "custom">[] = [
+  { value: "accent", label: extra.colorModes.accent },
+  { value: "custom", label: extra.colorModes.custom },
+];
 
 interface Props {
   /** null = a new launcher; otherwise the launcher as it shows now (a built-in one with the user's edits). */
@@ -103,7 +109,8 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
   const [fluent, setFluent] = useState<FluentChoice>(
     () => fluentOf(item?.icon) ?? { name: builtIn ? builtInDef(builtIn).fluent : DEFAULT_FLUENT_ICON },
   );
-  const [color, setColor] = useState(() => item?.color ?? nextLauncherColor(settings.get()));
+  // A new launcher is in the accent, like the built-in ones.
+  const [color, setColor] = useState(() => item?.color ?? "");
   const [touched, setTouched] = useState({ name: false, url: false });
   const [loading, setLoading] = useState(false);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
@@ -324,7 +331,14 @@ export function LauncherEditor({ item, showLabels, onClose }: Props) {
 
             <div className="ln-field">
               <span className="ln-field-label">{ru.settings.launchers.color}</span>
-              <ColorPicker value={color} onChange={setColor} />
+              <Segmented
+                options={COLOR_OPTIONS}
+                value={color ? "custom" : "accent"}
+                onChange={(v) => setColor(v === "custom" ? accentNow() : "")}
+                fill
+                ariaLabel={ru.settings.launchers.color}
+              />
+              {color && <ColorPicker value={color} onChange={setColor} />}
             </div>
           </div>
         </div>

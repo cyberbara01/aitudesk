@@ -2,6 +2,7 @@
 // src/settings/MapPage.tsx. Без длинных тире: правило автора.
 import { LANG, type Widen } from "./lang";
 import { en } from "./en/map";
+import { kk } from "./kk/map";
 const RU = {
   pageDesc: "Корпус C1, три этажа. Цвета плана, элементы управления и отмеченные кабинеты",
 
@@ -40,15 +41,18 @@ const RU = {
 
   // ---- Настройки: внешний вид ----
   backdrop: "Фон карты",
-  /** Цвет схемы «Свой цвет». */
+  /** Цвет схемы в один цвет: акцент или свой. */
   color: "Цвет карты",
+  colorHint: "В акценте план меняет цвет вместе с ним",
+  colorModes: { accent: "Акцент", custom: "Свой цвет" },
+  colorPick: "Свой цвет карты",
   /** Толщина и цвет номеров кабинетов на плане. */
   codeWeight: "Толщина номеров",
   codeWeightHint: "Номера кабинетов на плане",
   codeWeights: { light: "Тонкие", regular: "Обычные", bold: "Жирные" },
   codeColor: "Цвет номеров",
   codeColorHint: "У отмеченных и найденных кабинетов номера остаются в цвете, который виден на их заливке",
-  codeColors: { scheme: "Как в схеме", custom: "Свой" },
+  codeColors: { scheme: "Как в схеме", custom: "Свой цвет" },
   codeColorPick: "Свой цвет номеров",
   backdropGlass: "Стекло",
   backdropSilhouette: "Подложка",
@@ -58,7 +62,7 @@ const RU = {
     silhouette: "Без стекла: под корпусом мягкая подложка, план читается на любых обоях",
     none: "Только сам план прямо на обоях, без какой-либо подложки",
   },
-  labelsHint: "Номера на плане. Мелкие появляются, когда карту приближают, чтобы на виде всего этажа не было каши",
+  labelsHint: "Номера на плане. В маленьком виджете самые мелкие появляются, когда карту приближают",
   labelsWhenZoomed: "Номера только при приближении",
   labelsWhenZoomedHint: "На виде всего этажа номеров нет, они появляются, когда карту немного приблизят: на два щелчка колеса или щипком",
   iconsHint: "Скрываются, пока карта слишком мелкая",
@@ -107,4 +111,4 @@ const RU = {
 } as const;
 
 export type MapStrings = Widen<typeof RU>;
-export const extra: MapStrings = LANG === "en" ? en : RU;
+export const extra: MapStrings = LANG === "en" ? en : LANG === "kk" ? kk : RU;

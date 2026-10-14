@@ -535,6 +535,7 @@ export function RemindersPage() {
           range={D.repeatRange}
           units={ANY_UNIT}
           lead={D.repeatLead}
+          tail={D.repeatTail || undefined}
           fieldLabel={D.repeatLabel}
           disabled={!r.deadlines || r.deadlineFirst === 0}
           onChange={(m) => update({ deadlineRepeat: m })}

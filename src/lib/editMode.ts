@@ -4,10 +4,17 @@
 // let go lands in the nearest free cells of the desktop icons (src-tauri/src/grid.rs) and resizes by whole cells.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { emit, listen } from "@tauri-apps/api/event";
+import { emit, emitTo, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, PhysicalPosition, PhysicalSize } from "@tauri-apps/api/window";
+import { addToStack } from "../stack/actions";
+import { isStackLabel, stackIdOf } from "./settings";
 import { minSizes } from "./grid";
 import { settings } from "./settings";
+import { IN_HOST } from "./tileView";
+import { journal } from "./journal";
+
+/** The event that lights a stack up under a dragged widget (src/stack/StackHost.tsx). */
+const STACK_DRAG_EVENT = "stack-drag";
 
 export const EDIT_EVENT = "edit-mode";
 
@@ -74,11 +81,40 @@ function snapAxis(v: number, size: number, origin: number, extent: number, scale
 }
 
 export function setEditMode(on: boolean) {
+  journal(on ? "edit mode on (move and resize)" : "edit mode off");
   return emit(EDIT_EVENT, on);
 }
 
+// Edit mode is one for all widgets. Each page keeps it here, so a tile drawn while it is on (the next widget turned
+// to in the stack) starts in it too.
+let editingNow = false;
+let watching = false;
+const editWatchers = new Set<(on: boolean) => void>();
+function watchEditMode() {
+  if (watching) return;
+  watching = true;
+  void listen<boolean>(EDIT_EVENT, (e) => {
+    editingNow = Boolean(e.payload);
+    for (const fn of editWatchers) fn(editingNow);
+  });
+}
+
+/** Whether the widgets are being arranged now. */
+export function useEditModeOn(): boolean {
+  const [on, setOn] = useState(() => editingNow);
+  useEffect(() => {
+    watchEditMode();
+    editWatchers.add(setOn);
+    setOn(editingNow);
+    return () => {
+      editWatchers.delete(setOn);
+    };
+  }, []);
+  return on;
+}
+
 export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 220 }, onResized }: EditModeOptions) {
-  const [editing, setEditing] = useState(false);
+  const editing = useEditModeOn();
   const onResizedRef = useRef(onResized);
   onResizedRef.current = onResized;
   const editingRef = useRef(false);
@@ -104,6 +140,7 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
   /** Back to where the tile was before its last move or resize; again for the one before. */
   const undo = useCallback(async () => {
     const prev = history.current.pop();
+    journal(`undo a move of ${label}`);
     setCanUndo(history.current.length > 0);
     if (!prev) return;
     const win = getCurrentWindow();
@@ -123,8 +160,6 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
   }, [editing]);
 
   useEffect(() => {
-    let off: (() => void) | undefined;
-    listen<boolean>(EDIT_EVENT, (e) => setEditing(Boolean(e.payload))).then((u) => (off = u));
     const onKey = (e: KeyboardEvent) => {
       if (!editingRef.current) return;
       if (e.key === "Escape") setEditMode(false);
@@ -136,10 +171,7 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
       }
     };
     window.addEventListener("keydown", onKey);
-    return () => {
-      off?.();
-      window.removeEventListener("keydown", onKey);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const onDragStart = useCallback(
@@ -162,6 +194,16 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
       const s = window.devicePixelRatio || wa.scale;
       const before: Rect = { x: start.x, y: start.y, w: size.width, h: size.height };
       const origin = { x: e.screenX, y: e.screenY };
+      // A widget let go over a stack goes into it (never a stack itself, nor a widget shown inside one).
+      const stacks = !isStackLabel(label) && !IN_HOST ? await invoke<[string, Rect][]>("stack_rects").catch(() => []) : [];
+      let overStack: string | null = null;
+      const setOverStack = (over: string | null) => {
+        if (over === overStack) return;
+        if (overStack) void emitTo(overStack, STACK_DRAG_EVENT, { over: false }).catch(() => undefined);
+        overStack = over;
+        document.documentElement.toggleAttribute("data-over-stack", over !== null);
+        if (over) void emitTo(over, STACK_DRAG_EVENT, { over: true }).catch(() => undefined);
+      };
       let raf = 0;
       let next: { x: number; y: number } | null = null;
       const flush = () => {
@@ -175,6 +217,13 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
           x: snapAxis(x, size.width, wa.x, wa.w, s),
           y: snapAxis(y, size.height, wa.y, wa.h, s),
         };
+        if (stacks.length) {
+          // The pointer decides, not the widget's edges: a big widget is over a stack when the hand is.
+          const px = ev.screenX * ms;
+          const py = ev.screenY * ms;
+          const hit = stacks.find(([, r]) => px >= r.x && px < r.x + r.w && py >= r.y && py < r.y + r.h);
+          setOverStack(hit ? hit[0] : null);
+        }
         if (!raf) raf = requestAnimationFrame(flush);
       };
       const up = async () => {
@@ -182,6 +231,14 @@ export function useEditMode({ label, resizable = false, minSize = { w: 400, h: 2
         el.removeEventListener("pointerup", up);
         el.removeEventListener("pointercancel", up);
         if (raf) cancelAnimationFrame(raf);
+        if (overStack) {
+          // Into that stack: the widget's own place stays where it was before this drag, for when it comes out.
+          const into = stackIdOf(overStack);
+          setOverStack(null);
+          await win.setPosition(new PhysicalPosition(before.x, before.y));
+          await addToStack(label, into);
+          return;
+        }
         if (next) await win.setPosition(new PhysicalPosition(next.x, next.y));
         // On the grid, a tile that moved glides into the nearest free cells (the native side saves that place).
         const snapped =

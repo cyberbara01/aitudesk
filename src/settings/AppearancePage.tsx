@@ -28,6 +28,8 @@ import {
 import { useSettings } from "../lib/useSettings";
 import { useDebounced, useNow, useRootAttribute } from "./shell/hooks";
 import { PreviewClock, PreviewSystem } from "./shell/Preview";
+import { FadeSection } from "./FadeSection";
+import { FillSection } from "./FillSection";
 import { InkAllSection } from "./InkSection";
 import { onRadioGroupKeyDown } from "../lib/radioGroup";
 
@@ -305,10 +307,6 @@ export function AppearancePage() {
         </div>
       </Section>
 
-      <FineTuning s={s} />
-
-      <InkAllSection ink={s.ink} />
-
       <Section title={a.theme} description={x.themeHint} padded>
         <div className="grid-3" role="radiogroup" aria-label={a.theme} onKeyDown={onRadioGroupKeyDown}>
           {THEMES.map((t) => (
@@ -375,6 +373,14 @@ export function AppearancePage() {
         </div>
         {mode === "custom" && <ColorPicker value={draft ?? s.accent.custom} onChange={onCustomColor} customOpen />}
       </Section>
+
+      <FillSection fill={s.fill} />
+
+      <InkAllSection ink={s.ink} />
+
+      <FineTuning s={s} />
+
+      <FadeSection fade={s.fade} mapOwn={s.map.opacity < 100} />
 
       <TileScaleSection value={s.tileScale} />
 
