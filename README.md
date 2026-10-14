@@ -29,6 +29,14 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/map-dark.webp">
+  <img src="docs/screenshots/en/map.webp" alt="The map zooms in with the mouse wheel where the pointer is, moves with a drag, goes up to the third floor, and a double click shows the whole floor again" width="100%">
+</picture>
+  <br><sub>The map zooms in with the wheel where the pointer is, a double click shows the whole floor</sub>
+</p>
+
+<p align="center">
+<picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/widgets-dark.webp">
   <img src="docs/screenshots/en/widgets.webp" alt="Every AITU Desk widget: schedule, map, clock, notes, performance, system, shortcuts and a picture" width="100%">
 </picture>
@@ -75,14 +83,6 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
   <img src="docs/screenshots/en/calendar.webp" alt="The calendar turns its months, picks a Friday, and a right click on it makes a reminder: a deadline for that day appears in the notes" width="100%">
 </picture>
   <br><sub>A right click on a day of the calendar makes a note or a reminder for that day</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/map-dark.webp">
-  <img src="docs/screenshots/en/map.webp" alt="The map zooms in with the mouse wheel where the pointer is, moves with a drag, goes up to the third floor, and a double click shows the whole floor again" width="100%">
-</picture>
-  <br><sub>The map zooms in with the wheel where the pointer is, a double click shows the whole floor</sub>
 </p>
 
 <p align="center">
