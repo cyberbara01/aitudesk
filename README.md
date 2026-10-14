@@ -29,6 +29,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/map-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/map.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/map-dark.webp">
   <img src="docs/screenshots/en/map.webp" alt="The map zooms in with the mouse wheel where the pointer is, moves with a drag, goes up to the third floor, and a double click shows the whole floor again" width="100%">
 </picture>
@@ -37,6 +39,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/calendar-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/calendar.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/calendar-dark.webp">
   <img src="docs/screenshots/en/calendar.webp" alt="The calendar turns its months, picks a Friday, and a right click on it makes a reminder: a deadline for that day appears in the notes" width="100%">
 </picture>
@@ -45,6 +49,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/stack-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/stack.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-dark.webp">
   <img src="docs/screenshots/en/stack.webp" alt="The widget stack: a mouse drag to the left, the wheel and an arrow page through the schedule, performance, shortcuts and notes, a click on a dot goes back to the first" width="100%">
 </picture>
@@ -53,6 +59,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/stack-in-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/stack-in.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-in-dark.webp">
   <img src="docs/screenshots/en/stack-in.webp" alt="In move mode the clock is dragged onto a stack with the schedule and notes and goes into it" width="100%">
 </picture>
@@ -61,6 +69,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/fold-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/fold.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fold-dark.webp">
   <img src="docs/screenshots/en/fold.webp" alt="The schedule, folded into an icon, opens into a window with a click, Tuesday is picked in it, and a click beside it folds it back" width="100%">
 </picture>
@@ -69,6 +79,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/move-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/move.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/move-dark.webp">
   <img src="docs/screenshots/en/move.webp" alt="The clock goes into move mode from its menu, moves to the right, lands on the grid and grows by its corner" width="100%">
 </picture>
@@ -77,6 +89,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/scale-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/scale.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/scale-dark.webp">
   <img src="docs/screenshots/en/scale.webp" alt="The notes menu sets the text size to 80 %, then 130 %, then back to Auto" width="100%">
 </picture>
@@ -85,6 +99,8 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/fade-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/fade.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fade-dark.webp">
   <img src="docs/screenshots/en/fade.webp" alt="The see-through clock, System and notes come forward when the pointer is over them" width="100%">
 </picture>

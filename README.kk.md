@@ -29,6 +29,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/map-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/map.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/map-dark.webp">
   <img src="docs/screenshots/kk/map.webp" alt="Карта меңзер тұрған жерде тінтуір дөңгелегімен жақындайды, сүйреу арқылы жылжиды, үшінші қабатқа ауысады, ал екі рет басқанда бүкіл қабат қайта көрінеді" width="100%">
 </picture>
@@ -37,6 +39,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/calendar-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/calendar.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/calendar-dark.webp">
   <img src="docs/screenshots/kk/calendar.webp" alt="Күнтізбе айларды парақтайды, жұманы таңдайды, ал оны оң жақ батырмамен басқанда еске салғыш жасалады: жазбаларда сол күнге мерзім пайда болады" width="100%">
 </picture>
@@ -45,6 +49,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/stack-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/stack.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/stack-dark.webp">
   <img src="docs/screenshots/kk/stack.webp" alt="Виджеттер бумасы: тінтуірмен солға сүйреу, дөңгелек пен көрсеткі кестені, жүктемені, жарлықтар мен жазбаларды парақтайды, нүктені басқанда біріншісіне қайтады" width="100%">
 </picture>
@@ -53,6 +59,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/stack-in-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/stack-in.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/stack-in-dark.webp">
   <img src="docs/screenshots/kk/stack-in.webp" alt="Жылжыту режимінде сағат кесте мен жазбалар бар бумаға сүйреліп, оның ішіне түседі" width="100%">
 </picture>
@@ -61,6 +69,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/fold-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/fold.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/fold-dark.webp">
   <img src="docs/screenshots/kk/fold.webp" alt="Белгішеге жиылған кесте басқанда терезеге ашылады, онда сейсенбі таңдалады, ал терезенің жанынан басқанда қайта жиылады" width="100%">
 </picture>
@@ -69,6 +79,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/move-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/move.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/move-dark.webp">
   <img src="docs/screenshots/kk/move.webp" alt="Сағат мәзір арқылы жылжыту режиміне өтеді, оңға жылжиды, торға тұрады және бұрышынан үлкейтіледі" width="100%">
 </picture>
@@ -77,6 +89,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/scale-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/scale.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/scale-dark.webp">
   <img src="docs/screenshots/kk/scale.webp" alt="Жазбалар мәзірінде мәтін өлшемі алдымен 80 %, содан кейін 130 %, содан кейін «Авто» болып таңдалады" width="100%">
 </picture>
@@ -85,6 +99,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/fade-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/fade.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/fade-dark.webp">
   <img src="docs/screenshots/kk/fade.webp" alt="Жартылай мөлдір сағат, жүйе және жазбалар үстіне меңзер келгенде айқындалады" width="100%">
 </picture>

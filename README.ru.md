@@ -29,6 +29,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/map-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/map.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/map-dark.webp">
   <img src="docs/screenshots/map.webp" alt="Карта приближается колесом мыши там, где курсор, двигается перетаскиванием, переходит на третий этаж, а двойной щелчок снова показывает весь этаж" width="100%">
 </picture>
@@ -37,6 +39,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/calendar-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/calendar.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/calendar-dark.webp">
   <img src="docs/screenshots/calendar.webp" alt="Календарь листает месяцы, выбирает пятницу, а правый щелчок по ней делает напоминание: в заметках появляется дедлайн на этот день" width="100%">
 </picture>
@@ -45,6 +49,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/stack-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/stack.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stack-dark.webp">
   <img src="docs/screenshots/stack.webp" alt="Стопка виджетов: перетаскивание мышью влево, колесо и стрелка листают расписание, нагрузку, ярлыки и заметки, щелчок по точке возвращает к первому" width="100%">
 </picture>
@@ -53,6 +59,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/stack-in-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/stack-in.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stack-in-dark.webp">
   <img src="docs/screenshots/stack-in.webp" alt="В режиме перемещения часы перетаскиваются на стопку с расписанием и заметками и ложатся в неё" width="100%">
 </picture>
@@ -61,6 +69,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/fold-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/fold.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/fold-dark.webp">
   <img src="docs/screenshots/fold.webp" alt="Расписание, свёрнутое в значок, раскрывается в окно по щелчку, в окне выбирается вторник, а щелчок рядом сворачивает его обратно" width="100%">
 </picture>
@@ -69,6 +79,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/move-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/move.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/move-dark.webp">
   <img src="docs/screenshots/move.webp" alt="Часы через меню переходят в режим перемещения, переезжают вправо, встают по сетке и растягиваются за угол" width="100%">
 </picture>
@@ -77,6 +89,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/scale-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/scale.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/scale-dark.webp">
   <img src="docs/screenshots/scale.webp" alt="В меню заметок выбирается размер текста 80 %, затем 130 %, затем «Авто»" width="100%">
 </picture>
@@ -85,6 +99,8 @@
 
 <p align="center">
 <picture>
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/fade-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/fade.webp">
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/fade-dark.webp">
   <img src="docs/screenshots/fade.webp" alt="Полупрозрачные часы, система и заметки проявляются, когда над ними курсор" width="100%">
 </picture>
