@@ -37,9 +37,58 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/widgets-dark.webp">
-  <img src="docs/screenshots/en/widgets.webp" alt="Every AITU Desk widget: schedule, map, clock, notes, performance, system, shortcuts and a picture" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/calendar-dark.webp">
+  <img src="docs/screenshots/en/calendar.webp" alt="The calendar turns its months, picks a Friday, and a right click on it makes a reminder: a deadline for that day appears in the notes" width="100%">
 </picture>
+  <br><sub>A right click on a day of the calendar makes a note or a reminder for that day</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-dark.webp">
+  <img src="docs/screenshots/en/stack.webp" alt="The widget stack: a mouse drag to the left, the wheel and an arrow page through the schedule, performance, shortcuts and notes, a click on a dot goes back to the first" width="100%">
+</picture>
+  <br><sub>A stack pages by a mouse drag, the wheel, two fingers on the touchpad and the arrows</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-in-dark.webp">
+  <img src="docs/screenshots/en/stack-in.webp" alt="In move mode the clock is dragged onto a stack with the schedule and notes and goes into it" width="100%">
+</picture>
+  <br><sub>Any widget drags into a stack, and you can have several stacks</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fold-dark.webp">
+  <img src="docs/screenshots/en/fold.webp" alt="The schedule, folded into an icon, opens into a window with a click, Tuesday is picked in it, and a click beside it folds it back" width="100%">
+</picture>
+  <br><sub>Any widget folds into an icon and opens with a click</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/move-dark.webp">
+  <img src="docs/screenshots/en/move.webp" alt="The clock goes into move mode from its menu, moves to the right, lands on the grid and grows by its corner" width="100%">
+</picture>
+  <br><sub>A widget moves with the mouse, lands on the grid and resizes by its corner, its content grows with it</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/scale-dark.webp">
+  <img src="docs/screenshots/en/scale.webp" alt="The notes menu sets the text size to 80 %, then 130 %, then back to Auto" width="100%">
+</picture>
+  <br><sub>Text size: text and icons smaller or bigger at any widget size</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fade-dark.webp">
+  <img src="docs/screenshots/en/fade.webp" alt="The see-through clock, System and notes come forward when the pointer is over them" width="100%">
+</picture>
+  <br><sub>Fade in on hover: a see-through widget comes forward under the pointer</sub>
 </p>
 
 ## What it does
@@ -79,42 +128,9 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/calendar-dark.webp">
-  <img src="docs/screenshots/en/calendar.webp" alt="The calendar turns its months, picks a Friday, and a right click on it makes a reminder: a deadline for that day appears in the notes" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/widgets-dark.webp">
+  <img src="docs/screenshots/en/widgets.webp" alt="Every AITU Desk widget: schedule, map, clock, notes, performance, system, shortcuts and a picture" width="100%">
 </picture>
-  <br><sub>A right click on a day of the calendar makes a note or a reminder for that day</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-dark.webp">
-  <img src="docs/screenshots/en/stack.webp" alt="The widget stack: a mouse drag to the left, the wheel and an arrow page through the schedule, performance, shortcuts and notes, a click on a dot goes back to the first" width="100%">
-</picture>
-  <br><sub>A stack pages by a mouse drag, the wheel, two fingers on the touchpad and the arrows</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-in-dark.webp">
-  <img src="docs/screenshots/en/stack-in.webp" alt="In move mode the clock is dragged onto a stack with the schedule and notes and goes into it" width="100%">
-</picture>
-  <br><sub>Any widget drags into a stack, and you can have several stacks</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fold-dark.webp">
-  <img src="docs/screenshots/en/fold.webp" alt="The schedule, folded into an icon, opens into a window with a click, Tuesday is picked in it, and a click beside it folds it back" width="100%">
-</picture>
-  <br><sub>Any widget folds into an icon and opens with a click</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/move-dark.webp">
-  <img src="docs/screenshots/en/move.webp" alt="The clock goes into move mode from its menu, moves to the right, lands on the grid and grows by its corner" width="100%">
-</picture>
-  <br><sub>A widget moves with the mouse, lands on the grid and resizes by its corner, its content grows with it</sub>
 </p>
 
 ## Make it yours
@@ -125,22 +141,6 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
   <img src="docs/screenshots/en/looks.webp" alt="The clock and System in the Windows 11, Aqua, Rice and Pearl designs, System in three colors, the light theme" width="100%">
 </picture>
   <br><sub>Windows 11, Aqua, Rice and Pearl · your accent and any color for icons and text · your own background: a color or a gradient across the screen · themes from light to black</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/scale-dark.webp">
-  <img src="docs/screenshots/en/scale.webp" alt="The notes menu sets the text size to 80 %, then 130 %, then back to Auto" width="100%">
-</picture>
-  <br><sub>Text size: text and icons smaller or bigger at any widget size</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fade-dark.webp">
-  <img src="docs/screenshots/en/fade.webp" alt="The see-through clock, System and notes come forward when the pointer is over them" width="100%">
-</picture>
-  <br><sub>Fade in on hover: a see-through widget comes forward under the pointer</sub>
 </p>
 
 ## Installation

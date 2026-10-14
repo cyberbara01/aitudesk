@@ -29,9 +29,66 @@
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/widgets-dark.webp">
-  <img src="docs/screenshots/widgets.webp" alt="Все виджеты AITU Desk: расписание, карта, часы, заметки, нагрузка, система, ярлыки и своя картинка" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/map-dark.webp">
+  <img src="docs/screenshots/map.webp" alt="Карта приближается колесом мыши там, где курсор, двигается перетаскиванием, переходит на третий этаж, а двойной щелчок снова показывает весь этаж" width="100%">
 </picture>
+  <br><sub>Карта приближается колесом там, где курсор, а двойной щелчок показывает весь этаж</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/calendar-dark.webp">
+  <img src="docs/screenshots/calendar.webp" alt="Календарь листает месяцы, выбирает пятницу, а правый щелчок по ней делает напоминание: в заметках появляется дедлайн на этот день" width="100%">
+</picture>
+  <br><sub>Правый щелчок по дню календаря делает заметку или напоминание на этот день</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stack-dark.webp">
+  <img src="docs/screenshots/stack.webp" alt="Стопка виджетов: перетаскивание мышью влево, колесо и стрелка листают расписание, нагрузку, ярлыки и заметки, щелчок по точке возвращает к первому" width="100%">
+</picture>
+  <br><sub>Стопка листается мышью, колесом, двумя пальцами по тачпаду и стрелками</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stack-in-dark.webp">
+  <img src="docs/screenshots/stack-in.webp" alt="В режиме перемещения часы перетаскиваются на стопку с расписанием и заметками и ложатся в неё" width="100%">
+</picture>
+  <br><sub>Любой виджет перетаскивается в стопку, а стопок можно сделать несколько</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/fold-dark.webp">
+  <img src="docs/screenshots/fold.webp" alt="Расписание, свёрнутое в значок, раскрывается в окно по щелчку, в окне выбирается вторник, а щелчок рядом сворачивает его обратно" width="100%">
+</picture>
+  <br><sub>Любой виджет сворачивается в значок и раскрывается по щелчку</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/move-dark.webp">
+  <img src="docs/screenshots/move.webp" alt="Часы через меню переходят в режим перемещения, переезжают вправо, встают по сетке и растягиваются за угол" width="100%">
+</picture>
+  <br><sub>Виджет двигается мышью, встаёт по сетке и растягивается за угол, а всё внутри растёт вместе с ним</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/scale-dark.webp">
+  <img src="docs/screenshots/scale.webp" alt="В меню заметок выбирается размер текста 80 %, затем 130 %, затем «Авто»" width="100%">
+</picture>
+  <br><sub>Размер текста: текст и значки мельче или крупнее при любом размере виджета</sub>
+</p>
+
+<p align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/fade-dark.webp">
+  <img src="docs/screenshots/fade.webp" alt="Полупрозрачные часы, система и заметки проявляются, когда над ними курсор" width="100%">
+</picture>
+  <br><sub>Проявление при наведении: полупрозрачный виджет проявляется под курсором</sub>
 </p>
 
 ## Что умеет
@@ -71,50 +128,9 @@
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/calendar-dark.webp">
-  <img src="docs/screenshots/calendar.webp" alt="Календарь листает месяцы, выбирает пятницу, а правый щелчок по ней делает напоминание: в заметках появляется дедлайн на этот день" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/widgets-dark.webp">
+  <img src="docs/screenshots/widgets.webp" alt="Все виджеты AITU Desk: расписание, карта, часы, заметки, нагрузка, система, ярлыки и своя картинка" width="100%">
 </picture>
-  <br><sub>Правый щелчок по дню календаря делает заметку или напоминание на этот день</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/map-dark.webp">
-  <img src="docs/screenshots/map.webp" alt="Карта приближается колесом мыши там, где курсор, двигается перетаскиванием, переходит на третий этаж, а двойной щелчок снова показывает весь этаж" width="100%">
-</picture>
-  <br><sub>Карта приближается колесом там, где курсор, а двойной щелчок показывает весь этаж</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stack-dark.webp">
-  <img src="docs/screenshots/stack.webp" alt="Стопка виджетов: перетаскивание мышью влево, колесо и стрелка листают расписание, нагрузку, ярлыки и заметки, щелчок по точке возвращает к первому" width="100%">
-</picture>
-  <br><sub>Стопка листается мышью, колесом, двумя пальцами по тачпаду и стрелками</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stack-in-dark.webp">
-  <img src="docs/screenshots/stack-in.webp" alt="В режиме перемещения часы перетаскиваются на стопку с расписанием и заметками и ложатся в неё" width="100%">
-</picture>
-  <br><sub>Любой виджет перетаскивается в стопку, а стопок можно сделать несколько</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/fold-dark.webp">
-  <img src="docs/screenshots/fold.webp" alt="Расписание, свёрнутое в значок, раскрывается в окно по щелчку, в окне выбирается вторник, а щелчок рядом сворачивает его обратно" width="100%">
-</picture>
-  <br><sub>Любой виджет сворачивается в значок и раскрывается по щелчку</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/move-dark.webp">
-  <img src="docs/screenshots/move.webp" alt="Часы через меню переходят в режим перемещения, переезжают вправо, встают по сетке и растягиваются за угол" width="100%">
-</picture>
-  <br><sub>Виджет двигается мышью, встаёт по сетке и растягивается за угол, а всё внутри растёт вместе с ним</sub>
 </p>
 
 ## Под себя
@@ -125,22 +141,6 @@
   <img src="docs/screenshots/looks.webp" alt="Часы и Система в дизайнах Windows 11, Aqua, Rice и Pearl, Система в трёх цветах, светлая тема" width="100%">
 </picture>
   <br><sub>Windows 11, Aqua, Rice и Pearl · свой акцент и любой цвет значков и текста · свой фон: цвет или градиент на весь экран · темы от светлой до чёрной</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/scale-dark.webp">
-  <img src="docs/screenshots/scale.webp" alt="В меню заметок выбирается размер текста 80 %, затем 130 %, затем «Авто»" width="100%">
-</picture>
-  <br><sub>Размер текста: текст и значки мельче или крупнее при любом размере виджета</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/fade-dark.webp">
-  <img src="docs/screenshots/fade.webp" alt="Полупрозрачные часы, система и заметки проявляются, когда над ними курсор" width="100%">
-</picture>
-  <br><sub>Проявление при наведении: полупрозрачный виджет проявляется под курсором</sub>
 </p>
 
 ## Установка
