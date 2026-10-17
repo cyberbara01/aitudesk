@@ -21,16 +21,15 @@ import { MAP_FOCUS_EVENT } from "../lib/schedule";
 import { isCustomLabel, stackLabel, type TileId } from "../lib/settings";
 import { isFoldedView, STACK_ID, useTileView } from "../lib/tileView";
 import { useSettings, useSettingsLoaded } from "../lib/useSettings";
-import { CustomTile, preloadWidget, WIDGETS } from "../lib/widgetPages";
+import { CustomTile, preloadWidget, readyWidget, WIDGETS } from "../lib/widgetPages";
 import { addItems, addToStack, removeFromStack, stackMembers, stackName, widgetName } from "./actions";
 import { StackContext, type StackApi } from "./context";
+import { SwipeGate } from "./swipe";
 
 /** Which widget a stack showed last (the pages' own storage, one key per stack: nothing else needs it). */
 const lastKey = (id: string | null) => `aitudesk.stack.shown.${id ?? ""}`;
 /** The slide between two widgets (ms), as long as stack.css plays it. */
 const SLIDE_MS = 420;
-/** A touchpad swipe turns the page once it has moved this far along the stack (CSS px), once per swipe. */
-const SWIPE_STEP = 46;
 /** A swipe (or a turn of the wheel) has ended once no wheel event came for this long (ms). */
 const GESTURE_IDLE_MS = 190;
 /** Within one turn of the wheel, a notch turns another page after this long (ms). */
@@ -103,8 +102,12 @@ function useDragOver(): boolean {
   return over;
 }
 
-/** One widget of the stack, the way the pop-up draws one: its own page component, in this window. */
+/** One widget of the stack, the way the pop-up draws one: its own page component, in this window. Code loaded ahead
+ * (preloadWidget) is drawn at once: through `lazy` the first page turn to a widget showed an empty page for a moment
+ * even with its code in hand. Chosen once per page, so the widget is never drawn anew when its code comes in. */
 function Member({ label }: { label: string }) {
+  const [ready] = useState(() => readyWidget(label));
+  if (ready) return ready;
   const Widget = isCustomLabel(label) ? null : WIDGETS[label as TileId];
   return <Suspense fallback={null}>{Widget ? <Widget /> : <CustomTile label={label} />}</Suspense>;
 }
@@ -273,14 +276,14 @@ export function StackHost({ id = STACK_ID }: { id?: string | null }) {
   }, [loaded, members, show]);
 
   // The wheel and the touchpad. A mouse wheel turns one page per notch whichever way the stack pages; a touchpad
-  // swipe turns one page per swipe, only along the stack (up and down, or left and right), and the other way stays
-  // with the widget (a list scrolls). The first step of a gesture tells them apart: a notch comes at once, whole and
-  // straight, a swipe glides in.
+  // swipe turns one page per swipe, only along the stack (up and down, or left and right), swipe after swipe without
+  // waiting for the last one's glide to end (src/stack/swipe.ts), and the other way stays with the widget (a list
+  // scrolls). The first step of a gesture tells them apart: a notch comes at once, whole and straight, a swipe glides
+  // in.
   useEffect(() => {
     let along = 0;
-    let across = 0;
     let idle = 0;
-    let turned = false;
+    const swipes = new SwipeGate();
     let lastTurn = 0;
     let usedInside = false;
     let mouse: boolean | null = null;
@@ -293,8 +296,7 @@ export function StackHost({ id = STACK_ID }: { id?: string | null }) {
       window.clearTimeout(idle);
       idle = window.setTimeout(() => {
         along = 0;
-        across = 0;
-        turned = false;
+        swipes.reset();
         usedInside = false;
         mouse = null;
       }, GESTURE_IDLE_MS);
@@ -318,13 +320,8 @@ export function StackHost({ id = STACK_ID }: { id?: string | null }) {
         along = 0;
         return;
       }
-      if (turned) return;
-      along += sidewaysRef.current ? dx : dy;
-      across += sidewaysRef.current ? dy : dx;
-      if (Math.abs(along) >= SWIPE_STEP && Math.abs(along) > Math.abs(across)) {
-        turned = true;
-        go(along);
-      }
+      const turn = sidewaysRef.current ? swipes.step(dx, dy, now) : swipes.step(dy, dx, now);
+      if (turn !== 0) go(turn);
     };
     window.addEventListener("wheel", onWheel);
     return () => {

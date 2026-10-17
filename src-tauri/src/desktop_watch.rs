@@ -522,17 +522,39 @@ pub fn attach(h: HWND) {
     pin_bottom(h);
 }
 
+/// Whether the desktop is raised now ("Show desktop", Win+D): the host over every window, the sentinel below it.
+/// Asked at the moment of a placement, not from the last poll.
+fn raised_now() -> bool {
+    match (sentinel(), desktop_host()) {
+        (Some(s), Some(host)) => unsafe { IsWindowVisible(host) }.as_bool() && below_host(host, s, &[]).0,
+        _ => DESKTOP_SHOWN.load(Ordering::Relaxed),
+    }
+}
+
+/// Where a placement puts a tile in the z-order. Normally HWND_BOTTOM: right above the desktop. While the desktop is
+/// raised the bottom is under it, so the tile would vanish until the poll lifted it again (a widget let go on the
+/// grid glides there in steps, and blinked at each one): then the tile keeps its place, already right above the
+/// raised desktop.
+fn zorder() -> (Option<HWND>, u32) {
+    if raised_now() {
+        (None, SWP_NOZORDER.0)
+    } else {
+        (Some(HWND_BOTTOM), 0)
+    }
+}
+
 /// Move a tile to (x, y) physical px and keep it right above the desktop, in one call.
 pub fn move_tile(h: HWND, x: i32, y: i32) {
+    let (after, keep) = zorder();
     unsafe {
         let _ = SetWindowPos(
             h,
-            Some(HWND_BOTTOM),
+            after,
             x,
             y,
             0,
             0,
-            SET_WINDOW_POS_FLAGS(SWP_NOSIZE.0 | SWP_NOACTIVATE.0 | SWP_NOOWNERZORDER.0),
+            SET_WINDOW_POS_FLAGS(SWP_NOSIZE.0 | SWP_NOACTIVATE.0 | SWP_NOOWNERZORDER.0 | keep),
         );
     }
 }
@@ -540,15 +562,16 @@ pub fn move_tile(h: HWND, x: i32, y: i32) {
 /// Size and position of a tile in one SetWindowPos, right above the desktop like `move_tile`: a pop-up opening or
 /// folding (and any re-placing) never shows a step with the new size at the old place.
 pub fn place_tile(h: HWND, x: i32, y: i32, w: u32, height: u32) {
+    let (after, keep) = zorder();
     unsafe {
         let _ = SetWindowPos(
             h,
-            Some(HWND_BOTTOM),
+            after,
             x,
             y,
             w as i32,
             height as i32,
-            SET_WINDOW_POS_FLAGS(SWP_NOACTIVATE.0 | SWP_NOOWNERZORDER.0),
+            SET_WINDOW_POS_FLAGS(SWP_NOACTIVATE.0 | SWP_NOOWNERZORDER.0 | keep),
         );
     }
 }
