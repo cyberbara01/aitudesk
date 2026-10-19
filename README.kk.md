@@ -39,72 +39,22 @@
 
 <p align="center">
 <picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/calendar-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/calendar.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/calendar-dark.webp">
-  <img src="docs/screenshots/kk/calendar.webp" alt="Күнтізбе айларды парақтайды, жұманы таңдайды, ал оны оң жақ батырмамен басқанда еске салғыш жасалады: жазбаларда сол күнге мерзім пайда болады" width="100%">
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/calendar-stacks-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/calendar-stacks.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/calendar-stacks-dark.webp">
+  <img src="docs/screenshots/kk/calendar-stacks.webp" alt="Күнтізбедегі күнді оң жақ батырмамен басқанда еске салғыш жасалып, жазбаларда пайда болады; виджеттер бумасы дөңгелекпен және тінтуірмен парақталады, ал сағат оған сүйреледі" width="100%">
 </picture>
-  <br><sub>Күнтізбедегі күнді оң жақ батырмамен бассаңыз, сол күнге жазба немесе еске салғыш жасалады</sub>
+  <br><sub>Күнтізбе және бумалар: күнтізбедегі күннен жазба немесе еске салғыш · бума дөңгелекпен, тінтуірмен, екі саусақпен және көрсеткілермен парақталады · кез келген виджет бумаға сүйреледі</sub>
 </p>
 
 <p align="center">
 <picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/stack-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/stack.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/stack-dark.webp">
-  <img src="docs/screenshots/kk/stack.webp" alt="Виджеттер бумасы: тінтуірмен солға сүйреу, дөңгелек пен көрсеткі кестені, жүктемені, жарлықтар мен жазбаларды парақтайды, нүктені басқанда біріншісіне қайтады" width="100%">
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/arrange-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/arrange.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/arrange-dark.webp">
+  <img src="docs/screenshots/kk/arrange.webp" alt="Сағат торда жылжып, бұрышынан үлкейеді, кесте белгішеге жиылып, басқанда ашылады, жазбалар мәтіні үлкейіп-кішірейеді, жартылай мөлдір виджеттер меңзердің астында айқындалады" width="100%">
 </picture>
-  <br><sub>Бума тінтуірмен, дөңгелекпен, сенсорлық тақтадағы екі саусақпен және көрсеткілермен парақталады</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/stack-in-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/stack-in.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/stack-in-dark.webp">
-  <img src="docs/screenshots/kk/stack-in.webp" alt="Жылжыту режимінде сағат кесте мен жазбалар бар бумаға сүйреліп, оның ішіне түседі" width="100%">
-</picture>
-  <br><sub>Кез келген виджет бумаға сүйреледі, ал бумалар бірнешеу болуы мүмкін</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/fold-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/fold.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/fold-dark.webp">
-  <img src="docs/screenshots/kk/fold.webp" alt="Белгішеге жиылған кесте басқанда терезеге ашылады, онда сейсенбі таңдалады, ал терезенің жанынан басқанда қайта жиылады" width="100%">
-</picture>
-  <br><sub>Кез келген виджет белгішеге жиылып, басқанда ашылады</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/move-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/move.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/move-dark.webp">
-  <img src="docs/screenshots/kk/move.webp" alt="Сағат мәзір арқылы жылжыту режиміне өтеді, оңға жылжиды, торға тұрады және бұрышынан үлкейтіледі" width="100%">
-</picture>
-  <br><sub>Виджет тінтуірмен жылжиды, торға тұрады және бұрышынан үлкейеді, ішіндегінің бәрі онымен бірге өседі</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/scale-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/scale.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/scale-dark.webp">
-  <img src="docs/screenshots/kk/scale.webp" alt="Жазбалар мәзірінде мәтін өлшемі алдымен 80 %, содан кейін 130 %, содан кейін «Авто» болып таңдалады" width="100%">
-</picture>
-  <br><sub>Мәтін өлшемі: виджеттің кез келген өлшемінде мәтін мен белгішелер кішірек не үлкенірек</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/kk/m/fade-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/kk/m/fade.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/kk/fade-dark.webp">
-  <img src="docs/screenshots/kk/fade.webp" alt="Жартылай мөлдір сағат, жүйе және жазбалар үстіне меңзер келгенде айқындалады" width="100%">
-</picture>
-  <br><sub>Меңзерді апарғанда айқындау: жартылай мөлдір виджет меңзердің астында айқындалады</sub>
+  <br><sub>Орналастыру және көрініс: торда жылжыту және бұрышынан өлшемін өзгерту · кез келген виджет белгішеге жиылады · мәтін өлшемі · меңзерді апарғанда айқындау</sub>
 </p>
 
 ## Не істей алады

@@ -39,72 +39,22 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
 
 <p align="center">
 <picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/calendar-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/calendar.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/calendar-dark.webp">
-  <img src="docs/screenshots/en/calendar.webp" alt="The calendar turns its months, picks a Friday, and a right click on it makes a reminder: a deadline for that day appears in the notes" width="100%">
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/calendar-stacks-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/calendar-stacks.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/calendar-stacks-dark.webp">
+  <img src="docs/screenshots/en/calendar-stacks.webp" alt="A right click on a day of the calendar makes a reminder that shows up in the notes; a stack of widgets pages by the wheel and a drag, and the clock is dragged into it" width="100%">
 </picture>
-  <br><sub>A right click on a day of the calendar makes a note or a reminder for that day</sub>
+  <br><sub>Calendar and stacks: a note or a reminder from a day of the calendar · a stack pages by the wheel, a drag, two fingers and the arrows · any widget drags into a stack</sub>
 </p>
 
 <p align="center">
 <picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/stack-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/stack.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-dark.webp">
-  <img src="docs/screenshots/en/stack.webp" alt="The widget stack: a mouse drag to the left, the wheel and an arrow page through the schedule, performance, shortcuts and notes, a click on a dot goes back to the first" width="100%">
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/arrange-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/arrange.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/arrange-dark.webp">
+  <img src="docs/screenshots/en/arrange.webp" alt="The clock moves on the grid and grows by its corner, the schedule folds into an icon and opens with a click, the notes text gets bigger and smaller, see-through widgets come forward under the pointer" width="100%">
 </picture>
-  <br><sub>A stack pages by a mouse drag, the wheel, two fingers on the touchpad and the arrows</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/stack-in-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/stack-in.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/stack-in-dark.webp">
-  <img src="docs/screenshots/en/stack-in.webp" alt="In move mode the clock is dragged onto a stack with the schedule and notes and goes into it" width="100%">
-</picture>
-  <br><sub>Any widget drags into a stack, and you can have several stacks</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/fold-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/fold.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fold-dark.webp">
-  <img src="docs/screenshots/en/fold.webp" alt="The schedule, folded into an icon, opens into a window with a click, Tuesday is picked in it, and a click beside it folds it back" width="100%">
-</picture>
-  <br><sub>Any widget folds into an icon and opens with a click</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/move-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/move.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/move-dark.webp">
-  <img src="docs/screenshots/en/move.webp" alt="The clock goes into move mode from its menu, moves to the right, lands on the grid and grows by its corner" width="100%">
-</picture>
-  <br><sub>A widget moves with the mouse, lands on the grid and resizes by its corner, its content grows with it</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/scale-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/scale.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/scale-dark.webp">
-  <img src="docs/screenshots/en/scale.webp" alt="The notes menu sets the text size to 80 %, then 130 %, then back to Auto" width="100%">
-</picture>
-  <br><sub>Text size: text and icons smaller or bigger at any widget size</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/en/m/fade-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/en/m/fade.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/fade-dark.webp">
-  <img src="docs/screenshots/en/fade.webp" alt="The see-through clock, System and notes come forward when the pointer is over them" width="100%">
-</picture>
-  <br><sub>Fade in on hover: a see-through widget comes forward under the pointer</sub>
+  <br><sub>Arranging and looks: move on the grid and resize by the corner · any widget folds into an icon · text size · fade in on hover</sub>
 </p>
 
 ## What it does

@@ -39,72 +39,22 @@
 
 <p align="center">
 <picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/calendar-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/m/calendar.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/calendar-dark.webp">
-  <img src="docs/screenshots/calendar.webp" alt="Календарь листает месяцы, выбирает пятницу, а правый щелчок по ней делает напоминание: в заметках появляется дедлайн на этот день" width="100%">
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/calendar-stacks-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/calendar-stacks.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/calendar-stacks-dark.webp">
+  <img src="docs/screenshots/calendar-stacks.webp" alt="Правый щелчок по дню календаря делает напоминание, и оно появляется в заметках; стопка виджетов листается колесом и мышью, а часы перетаскиваются в неё" width="100%">
 </picture>
-  <br><sub>Правый щелчок по дню календаря делает заметку или напоминание на этот день</sub>
+  <br><sub>Календарь и стопки: заметка или напоминание прямо из дня календаря · стопка листается колесом, мышью, двумя пальцами и стрелками · любой виджет перетаскивается в стопку</sub>
 </p>
 
 <p align="center">
 <picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/stack-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/m/stack.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stack-dark.webp">
-  <img src="docs/screenshots/stack.webp" alt="Стопка виджетов: перетаскивание мышью влево, колесо и стрелка листают расписание, нагрузку, ярлыки и заметки, щелчок по точке возвращает к первому" width="100%">
+  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/arrange-dark.webp">
+  <source media="(max-width: 700px)" srcset="docs/screenshots/m/arrange.webp">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/arrange-dark.webp">
+  <img src="docs/screenshots/arrange.webp" alt="Часы двигаются по сетке и растягиваются за угол, расписание сворачивается в значок и раскрывается по щелчку, текст заметок становится крупнее и мельче, полупрозрачные виджеты проявляются под курсором" width="100%">
 </picture>
-  <br><sub>Стопка листается мышью, колесом, двумя пальцами по тачпаду и стрелками</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/stack-in-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/m/stack-in.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/stack-in-dark.webp">
-  <img src="docs/screenshots/stack-in.webp" alt="В режиме перемещения часы перетаскиваются на стопку с расписанием и заметками и ложатся в неё" width="100%">
-</picture>
-  <br><sub>Любой виджет перетаскивается в стопку, а стопок можно сделать несколько</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/fold-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/m/fold.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/fold-dark.webp">
-  <img src="docs/screenshots/fold.webp" alt="Расписание, свёрнутое в значок, раскрывается в окно по щелчку, в окне выбирается вторник, а щелчок рядом сворачивает его обратно" width="100%">
-</picture>
-  <br><sub>Любой виджет сворачивается в значок и раскрывается по щелчку</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/move-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/m/move.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/move-dark.webp">
-  <img src="docs/screenshots/move.webp" alt="Часы через меню переходят в режим перемещения, переезжают вправо, встают по сетке и растягиваются за угол" width="100%">
-</picture>
-  <br><sub>Виджет двигается мышью, встаёт по сетке и растягивается за угол, а всё внутри растёт вместе с ним</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/scale-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/m/scale.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/scale-dark.webp">
-  <img src="docs/screenshots/scale.webp" alt="В меню заметок выбирается размер текста 80 %, затем 130 %, затем «Авто»" width="100%">
-</picture>
-  <br><sub>Размер текста: текст и значки мельче или крупнее при любом размере виджета</sub>
-</p>
-
-<p align="center">
-<picture>
-  <source media="(max-width: 700px) and (prefers-color-scheme:dark)" srcset="docs/screenshots/m/fade-dark.webp">
-  <source media="(max-width: 700px)" srcset="docs/screenshots/m/fade.webp">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/fade-dark.webp">
-  <img src="docs/screenshots/fade.webp" alt="Полупрозрачные часы, система и заметки проявляются, когда над ними курсор" width="100%">
-</picture>
-  <br><sub>Проявление при наведении: полупрозрачный виджет проявляется под курсором</sub>
+  <br><sub>Расстановка и вид: перемещение по сетке и размер за угол · любой виджет сворачивается в значок · размер текста · проявление при наведении</sub>
 </p>
 
 ## Что умеет
