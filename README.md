@@ -34,7 +34,6 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/map-dark.webp">
   <img src="docs/screenshots/en/map.webp" alt="The map zooms in with the mouse wheel where the pointer is, moves with a drag, goes up to the third floor, and a double click shows the whole floor again" width="100%">
 </picture>
-  <br><sub>The map zooms in with the wheel where the pointer is, a double click shows the whole floor</sub>
 </p>
 
 <p align="center">
@@ -44,7 +43,6 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/calendar-stacks-dark.webp">
   <img src="docs/screenshots/en/calendar-stacks.webp" alt="A right click on a day of the calendar makes a reminder that shows up in the notes; a stack of widgets pages by the wheel and a drag, and the clock is dragged into it" width="100%">
 </picture>
-  <br><sub>Calendar and stacks: a note or a reminder from a day of the calendar · a stack pages by the wheel, a drag, two fingers and the arrows · any widget drags into a stack</sub>
 </p>
 
 <p align="center">
@@ -54,7 +52,6 @@ A clock, battery and network, computer load, shortcuts, notes with deadlines, th
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/en/arrange-dark.webp">
   <img src="docs/screenshots/en/arrange.webp" alt="The clock moves on the grid and grows by its corner, the schedule folds into an icon and opens with a click, the notes text gets bigger and smaller, see-through widgets come forward under the pointer" width="100%">
 </picture>
-  <br><sub>Arranging and looks: move on the grid and resize by the corner · any widget folds into an icon · text size · fade in on hover</sub>
 </p>
 
 ## What it does
